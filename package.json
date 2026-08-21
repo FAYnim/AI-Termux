@@ -1,0 +1,31 @@
+{
+  "name": "termux-ai-cli",
+  "version": "1.0.0",
+  "description": "Autonomous AI Agent CLI optimized for Termux Android environment",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "t-ai": "./bin/tai.js",
+    "tai": "./bin/tai.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "node scripts/test-e2e.js",
+    "test:all": "node --test tests/*.test.js tests/e2e/*.test.js",
+    "benchmark": "node scripts/benchmark.js"
+  },
+  "keywords": [
+    "termux",
+    "ai",
+    "cli",
+    "agent",
+    "gemini",
+    "react-loop",
+    "android"
+  ],
+  "author": "FAYnim",
+  "license": "MIT"
+}

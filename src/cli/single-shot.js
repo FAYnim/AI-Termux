@@ -1,0 +1,141 @@
+/**
+ * Single-Shot Command Runner
+ * Executes a single prompt or piped task through the ReAct Agent Orchestrator to completion.
+ */
+
+import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
+import { createSpinner } from '../ui/spinner.js';
+import { renderMarkdown } from '../ui/markdown.js';
+import { ansi } from '../utils/ansi.js';
+import { logger as defaultLogger } from '../utils/logger.js';
+
+/**
+ * Runs a single-shot autonomous task
+ *
+ * @param {string} prompt - User task or prompt
+ * @param {object} [options={}]
+ * @param {AgentOrchestrator} [options.orchestrator] - Preconfigured orchestrator instance
+ * @param {string} [options.model] - Model override
+ * @param {string} [options.apiKey] - API key override
+ * @param {string} [options.workingDir] - Working directory
+ * @param {boolean} [options.autoApprove=false] - Auto-approve risky actions
+ * @param {AbortSignal} [options.signal] - Abort controller signal
+ * @param {NodeJS.WriteStream} [options.stream=process.stdout] - Output stream
+ * @param {object} [options.logger] - Custom logger
+ * @param {boolean} [options.streamTokens=true] - Stream tokens in real-time
+ * @returns {Promise<{
+ *   success: boolean,
+ *   text: string,
+ *   iterations: number,
+ *   toolCalls: Array<object>,
+ *   session?: object,
+ *   error?: Error
+ * }>}
+ */
+export async function runSingleShot(prompt, options = {}) {
+  const stream = options.stream || process.stdout;
+  const logger = options.logger || defaultLogger;
+  const streamTokens = options.streamTokens !== false;
+
+  const orchestrator =
+    options.orchestrator ||
+    createAgentOrchestrator({
+      model: options.model,
+      apiKey: options.apiKey,
+      workingDir: options.workingDir,
+      autoApprove: options.autoApprove,
+      logger
+    });
+
+  const spinner = createSpinner({ stream });
+  let hasStreamedToken = false;
+  let streamedText = '';
+
+  try {
+    spinner.start('Thinking...');
+
+    const result = await orchestrator.runTurn(prompt, {
+      signal: options.signal,
+      onIterationStart: (iter) => {
+        if (iter > 1) {
+          hasStreamedToken = false;
+          spinner.start(`Thinking (Turn ${iter})...`);
+        }
+      },
+      onToken: (token) => {
+        if (spinner.isSpinning()) {
+          spinner.stop();
+        }
+        if (streamTokens) {
+          if (!hasStreamedToken) {
+            hasStreamedToken = true;
+            stream.write('\n');
+          }
+          stream.write(token);
+          streamedText += token;
+        }
+      },
+      onToolCall: (call) => {
+        if (spinner.isSpinning()) {
+          spinner.stop();
+        }
+        const toolDetails = call.args ? JSON.stringify(call.args).slice(0, 60) : '';
+        const preview = toolDetails.length >= 60 ? `${toolDetails}...` : toolDetails;
+        stream.write(`\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(preview)}\n`);
+        spinner.start(`Executing ${call.name}...`);
+      },
+      onToolResult: (name, toolRes) => {
+        if (toolRes && toolRes.error) {
+          spinner.warn(`Tool ${name} reported error: ${toolRes.message || 'Failed'}`);
+        } else {
+          spinner.succeed(`Tool ${name} finished successfully`);
+        }
+        spinner.start('Thinking...');
+      }
+    });
+
+    if (spinner.isSpinning()) {
+      spinner.stop();
+    }
+
+    // If tokens weren't streamed in real time, render Markdown now
+    if (!streamTokens && result.text) {
+      const formatted = renderMarkdown(result.text);
+      stream.write(`\n${formatted}\n\n`);
+    } else if (hasStreamedToken) {
+      stream.write('\n\n');
+    }
+
+    return {
+      success: result.success,
+      text: result.text,
+      iterations: result.iterations,
+      toolCalls: result.toolCalls,
+      session: result.session
+    };
+  } catch (err) {
+    if (spinner.isSpinning()) {
+      spinner.stop();
+    }
+
+    if (options.signal && options.signal.aborted) {
+      stream.write(`\n${ansi.yellow('⚠ [Operation cancelled by user]')}\n\n`);
+      return {
+        success: false,
+        text: streamedText,
+        iterations: 0,
+        toolCalls: [],
+        error: err
+      };
+    }
+
+    logger.error(`Single-shot task failed: ${err.message}`);
+    return {
+      success: false,
+      text: streamedText,
+      iterations: 0,
+      toolCalls: [],
+      error: err
+    };
+  }
+}
