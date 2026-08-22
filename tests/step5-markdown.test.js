@@ -16,6 +16,8 @@ import {
   stripAnsi,
   setColorEnabled
 } from '../src/index.js';
+import { REPL_PROMPT } from '../src/cli/repl.js';
+import { APP_NAME } from '../src/config/constants.js';
 import { PassThrough } from 'node:stream';
 
 describe('Step 5: ANSI Markdown & Syntax Highlighter', () => {
@@ -279,5 +281,11 @@ describe('Step 5: Live Spinner & Status Indicator', () => {
     assert.ok(plain.includes('⚠ Careful here'));
     assert.ok(plain.includes('✖ Something went wrong'));
     assert.ok(plain.includes('ℹ FYI message'));
+  });
+
+  test('REPL_PROMPT should include APP_NAME constant', () => {
+    assert.ok(REPL_PROMPT.includes(APP_NAME));
+    assert.equal(APP_NAME, 'termuxai');
+    assert.ok(REPL_PROMPT.includes('termuxai'));
   });
 });

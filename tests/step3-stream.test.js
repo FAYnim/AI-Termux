@@ -90,7 +90,7 @@ describe('Step 3: SSE Stream Parser', () => {
     });
 
     const sseData =
-      'data: {"candidates":[{"content":{"parts":[{"text":"Saya akan memeriksa file konfigurasi."},{"functionCall":{"name":"read_file","args":{"filePath":".t-ai/config.json"}}}]},"finishReason":"STOP"}]}\n\n';
+      'data: {"candidates":[{"content":{"parts":[{"text":"Saya akan memeriksa file konfigurasi."},{"functionCall":{"name":"read_file","args":{"filePath":".termuxai/config.json"}}}]},"finishReason":"STOP"}]}\n\n';
 
     parser.feed(sseData);
     parser.flush();
@@ -98,7 +98,7 @@ describe('Step 3: SSE Stream Parser', () => {
     assert.deepEqual(tokens, ['Saya akan memeriksa file konfigurasi.']);
     assert.equal(functionCalls.length, 1);
     assert.equal(functionCalls[0].name, 'read_file');
-    assert.deepEqual(functionCalls[0].args, { filePath: '.t-ai/config.json' });
+    assert.deepEqual(functionCalls[0].args, { filePath: '.termuxai/config.json' });
 
     const result = parser.getResult();
     assert.equal(result.text, 'Saya akan memeriksa file konfigurasi.');

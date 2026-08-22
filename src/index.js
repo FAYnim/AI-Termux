@@ -1,5 +1,5 @@
 /**
- * Termux AI CLI (`t-ai`) - Library Entrypoint
+ * Termux AI CLI (`termuxai`) - Library Entrypoint
  */
 
 export * from './config/constants.js';

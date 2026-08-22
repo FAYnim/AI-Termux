@@ -29,7 +29,7 @@ export class GeminiClient {
    * @param {object} [options.logger] - Logger instance
    */
   constructor(options = {}) {
-    this.apiKey = options.apiKey || configManager.get('apiKey') || process.env.GEMINI_API_KEY || '';
+    this.apiKey = options.apiKey !== undefined ? options.apiKey : (configManager.getApiKey() || '');
     this.model = options.model || configManager.get('model') || DEFAULT_MODEL;
     this.apiVersion = options.apiVersion || 'v1beta';
     this.baseUrl = (options.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
@@ -287,7 +287,7 @@ export class GeminiClient {
   _validateApiKey() {
     if (!this.apiKey || typeof this.apiKey !== 'string' || this.apiKey.trim() === '') {
       throw new Error(
-        'Gemini API key is not configured. Please set it using `t-ai config set apiKey <key>` or set GEMINI_API_KEY environment variable.'
+        'Gemini API key is not configured. Please set it using `termuxai config set apiKey <key>` or set GEMINI_API_KEY environment variable.'
       );
     }
   }

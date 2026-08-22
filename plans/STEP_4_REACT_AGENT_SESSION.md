@@ -1,12 +1,12 @@
 # Step 4: ReAct Agentic Loop & Conversation State Engine
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 4** pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 4** pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 
 ## 1. Tujuan & Ruang Lingkup (Objectives & Scope)
 
-Membangun inti kecerdasan otonom (*Agent Orchestrator*) menggunakan paradigma **ReAct (Reasoning + Acting)**. Orchestrator bertanggung jawab mengoordinasikan interaksi antara LLM (Step 3), alat lokal & sistem keamanan (Step 2), dan pengguna. Selain itu, modul ini menyediakan **Session & Context Manager** untuk persistensi sesi percakapan ke disk (`~/.t-ai/sessions/`), dukungan resume sesi, serta algoritma pemangkasan konteks (*Context Pruning*) untuk mencegah pemborosan token.
+Membangun inti kecerdasan otonom (*Agent Orchestrator*) menggunakan paradigma **ReAct (Reasoning + Acting)**. Orchestrator bertanggung jawab mengoordinasikan interaksi antara LLM (Step 3), alat lokal & sistem keamanan (Step 2), dan pengguna. Selain itu, modul ini menyediakan **Session & Context Manager** untuk persistensi sesi percakapan ke disk (`~/.termuxai/sessions/`), dukungan resume sesi, serta algoritma pemangkasan konteks (*Context Pruning*) untuk mencegah pemborosan token.
 
 ---
 
@@ -19,7 +19,7 @@ ai-termux/
 │   ├── agent/
 │   │   ├── orchestrator.js    # Core ReAct loop execution engine
 │   │   ├── system-prompt.js   # System instructions & environment context injector
-│   │   ├── session.js         # Atomic session storage & history manager (~/.t-ai/sessions)
+│   │   ├── session.js         # Atomic session storage & history manager (~/.termuxai/sessions)
 │   │   └── pruner.js          # Context pruning & token estimation algorithm
 └── tests/
     ├── step4-orchestrator.test.js # Integration test for ReAct execution loop
@@ -80,7 +80,7 @@ sequenceDiagram
             O->>L: Kirim functionResponse balik ke LLM
         end
     end
-    O->>O: Simpan Percakapan ke ~/.t-ai/sessions/<id>.json
+    O->>O: Simpan Percakapan ke ~/.termuxai/sessions/<id>.json
 ```
 
 * **Pencegahan Infinite Loop:** Batas iterasi maksimum per perintah pengguna (default: `15` iterasi loop per instruksi).
@@ -90,7 +90,7 @@ sequenceDiagram
 
 ### 3.3 Session Manager (`src/agent/session.js`)
 
-* **Struktur Berkas Sesi (`~/.t-ai/sessions/<session-id>.json`):**
+* **Struktur Berkas Sesi (`~/.termuxai/sessions/<session-id>.json`):**
   ```json
   {
     "id": "sess_1724238912_abc123",
@@ -142,7 +142,7 @@ sequenceDiagram
 - [ ] Modul `SystemPrompt` menginjeksi informasi sistem Termux dan petunjuk agen secara akurat.
 - [ ] `AgentOrchestrator` berhasil menjalankan siklus ReAct dan merespon `functionCall` secara otomatis.
 - [ ] Batas maksimal loop ReAct berjalan efektif mencegah perulangan tanpa akhir.
-- [ ] `SessionManager` menyimpan dan memuat file sesi di `~/.t-ai/sessions/` dengan integritas penuh.
+- [ ] `SessionManager` menyimpan dan memuat file sesi di `~/.termuxai/sessions/` dengan integritas penuh.
 - [ ] Algoritma `ContextPruning` memangkas token tanpa merusak format percakapan.
 - [ ] Seluruh unit test Step 4 lulus (`npm test`).
 

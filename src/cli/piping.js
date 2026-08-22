@@ -1,7 +1,7 @@
 /**
  * UNIX Stdin Piping Handler
- * Reads streams from standard input when piped into `t-ai`
- * Example: `cat error.log | t-ai "analisis masalah ini"`
+ * Reads streams from standard input when piped into `termuxai`
+ * Example: `cat error.log | termuxai "analisis masalah ini"`
  */
 
 const DEFAULT_PIPE_TIMEOUT_MS = 5000;

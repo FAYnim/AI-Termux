@@ -1,6 +1,6 @@
 # Step 5: Interactive REPL, Output Rendering & UNIX Piping
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 5** pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 5** pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 
@@ -37,7 +37,7 @@ ai-termux/
 ### 3.1 Interactive REPL (`src/cli/repl.js`)
 
 * Menggunakan `node:readline/promises` bawaan Node.js.
-* Menampilkan prompt kustom: `t-ai ❯ `.
+* Menampilkan prompt kustom: `termuxai ❯ `.
 * Mendukung riwayat perintah terminal (Arrow Up / Arrow Down).
 * Integrasi dengan `AgentOrchestrator` dari Step 4 dalam mode berkelanjutan (*continuous session*).
 * **Perintah Slash Bawaan (`src/cli/slash-commands.js`):**
@@ -50,10 +50,10 @@ ai-termux/
 
 ---
 
-### 3.2 Single-Shot Mode & UNIX Piping
+## 3.2 Single-Shot Mode & UNIX Piping
 
 #### Single-Shot Runner (`src/cli/single-shot.js`)
-* Dipicu saat pengguna memberikan argumen langsung: `t-ai "refactor modul auth.js"`.
+* Dipicu saat pengguna memberikan argumen langsung: `termuxai "refactor modul auth.js"`.
 * Menjalankan orchestrator untuk 1 task hingga tuntas, mencetak output akhir, menyimpan sesi, dan keluar dengan exit code `0` (sukses) atau `1` (gagal).
 
 #### UNIX Piping Handler (`src/cli/piping.js`)
@@ -61,13 +61,13 @@ ai-termux/
 * Menggabungkan konten pipe dengan instruksi pengguna.
 * Contoh penggunaan:
   ```bash
-  cat /var/log/nginx/error.log | t-ai "analisis penyebab crash server ini"
-  git diff | t-ai "buatkan pesan commit konvensional yang deskriptif"
+  cat /var/log/nginx/error.log | termuxai "analisis penyebab crash server ini"
+  git diff | termuxai "buatkan pesan commit konvensional yang deskriptif"
   ```
 
 ---
 
-### 3.3 Visual Terminal UI (`src/ui/`)
+## 3.3 Visual Terminal UI (`src/ui/`)
 
 #### ANSI Markdown & Code Highlighter (`src/ui/markdown.js`)
 * Parser markdown ringan murni tanpa modul C++:
@@ -92,7 +92,7 @@ ai-termux/
 
 * Menangkap sinyal `process.on('SIGINT')`:
   - Jika agen sedang melakukan streaming LLM atau menjalankan perintah shell lokal, batalkan request/proses tersebut menggunakan `AbortController`.
-  - Jangan mematikan proses REPL utama; kembali ke prompt `t-ai ❯ ` dengan pesan peringatan: `\n⚠ [Operasi dibatalkan oleh pengguna]`.
+  - Jangan mematikan proses REPL utama; kembali ke prompt `termuxai ❯ ` dengan pesan peringatan: `\n⚠ [Operasi dibatalkan oleh pengguna]`.
   - Jika pengguna menekan Ctrl+C dua kali berturut-turut dalam waktu 1 detik di saat idle, barulah REPL keluar sepenuhnya.
 
 ---
@@ -116,8 +116,8 @@ ai-termux/
 
 - [ ] Antarmuka Interactive REPL berjalan mulus dengan navigasi history dan multi-line input.
 - [ ] Seluruh perintah slash (`/help`, `/model`, `/session`, `/clear`, `/config`, `/exit`) berfungsi.
-- [ ] Mode Single-Shot (`t-ai "prompt"`) berjalan mandiri dan mengembalikan exit code yang sesuai.
-- [ ] Operasi UNIX Piping (`cat file | t-ai "prompt"`) membaca stdin dan memberikan analisis instan.
+- [ ] Mode Single-Shot (`termuxai "prompt"`) berjalan mandiri dan mengembalikan exit code yang sesuai.
+- [ ] Operasi UNIX Piping (`cat file | termuxai "prompt"`) membaca stdin dan memberikan analisis instan.
 - [ ] Markdown renderer dan syntax highlighter menampilkan kode terminal dengan estetika tinggi.
 - [ ] Live Spinner menampilkan indikator status tanpa mengganggu streaming teks.
 - [ ] Penanganan sinyal Ctrl+C (SIGINT) membatalkan operasi turn tanpa menutup sesi REPL.

@@ -21,19 +21,30 @@ export class ConfigManager {
 
   /**
    * Resolve root configuration directory
-   * Priority: customConfigDir > process.env.T_AI_CONFIG_DIR > os.homedir()/.t-ai > fallback
+   * Priority: customConfigDir > process.env.TERMUXAI_CONFIG_DIR > process.env.T_AI_CONFIG_DIR > os.homedir()/.termuxai > fallback
    * @returns {string}
    */
   getConfigDir() {
     if (this.customConfigDir) {
       return path.resolve(this.customConfigDir);
     }
+    if (process.env.TERMUXAI_CONFIG_DIR) {
+      return path.resolve(process.env.TERMUXAI_CONFIG_DIR);
+    }
+    // Legacy env-var fallback for users upgrading from t-ai
     if (process.env.T_AI_CONFIG_DIR) {
       return path.resolve(process.env.T_AI_CONFIG_DIR);
     }
 
-    const homeDir = os.homedir() || process.env.HOME || TERMUX_HOME_FALLBACK;
-    return path.join(homeDir, DEFAULT_CONFIG_DIR_NAME);
+    const homeDir = process.env.HOME || process.env.USERPROFILE || os.homedir() || TERMUX_HOME_FALLBACK;
+    const primaryDir = path.join(homeDir, DEFAULT_CONFIG_DIR_NAME);
+    // Legacy directory fallback: if ~/.termuxai doesn't exist but ~/.t-ai does,
+    // use the legacy dir so existing users' configs and sessions still load.
+    const legacyDir = path.join(homeDir, '.t-ai');
+    if (!fs.existsSync(primaryDir) && fs.existsSync(legacyDir)) {
+      return legacyDir;
+    }
+    return primaryDir;
   }
 
   /**
@@ -208,8 +219,9 @@ export class ConfigManager {
    * Resolve API Key following precedence:
    * 1. overrideKey (CLI flag)
    * 2. process.env.GEMINI_API_KEY
-   * 3. process.env.T_AI_API_KEY
-   * 4. config.json apiKey
+   * 3. process.env.TERMUXAI_API_KEY
+   * 4. process.env.T_AI_API_KEY (legacy fallback)
+   * 5. config.json apiKey
    * @param {string} [overrideKey]
    * @returns {string|null}
    */
@@ -222,6 +234,11 @@ export class ConfigManager {
       return process.env.GEMINI_API_KEY.trim();
     }
 
+    if (process.env.TERMUXAI_API_KEY && process.env.TERMUXAI_API_KEY.trim().length > 0) {
+      return process.env.TERMUXAI_API_KEY.trim();
+    }
+
+    // Legacy fallback for users upgrading from t-ai
     if (process.env.T_AI_API_KEY && process.env.T_AI_API_KEY.trim().length > 0) {
       return process.env.T_AI_API_KEY.trim();
     }

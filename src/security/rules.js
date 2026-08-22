@@ -1,5 +1,5 @@
 /**
- * Security Rules & Pattern Definitions for Termux AI CLI (`t-ai`)
+ * Security Rules & Pattern Definitions for Termux AI CLI (`termuxai`)
  */
 
 /**
@@ -64,7 +64,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   'build',
   'out',
   '.cache',
-  '.t-ai',
+  '.termuxai',
   '.next',
   '.nuxt',
   '__pycache__',

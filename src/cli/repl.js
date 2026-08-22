@@ -10,10 +10,11 @@ import { renderBanner } from '../ui/box.js';
 import { createSpinner } from '../ui/spinner.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { isSlashCommand, executeSlashCommand } from './slash-commands.js';
+import { APP_NAME } from '../config/constants.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 
-export const REPL_PROMPT = `${ansi.cyan('t-ai')} ${ansi.bold('❯')} `;
+export const REPL_PROMPT = `${ansi.cyan(APP_NAME)} ${ansi.bold('❯')} `;
 
 /**
  * Starts the Interactive REPL Session Loop

@@ -60,7 +60,7 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tai-e2e-piping-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-e2e-piping-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

@@ -19,7 +19,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tai-orchestrator-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-orchestrator-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 
@@ -33,7 +33,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     const mockGemini = {
       getModel: () => 'gemini-2.5-flash',
       generateStream: async () => ({
-        text: 'Halo! Saya asisten t-ai siap membantu Anda di Termux.',
+        text: 'Halo! Saya asisten termuxai siap membantu Anda di Termux.',
         functionCalls: [],
         finishReason: 'STOP'
       })
@@ -54,7 +54,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     assert.equal(result.success, true);
     assert.equal(result.iterations, 1);
     assert.equal(result.toolCalls.length, 0);
-    assert.equal(result.text, 'Halo! Saya asisten t-ai siap membantu Anda di Termux.');
+    assert.equal(result.text, 'Halo! Saya asisten termuxai siap membantu Anda di Termux.');
 
     // Verify session contains user and model message
     const messages = session.getMessages();
@@ -62,7 +62,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     assert.equal(messages[0].role, 'user');
     assert.equal(messages[0].parts[0].text, 'Halo siapa kamu?');
     assert.equal(messages[1].role, 'model');
-    assert.equal(messages[1].parts[0].text, 'Halo! Saya asisten t-ai siap membantu Anda di Termux.');
+    assert.equal(messages[1].parts[0].text, 'Halo! Saya asisten termuxai siap membantu Anda di Termux.');
   });
 
   test('should execute single tool call (read_file) and continue to final response', async () => {

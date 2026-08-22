@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`t-ai`) — Performance Benchmark Script
+ * Termux AI CLI (`termuxai`) — Performance Benchmark Script
  *
  * Measures startup latency and memory footprint against PRD Non-Functional Requirements:
  *   - Startup Time < 300 ms
@@ -73,7 +73,7 @@ function measureStartupTime(iterations = 5) {
     const start = performance.now();
     const result = spawnSync(process.execPath, [ENTRY, '--version'], {
       cwd: ROOT_DIR,
-      env: { ...process.env, T_AI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 10000,
     });
@@ -121,7 +121,7 @@ function measureMemorySync(iterations = 3) {
     const result = spawnSync(process.execPath, ['--input-type=module'], {
       input: SYNC_MEMORY_PROBE,
       cwd: ROOT_DIR,
-      env: { ...process.env, T_AI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 20000,
     });
@@ -294,7 +294,7 @@ async function main() {
   // Overall verdict
   const allPass = startupPass && memoryPass;
   if (allPass) {
-    console.log(`  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — t-ai meets PRD performance targets.`);
+    console.log(`  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — termuxai meets PRD performance targets.`);
   } else {
     const failures = [];
     if (!startupPass) failures.push(`Startup avg ${formatMs(startup.avg)} exceeds < ${TARGET_STARTUP_MS} ms target`);

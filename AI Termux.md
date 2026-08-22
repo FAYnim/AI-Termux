@@ -4,7 +4,7 @@
 
 ## 1. Ringkasan Eksekutif & Identitas Proyek
 
-* **Nama Produk:** Termux AI CLI (Working Title: `t-ai`)
+* **Nama Produk:** Termux AI CLI (`termuxai`)
 * **Tipe Produk:** Developer Tool / Command Line Interface (CLI) Agent
 * **Lingkungan Target:** Android OS (via Termux Environment)
 * **Runtime:** Node.js (ESM, Zero/Low Native Dependencies)
@@ -37,7 +37,7 @@ Termux AI CLI adalah perkakas baris perintah berbasis *autonomous agent* yang di
 ### 3.2 Kasus Penggunaan Utama
 * **Eksplorasi & Modifikasi Kode Proyek:** Meminta AI membaca struktur folder, memahami dependensi proyek, dan menambahkan fitur baru ke file sumber tertentu.
 * **Automated Bug Fixing (Self-Healing Loop):** AI menulis kode, menjalankan perintah tes/linter di shell Termux, menganalisis *error output*, dan merevisi kode secara otomatis sampai lulus uji.
-* **Operasi UNIX Piping:** Menyalurkan *output* perintah terminal (seperti `cat access.log | t-ai "analisis IP mencurigakan"`) untuk mendapatkan ringkasan instan.
+* **Operasi UNIX Piping:** Menyalurkan *output* perintah terminal (seperti `cat access.log | termuxai "analisis IP mencurigakan"`) untuk mendapatkan ringkasan instan.
 
 ---
 
@@ -120,7 +120,7 @@ sequenceDiagram
 
 ### FR-1: Manajemen Sesi & Konteks
 * Sistem harus mendukung mode **Interactive REPL** (percakapan multi-turn berkelanjutan) dan mode **Single-Shot Execution** (eksekusi satu perintah langsung dari argumen terminal).
-* Sistem harus mengelola histori percakapan dalam memori dan menyediakannya dalam format penyimpanan lokal (`~/.t-ai/sessions/`).
+* Sistem harus mengelola histori percakapan dalam memori dan menyediakannya dalam format penyimpanan lokal (`~/.termuxai/sessions/`).
 * Sistem harus memiliki algoritma *Context Pruning* (pemangkasan histori lama jika akumulasi token mendekati batas maksimum konteks model).
 
 ### FR-2: Engine Eksekusi Alat (*Tool Execution Engine*)
@@ -142,9 +142,9 @@ sequenceDiagram
 * Menampilkan indikator visual yang jelas (*spinner/status badge*) saat model sedang memproses atau saat sistem lokal sedang menjalankan *tool*.
 
 ### FR-5: Konfigurasi & Model Switching
-* Konfigurasi disimpan di `~/.t-ai/config.json`.
+* Konfigurasi disimpan di `~/.termuxai/config.json`.
 * Mendukung penggantian model dinamis melalui *flag* (contoh: `--model gemini-2.5-flash` atau `--model gemini-2.5-pro`).
-* Manajemen API Key berbasis variabel lingkungan (`GEMINI_API_KEY`) atau file konfigurasi terenkripsi sederhana.
+* Manajemen API Key berbasis variabel lingkungan (`GEMINI_API_KEY`, `TERMUXAI_API_KEY`) atau file konfigurasi terenkripsi sederhana.
 
 ---
 
@@ -197,4 +197,4 @@ sequenceDiagram
 * **Fase 3 (Advanced Developer Features):**
   * Fitur *patching/diff editing* untuk penghematan token saat merefaktor file besar.
   * Dukungan *UNIX piping* (`stdin` / `stdout`).
-  * Manajemen sesi persisten (`t-ai resume <session-id>`) dan *context pruning*.
+  * Manajemen sesi persisten (`termuxai resume <session-id>`) dan *context pruning*.

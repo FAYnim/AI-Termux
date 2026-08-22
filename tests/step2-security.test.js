@@ -11,7 +11,7 @@ describe('Security & Path Validator (src/security/)', () => {
   let tempBaseDir;
 
   beforeEach(() => {
-    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tai-sec-test-'));
+    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-sec-test-'));
   });
 
   afterEach(() => {
@@ -52,7 +52,7 @@ describe('Security & Path Validator (src/security/)', () => {
     });
 
     test('should allow external path if present in allowedDirs', () => {
-      const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tai-extra-'));
+      const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-extra-'));
       try {
         const res = validateSafePath(
           path.join(extraDir, 'file.txt'),
