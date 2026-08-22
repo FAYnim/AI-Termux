@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`t-ai` / `tai`)
+ * Termux AI CLI (`termuxai`)
  * Executable Entrypoint
  */
 
@@ -55,7 +55,7 @@ async function main() {
 
     if (sub === 'get') {
       if (!key) {
-        logger.error('Missing configuration key. Usage: t-ai config get <key>');
+        logger.error('Missing configuration key. Usage: termuxai config get <key>');
         process.exit(1);
       }
       const val = configMgr.get(key);
@@ -70,7 +70,7 @@ async function main() {
 
     if (sub === 'set') {
       if (!key || val === undefined) {
-        logger.error('Missing key or value. Usage: t-ai config set <key> <val>');
+        logger.error('Missing key or value. Usage: termuxai config set <key> <val>');
         process.exit(1);
       }
       configMgr.set(key, val);
@@ -80,7 +80,7 @@ async function main() {
 
     if (sub === 'delete') {
       if (!key) {
-        logger.error('Missing configuration key. Usage: t-ai config delete <key>');
+        logger.error('Missing configuration key. Usage: termuxai config delete <key>');
         process.exit(1);
       }
       configMgr.delete(key);
@@ -121,7 +121,7 @@ async function main() {
 
     if (sub === 'delete') {
       if (!sessId) {
-        logger.error('Missing session ID. Usage: t-ai session delete <session-id>');
+        logger.error('Missing session ID. Usage: termuxai session delete <session-id>');
         process.exit(1);
       }
       defaultSessionManager.deleteSession(sessId);
@@ -142,7 +142,7 @@ async function main() {
     logger.warn('Gemini API key is not configured!');
     console.log(`
 ${ansi.yellow('To set your API key, run:')}
-  ${ansi.green('t-ai config set apiKey <your-gemini-api-key>')}
+  ${ansi.green('termuxai config set apiKey <your-gemini-api-key>')}
 
 ${ansi.yellow('Or export as environment variable:')}
   ${ansi.green('export GEMINI_API_KEY="your-gemini-api-key"')}

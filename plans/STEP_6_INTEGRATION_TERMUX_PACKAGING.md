@@ -1,6 +1,6 @@
 # Step 6: End-to-End Integration, Termux Optimization & Distribution Packaging
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 6** (Langkah Final) pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 6** (Langkah Final) pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 
@@ -43,13 +43,13 @@ ai-termux/
 7. Agen memberikan respon akhir yang mengonfirmasi bahwa perbaikan berhasil.
 
 #### Skenario 2: UNIX Piping & Analysis
-1. Menyalurkan data log simulasi melalui pipa: `cat sample-error.log | t-ai "ekstrak daftar IP dan pesan error utama"`.
+1. Menyalurkan data log simulasi melalui pipa: `cat sample-error.log | termuxai "ekstrak daftar IP dan pesan error utama"`.
 2. Memverifikasi bahwa agen memproses isi `stdin` dan menghasilkan ringkasan Markdown dengan format yang benar.
 
 #### Skenario 3: Session Persistence & Resume
 1. Memulai sesi baru dan menjalankan satu perintah.
 2. Menghentikan proses.
-3. Memulai proses baru dengan `t-ai resume <session-id>` dan menanyakan pertanyaan lanjutan yang membutuhkan konteks dari percakapan sebelumnya.
+3. Memulai proses baru dengan `termuxai resume <session-id>` dan menanyakan pertanyaan lanjutan yang membutuhkan konteks dari percakapan sebelumnya.
 4. Memverifikasi integritas ingatan agen terhadap konteks lampau.
 
 ---
@@ -77,7 +77,7 @@ Skrip bash portabel untuk instalasi 1-perintah di Termux:
 #!/bin/bash
 set -e
 
-echo "🚀 Menginstal Termux AI CLI (t-ai)..."
+echo "🚀 Menginstal Termux AI CLI (termuxai)..."
 
 # 1. Cek instalasi Node.js
 if ! command -v node &> /dev/null; then
@@ -85,16 +85,16 @@ if ! command -v node &> /dev/null; then
     pkg update -y && pkg install -y nodejs
 fi
 
-# 2. Setup direktori t-ai
-INSTALL_DIR="$HOME/.t-ai-cli"
+# 2. Setup direktori termuxai
+INSTALL_DIR="$HOME/.termuxai-cli"
 mkdir -p "$INSTALL_DIR"
-mkdir -p "$HOME/.t-ai/sessions"
+mkdir -p "$HOME/.termuxai/sessions"
 
 # 3. Salin/Download source code ke INSTALL_DIR
 # (atau lakukan npm link jika dari repositori lokal)
 npm install -g .
 
-echo "✅ Instalasi selesai! Jalankan 't-ai --help' atau 'tai' untuk memulai."
+echo "✅ Instalasi selesai! Jalankan 'termuxai --help' untuk memulai."
 ```
 
 ---
@@ -104,12 +104,12 @@ echo "✅ Instalasi selesai! Jalankan 't-ai --help' atau 'tai' untuk memulai."
 Menyediakan dokumentasi lengkap mencakup:
 * Gambaran umum & fitur utama.
 * Panduan instalasi di Termux Android & Linux.
-* Cara mengatur API Key Gemini (`export GEMINI_API_KEY=...` atau `t-ai config set apiKey ...`).
+* Cara mengatur API Key Gemini (`export GEMINI_API_KEY=...` atau `termuxai config set apiKey ...`).
 * Contoh penggunaan:
-  - Mode Interaktif REPL (`t-ai` / `tai`).
-  - Mode Single-Shot (`t-ai "analisis repositori ini"`).
-  - Mode Piping (`git diff | t-ai "buat pesan commit"`).
-  - Mengganti model (`t-ai --model gemini-2.5-pro`).
+  - Mode Interaktif REPL (`termuxai`).
+  - Mode Single-Shot (`termuxai "analisis repositori ini"`).
+  - Mode Piping (`git diff | termuxai "buat pesan commit"`).
+  - Mengganti model (`termuxai --model gemini-2.5-pro`).
 * Penjelasan sistem keamanan & perizinan aman.
 * Panduan Troubleshooting & FAQ.
 
@@ -120,7 +120,7 @@ Menyediakan dokumentasi lengkap mencakup:
 - [x] Seluruh skenario E2E (Self-healing, Piping, Session Resume) lulus pengujian otomatis.
 - [x] Hasil benchmark membuktikan Startup Time `< 300 ms` (avg 99.60 ms) dan Memori `< 50 MB RAM` (46.07 MB).
 - [x] Kompatibilitas path Android Termux teruji dan berjalan stabil (`src/utils/termux.js`).
-- [x] File `install.sh` dan konfigurasi global npm link (`bin: t-ai, tai`) siap digunakan.
+- [x] File `install.sh` dan konfigurasi global npm link (`bin: termuxai`) siap digunakan.
 - [x] File `README.md` tersusun rapi dengan panduan instalasi dan penggunaan yang jelas.
 - [x] Seluruh checklist pada `plans/MASTER_PLAN.md` telah tercentang lengkap (100% Selesai).
 
@@ -128,4 +128,4 @@ Menyediakan dokumentasi lengkap mencakup:
 
 ## 5. Kesimpulan Proyek
 
-Setelah Step 6 selesai, **Termux AI CLI (`t-ai`)** telah berstatus rilis produksi v1.0 yang memenuhi seluruh spesifikasi PRD [AI Termux.md](../AI%20Termux.md) dengan kualitas kode tinggi, stabil, aman, dan berkinerja tinggi.
+Setelah Step 6 selesai, **Termux AI CLI (`termuxai`)** telah berstatus rilis produksi v1.0 yang memenuhi seluruh spesifikasi PRD [AI Termux.md](../AI%20Termux.md) dengan kualitas kode tinggi, stabil, aman, dan berkinerja tinggi.

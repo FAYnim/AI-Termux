@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Termux AI CLI (`t-ai`) — One-Command Installer
+# Termux AI CLI (`termuxai`) — One-Command Installer
 # Supports: Android Termux, Linux (Debian/Ubuntu/Arch), macOS
 #
 # Usage:
@@ -49,7 +49,7 @@ print_banner() {
   echo -e "${BOLD}${CYAN}     ██║         ██║  ██║██║${RESET}"
   echo -e "${BOLD}${CYAN}     ╚═╝         ╚═╝  ╚═╝╚═╝${RESET}"
   echo ""
-  echo -e "${BOLD}  Termux AI CLI (t-ai) — Installer${RESET}"
+  echo -e "${BOLD}  Termux AI CLI (termuxai) — Installer${RESET}"
   echo -e "${CYAN}  Autonomous AI Agent for Termux Android & Linux${RESET}"
   echo ""
 }
@@ -114,18 +114,18 @@ install_node() {
 
 # ── Setup Directories ────────────────────────────────────────────
 setup_directories() {
-  log_step "Setting up t-ai directories"
+  log_step "Setting up termuxai directories"
 
-  T_AI_DIR="$HOME/.t-ai"
-  SESSIONS_DIR="$T_AI_DIR/sessions"
+  TERMUXAI_DIR="$HOME/.termuxai"
+  SESSIONS_DIR="$TERMUXAI_DIR/sessions"
 
-  mkdir -p "$T_AI_DIR"
-  chmod 700 "$T_AI_DIR"
+  mkdir -p "$TERMUXAI_DIR"
+  chmod 700 "$TERMUXAI_DIR"
 
   mkdir -p "$SESSIONS_DIR"
   chmod 700 "$SESSIONS_DIR"
 
-  log_success "Config directory: $T_AI_DIR"
+  log_success "Config directory: $TERMUXAI_DIR"
   log_success "Sessions directory: $SESSIONS_DIR"
 
   # Termux storage setup reminder
@@ -133,14 +133,14 @@ setup_directories() {
     if [ ! -d "$HOME/storage" ]; then
       echo ""
       log_warn "Termux storage access not configured."
-      log_info "To allow t-ai to access /sdcard, run: termux-setup-storage"
+      log_info "To allow termuxai to access /sdcard, run: termux-setup-storage"
     fi
   fi
 }
 
-# ── Install t-ai ─────────────────────────────────────────────────
-install_tai() {
-  log_step "Installing t-ai CLI"
+# ── Install termuxai ─────────────────────────────────────────────
+install_termuxai() {
+  log_step "Installing termuxai CLI"
 
   # Determine install directory (where this script lives)
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -162,15 +162,15 @@ install_tai() {
   log_success "Set executable permission on bin/tai.js"
 
   # Install globally using npm link or npm install -g
-  log_info "Linking t-ai globally via npm..."
+  log_info "Linking termuxai globally via npm..."
   cd "$SCRIPT_DIR"
 
   if npm link 2>/dev/null; then
-    log_success "t-ai linked globally via npm link"
+    log_success "termuxai linked globally via npm link"
   else
     log_warn "npm link failed, trying npm install -g ..."
     if npm install -g . 2>/dev/null; then
-      log_success "t-ai installed globally via npm install -g"
+      log_success "termuxai installed globally via npm install -g"
     else
       # Fallback: create manual symlink in ~/.local/bin or $PREFIX/bin (Termux)
       log_warn "npm global install failed. Creating manual symlink..."
@@ -196,10 +196,9 @@ create_symlink() {
     LINK_DIR="$HOME/.local/bin"
   fi
 
-  # Create symlinks for both t-ai and tai
-  ln -sf "$TAI_BIN" "$LINK_DIR/t-ai" 2>/dev/null || true
-  ln -sf "$TAI_BIN" "$LINK_DIR/tai" 2>/dev/null || true
-  log_success "Symlinks created in $LINK_DIR"
+  # Create symlink for termuxai command
+  ln -sf "$TAI_BIN" "$LINK_DIR/termuxai" 2>/dev/null || true
+  log_success "Symlink created in $LINK_DIR"
 }
 
 # ── Post-Install: Verify & Print Guide ──────────────────────────
@@ -208,13 +207,11 @@ post_install() {
 
   sleep 0.5
 
-  if command -v t-ai &>/dev/null; then
-    TAI_VERSION=$(t-ai --version 2>/dev/null || echo "unknown")
-    log_success "t-ai command is available: t-ai $TAI_VERSION"
-  elif command -v tai &>/dev/null; then
-    log_success "tai command is available"
+  if command -v termuxai &>/dev/null; then
+    TERMUXAI_VERSION=$(termuxai --version 2>/dev/null || echo "unknown")
+    log_success "termuxai command is available: termuxai $TERMUXAI_VERSION"
   else
-    log_warn "Could not find t-ai in PATH. You may need to restart your terminal."
+    log_warn "Could not find termuxai in PATH. You may need to restart your terminal."
     log_info "Try: hash -r  (to reload PATH)"
   fi
 
@@ -224,24 +221,24 @@ post_install() {
   echo -e "${BOLD}  Next Steps:${RESET}"
   echo ""
   echo -e "  1. ${BOLD}Set your Gemini API key:${RESET}"
-  echo -e "     ${CYAN}t-ai config set apiKey YOUR_GEMINI_API_KEY${RESET}"
+  echo -e "     ${CYAN}termuxai config set apiKey YOUR_GEMINI_API_KEY${RESET}"
   echo -e "     ${CYAN}# Or export as environment variable:${RESET}"
   echo -e "     ${CYAN}export GEMINI_API_KEY=\"YOUR_GEMINI_API_KEY\"${RESET}"
   echo ""
   echo -e "     Get a free API key at: ${CYAN}https://aistudio.google.com/${RESET}"
   echo ""
   echo -e "  2. ${BOLD}Start the interactive REPL:${RESET}"
-  echo -e "     ${CYAN}t-ai${RESET}  or  ${CYAN}tai${RESET}"
+  echo -e "     ${CYAN}termuxai${RESET}"
   echo ""
   echo -e "  3. ${BOLD}Run a single task:${RESET}"
-  echo -e "     ${CYAN}t-ai \"Buat fungsi add(a, b) di JavaScript\"${RESET}"
+  echo -e "     ${CYAN}termuxai \"Buat fungsi add(a, b) di JavaScript\"${RESET}"
   echo ""
   echo -e "  4. ${BOLD}Use with UNIX pipes:${RESET}"
-  echo -e "     ${CYAN}cat error.log | t-ai \"Analisis IP mencurigakan\"${RESET}"
-  echo -e "     ${CYAN}git diff | t-ai \"Buat pesan commit\"${RESET}"
+  echo -e "     ${CYAN}cat error.log | termuxai \"Analisis IP mencurigakan\"${RESET}"
+  echo -e "     ${CYAN}git diff | termuxai \"Buat pesan commit\"${RESET}"
   echo ""
   echo -e "  5. ${BOLD}Get help:${RESET}"
-  echo -e "     ${CYAN}t-ai --help${RESET}"
+  echo -e "     ${CYAN}termuxai --help${RESET}"
   echo ""
 }
 
@@ -260,7 +257,7 @@ main() {
 
   check_node
   setup_directories
-  install_tai
+  install_termuxai
   post_install
 }
 

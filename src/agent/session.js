@@ -1,6 +1,6 @@
 /**
  * Session State Manager & Atomic Disk Persistence
- * Manages conversation history, session lifecycle, and disk storage at ~/.t-ai/sessions/
+ * Manages conversation history, session lifecycle, and disk storage at ~/.termuxai/sessions/
  */
 
 import fs from 'node:fs';

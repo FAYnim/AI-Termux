@@ -1,15 +1,15 @@
 /**
  * Application Constants & Default Configuration Values
- * Termux AI CLI (`t-ai`)
+ * Termux AI CLI (`termuxai`)
  */
 
-export const APP_NAME = 't-ai';
+export const APP_NAME = 'termuxai';
 export const APP_FULL_NAME = 'termux-ai-cli';
 export const APP_VERSION = '1.0.0';
 export const APP_DESCRIPTION = 'Autonomous AI Agent CLI optimized for Termux Android environment';
 
 // Configuration Paths
-export const DEFAULT_CONFIG_DIR_NAME = '.t-ai';
+export const DEFAULT_CONFIG_DIR_NAME = '.termuxai';
 export const DEFAULT_CONFIG_FILE_NAME = 'config.json';
 export const DEFAULT_SESSIONS_DIR_NAME = 'sessions';
 

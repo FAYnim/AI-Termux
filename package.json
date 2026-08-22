@@ -5,8 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "t-ai": "./bin/tai.js",
-    "tai": "./bin/tai.js"
+    "termuxai": "./bin/tai.js"
   },
   "engines": {
     "node": ">=18.0.0"

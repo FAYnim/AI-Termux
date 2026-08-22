@@ -1,4 +1,4 @@
-# Termux AI CLI (`t-ai`)
+# Termux AI CLI (`termuxai`)
 
 > **Autonomous AI Agent CLI — Optimized for Termux Android & Linux**
 
@@ -11,7 +11,7 @@
 
 ## 📋 Overview
 
-**Termux AI CLI (`t-ai`)** is a lightweight, zero-native-dependency autonomous AI agent designed specifically for **Android Termux** environments. It uses Google's Gemini API as its reasoning engine while performing file I/O, directory exploration, and shell command execution directly on your local Termux filesystem.
+**Termux AI CLI (`termuxai`)** is a lightweight, zero-native-dependency autonomous AI agent designed specifically for **Android Termux** environments. It uses Google's Gemini API as its reasoning engine while performing file I/O, directory exploration, and shell command execution directly on your local Termux filesystem.
 
 ### Key Highlights
 
@@ -65,13 +65,15 @@ Get a free Gemini API key at **[aistudio.google.com](https://aistudio.google.com
 
 **Option A: Store in config (recommended)**
 ```bash
-t-ai config set apiKey YOUR_GEMINI_API_KEY
+termuxai config set apiKey YOUR_GEMINI_API_KEY
 ```
 
 **Option B: Environment variable**
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+# Or use:
+export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
 ---
@@ -80,22 +82,22 @@ export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 
 ```bash
 # Start interactive REPL
-t-ai
+termuxai
 
 # Single-shot task
-t-ai "Buat fungsi kalkulator dalam JavaScript dengan operasi dasar"
+termuxai "Buat fungsi kalkulator dalam JavaScript dengan operasi dasar"
 
 # UNIX pipe analysis
-cat error.log | t-ai "Analisis IP mencurigakan dan ringkas error utama"
+cat error.log | termuxai "Analisis IP mencurigakan dan ringkas error utama"
 
 # Git commit message
-git diff | t-ai "Buat pesan commit yang ringkas dan deskriptif"
+git diff | termuxai "Buat pesan commit yang ringkas dan deskriptif"
 
 # Use a specific model
-t-ai --model gemini-2.5-pro "Refaktor kode ini untuk performa optimal"
+termuxai --model gemini-2.5-pro "Refaktor kode ini untuk performa optimal"
 
 # Auto-approve all actions (skip confirmation prompts)
-t-ai -y "Instal dependensi dan jalankan tes"
+termuxai -y "Instal dependensi dan jalankan tes"
 ```
 
 ---
@@ -104,13 +106,13 @@ t-ai -y "Instal dependensi dan jalankan tes"
 
 ### 1. Interactive REPL Mode
 
-Start with `t-ai` (no arguments) to enter the interactive multi-turn REPL:
+Start with `termuxai` (no arguments) to enter the interactive multi-turn REPL:
 
 ```
-$ t-ai
+$ termuxai
 
   ┌─────────────────────────────────────────────────┐
-  │  t-ai — Termux AI CLI  (gemini-2.5-flash)        │
+  │  termuxai — Termux AI CLI  (gemini-2.5-flash)   │
   │  Working Directory: /data/data/com.termux/...    │
   └─────────────────────────────────────────────────┘
 
@@ -131,7 +133,7 @@ $ t-ai
 ### 2. Single-Shot Mode
 
 ```bash
-t-ai "YOUR_TASK_HERE"
+termuxai "YOUR_TASK_HERE"
 # Exits with code 0 on success, 1 on failure
 ```
 
@@ -139,35 +141,35 @@ t-ai "YOUR_TASK_HERE"
 
 ```bash
 # Analyze log files
-cat access.log | t-ai "Ekstrak top-10 IP dengan request terbanyak"
+cat access.log | termuxai "Ekstrak top-10 IP dengan request terbanyak"
 
 # Review code changes
-git diff HEAD~1 | t-ai "Review perubahan ini dan buat ringkasan"
+git diff HEAD~1 | termuxai "Review perubahan ini dan buat ringkasan"
 
 # Analyze error output
-npm test 2>&1 | t-ai "Jelaskan error test dan saran perbaikan"
+npm test 2>&1 | termuxai "Jelaskan error test dan saran perbaikan"
 
 # Process any text data
-cat data.json | t-ai "Buat ringkasan dalam format Markdown"
+cat data.json | termuxai "Buat ringkasan dalam format Markdown"
 ```
 
 ### 4. Session Management
 
 ```bash
 # List all saved sessions
-t-ai session list
+termuxai session list
 
 # Resume a previous session
-t-ai resume sess_1700000000_abc123
+termuxai resume sess_1700000000_abc123
 
 # Delete a specific session
-t-ai session delete sess_1700000000_abc123
+termuxai session delete sess_1700000000_abc123
 
 # Clear all sessions
-t-ai session clear
+termuxai session clear
 
 # Start with a specific session ID
-t-ai --session sess_1700000000_abc123
+termuxai --session sess_1700000000_abc123
 ```
 
 ---
@@ -178,31 +180,31 @@ t-ai --session sess_1700000000_abc123
 
 ```bash
 # View all configuration
-t-ai config list
+termuxai config list
 
 # Get specific value
-t-ai config get model
-t-ai config get apiKey
+termuxai config get model
+termuxai config get apiKey
 
 # Set values
-t-ai config set apiKey YOUR_KEY
-t-ai config set model gemini-2.5-pro
-t-ai config set timeoutMs 60000
-t-ai config set autoConfirm true
-t-ai config set verbose true
+termuxai config set apiKey YOUR_KEY
+termuxai config set model gemini-2.5-pro
+termuxai config set timeoutMs 60000
+termuxai config set autoConfirm true
+termuxai config set verbose true
 
 # Reset a key to default
-t-ai config delete model
+termuxai config delete model
 
 # Reset everything to defaults
-t-ai config reset
+termuxai config reset
 ```
 
 ### Available Configuration Keys
 
 | Key | Default | Description |
 |---|---|---|
-| `apiKey` | `""` | Gemini API key |
+| `apiKey` | `""` | Gemini API key (env fallback: `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, or legacy `T_AI_API_KEY`) |
 | `model` | `gemini-2.5-flash` | Default LLM model |
 | `timeoutMs` | `30000` | Shell command timeout (ms) |
 | `maxContextTokens` | `1000000` | Max tokens before context pruning |
@@ -223,7 +225,7 @@ t-ai config reset
 
 ## 🛡️ Security System
 
-t-ai includes a multi-layer security guard for safe file and command execution:
+termuxai includes a multi-layer security guard for safe file and command execution:
 
 ### Protection Layers
 
@@ -250,13 +252,13 @@ Proceed? [y/N]: y
 
 ```bash
 # Skip all confirmation prompts (use in trusted environments only)
-t-ai -y "Bersihkan direktori dist dan build ulang"
-t-ai --yes "Deploy ke server staging"
+termuxai -y "Bersihkan direktori dist dan build ulang"
+termuxai --yes "Deploy ke server staging"
 ```
 
 ### Termux Android Storage Access
 
-On Termux, t-ai automatically permits access to Android shared storage paths (`/sdcard/`, `~/storage/shared`) when `termux-setup-storage` has been configured:
+On Termux, termuxai automatically permits access to Android shared storage paths (`/sdcard/`, `~/storage/shared`) when `termux-setup-storage` has been configured:
 
 ```bash
 # Enable Android storage access in Termux (one-time setup)
@@ -303,7 +305,7 @@ Args: command, workingDir?, timeoutMs?, env?
 
 ## 🤖 ReAct Agentic Loop
 
-t-ai implements the **ReAct (Reasoning + Acting)** pattern:
+termuxai implements the **ReAct (Reasoning + Acting)** pattern:
 
 ```
 User Prompt
@@ -335,10 +337,10 @@ Final Answer (streamed to terminal)
 ### Self-Healing Bug Fix Example
 
 ```bash
-t-ai "Buat file kalkulator calculator.js, tulis unit test, jalankan test, dan perbaiki bug sampai semua lulus"
+termuxai "Buat file kalkulator calculator.js, tulis unit test, jalankan test, dan perbaiki bug sampai semua lulus"
 ```
 
-t-ai will autonomously:
+termuxai will autonomously:
 1. 📝 Write `calculator.js` with the calculator functions
 2. 📝 Write `test-calculator.js` with test cases
 3. 🔧 Run `node test-calculator.js`
@@ -351,7 +353,7 @@ t-ai will autonomously:
 
 ## 📊 Performance
 
-t-ai is engineered for the resource-constrained environment of Android phones:
+termuxai is engineered for the resource-constrained environment of Android phones:
 
 | Metric | Target | Status |
 |---|---|---|
@@ -388,7 +390,7 @@ node --test tests/e2e/*.test.js
 node --test tests/*.test.js tests/e2e/*.test.js
 
 # Run benchmark
-node scripts/benchmark.js
+npm run benchmark
 ```
 
 ---
@@ -463,43 +465,42 @@ ai-termux/
 ## 🔌 CLI Reference
 
 ```
-Usage: t-ai [OPTIONS] [PROMPT]
-       tai [OPTIONS] [PROMPT]
+Usage: termuxai [OPTIONS] [PROMPT]
 
 MODES:
-  t-ai                          Start interactive REPL
-  t-ai "PROMPT"                 Single-shot task execution
-  cat file | t-ai "INSTRUCTION" UNIX stdin pipe analysis
-  t-ai resume SESSION_ID        Resume saved session
+  termuxai                          Start interactive REPL
+  termuxai "PROMPT"                 Single-shot task execution
+  cat file | termuxai "INSTRUCTION" UNIX stdin pipe analysis
+  termuxai resume SESSION_ID        Resume saved session
 
 SUBCOMMANDS:
-  config list                   List all configuration
-  config get KEY                Get config value
-  config set KEY VALUE          Set config value
-  config delete KEY             Reset key to default
-  config reset                  Reset all to defaults
-  session list                  List saved sessions
-  session delete SESSION_ID     Delete a session
-  session clear                 Delete all sessions
+  config list                       List all configuration
+  config get KEY                    Get config value
+  config set KEY VALUE              Set config value
+  config delete KEY                 Reset key to default
+  config reset                      Reset all to defaults
+  session list                      List saved sessions
+  session delete SESSION_ID         Delete a session
+  session clear                     Delete all sessions
 
 OPTIONS:
-  -m, --model MODEL             Use specified Gemini model
-  -k, --api-key KEY             Override API key for this run
-  -s, --session SESSION_ID      Resume or attach session
-  -y, --yes                     Auto-approve all security prompts
-  --verbose                     Enable verbose debug output
-  --config-dir PATH             Custom config directory
-  --help                        Show this help message
-  --version                     Show version number
+  -m, --model MODEL                 Use specified Gemini model
+  -k, --api-key KEY                 Override API key for this run
+  -s, --session SESSION_ID          Resume or attach session
+  -y, --yes                         Auto-approve all security prompts
+  --verbose                         Enable verbose debug output
+  --config-dir PATH                 Custom config directory
+  --help                            Show this help message
+  --version                         Show version number
 
 SUPPORTED MODELS:
   gemini-2.5-flash (default), gemini-2.5-pro, gemini-1.5-flash,
   gemini-1.5-pro, gemini-2.0-flash
 
 ENVIRONMENT VARIABLES:
-  GEMINI_API_KEY                Gemini API key
-  T_AI_API_KEY                  Alternative API key env var
-  T_AI_CONFIG_DIR               Override config directory path
+  GEMINI_API_KEY                    Gemini API key
+  TERMUXAI_API_KEY                  Primary API key env var (fallback: T_AI_API_KEY)
+  TERMUXAI_CONFIG_DIR               Override config directory path (fallback: T_AI_CONFIG_DIR)
 ```
 
 ---
@@ -510,7 +511,7 @@ ENVIRONMENT VARIABLES:
 
 ```bash
 # Set via CLI
-t-ai config set apiKey YOUR_KEY
+termuxai config set apiKey YOUR_KEY
 
 # Or export (add to ~/.bashrc)
 export GEMINI_API_KEY="YOUR_KEY"
@@ -522,7 +523,7 @@ export GEMINI_API_KEY="YOUR_KEY"
 chmod +x bin/tai.js
 ```
 
-### "t-ai command not found" after install
+### "termuxai command not found" after install
 
 ```bash
 # Reload PATH
@@ -533,7 +534,7 @@ hash -r
 echo $PATH | tr ':' '\n' | grep -i npm
 
 # On Termux, check:
-ls $PREFIX/bin/t-ai
+ls $PREFIX/bin/termuxai
 ```
 
 ### Slow startup on Android
@@ -548,14 +549,14 @@ node --jitless bin/tai.js  # Reduces JIT warmup time on ARM
 
 The retry module automatically handles 429 responses with exponential backoff (up to 3 retries). If rate limiting persists:
 ```bash
-t-ai config set model gemini-1.5-flash  # Use a less-limited model
+termuxai config set model gemini-1.5-flash  # Use a less-limited model
 ```
 
 ### Context too long / token limit exceeded
 
 ```bash
 # Clear session and start fresh
-t-ai session clear
+termuxai session clear
 
 # Or use in REPL:
 /clear

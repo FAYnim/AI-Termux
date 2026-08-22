@@ -1,6 +1,6 @@
 # Step 3: LLM Client (Gemini API), SSE Streaming & Network Resilience
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 3** pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 3** pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 

@@ -1,6 +1,6 @@
 # Step 2: Security Guard & Local Actuator Tools Engine
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 2** pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 2** pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 
@@ -91,7 +91,7 @@ ai-termux/
   - `dirPath` (string, optional, default: `.`): Direktori yang ingin diperiksa.
   - `depth` (number, optional, default: `2`): Kedalaman rekursi.
 * **Fitur:**
-  - Mengabaikan folder `.git`, `node_modules`, `dist`, `.cache`, `.t-ai` secara default.
+  - Mengabaikan folder `.git`, `node_modules`, `dist`, `.cache`, `.termuxai` secara default.
   - Menghasilkan format ringkas pohon direktori (Tree structure) beserta ukuran file dan tipe (file/folder).
 
 #### 5. `execute_command` (`src/tools/execute_command.js`)

@@ -63,15 +63,15 @@ export function getTermuxPrefix() {
 }
 
 /**
- * Resolve the t-ai configuration root directory.
- * On Termux: `~/.t-ai` under Termux home.
- * On other platforms: `~/.t-ai` under os.homedir().
+ * Resolve the termuxai configuration root directory.
+ * On Termux: `~/.termuxai` under Termux home.
+ * On other platforms: `~/.termuxai` under os.homedir().
  *
  * @returns {string}
  */
 export function getConfigRoot() {
   const home = getTermuxHome();
-  return path.join(home, '.t-ai');
+  return path.join(home, '.termuxai');
 }
 
 /**

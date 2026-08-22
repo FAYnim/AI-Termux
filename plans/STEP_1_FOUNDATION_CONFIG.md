@@ -1,12 +1,12 @@
 # Step 1: Project Foundation, CLI Architecture & Configuration System
 
-Dokumen ini berisi panduan implementasi teknis untuk **Step 1** pada proyek **Termux AI CLI (`t-ai`)**.
+Dokumen ini berisi panduan implementasi teknis untuk **Step 1** pada proyek **Termux AI CLI (`termuxai`)**.
 
 ---
 
 ## 1. Tujuan & Ruang Lingkup (Objectives & Scope)
 
-Membangun fondasi proyek Node.js berbasis ECMAScript Modules (ESM) murni dengan prinsip **Zero Native C-Binding**, menyediakan *entry point* CLI yang cepat (<300ms startup), parser argumen baris perintah ringan, sistem konfigurasi terpusat (`~/.t-ai/config.json`), dan utilitas logging / ANSI formatting.
+Membangun fondasi proyek Node.js berbasis ECMAScript Modules (ESM) murni dengan prinsip **Zero Native C-Binding**, menyediakan *entry point* CLI yang cepat (<300ms startup), parser argumen baris perintah ringan, sistem konfigurasi terpusat (`~/.termuxai/config.json`), dan utilitas logging / ANSI formatting.
 
 ---
 
@@ -15,7 +15,7 @@ Membangun fondasi proyek Node.js berbasis ECMAScript Modules (ESM) murni dengan 
 ### 2.1 Struktur Berkas yang Dibuat di Step 1
 ```
 ai-termux/
-├── package.json               # Konfigurasi package Node.js ESM, bin: t-ai, tai
+├── package.json               # Konfigurasi package Node.js ESM, bin: termuxai
 ├── bin/
 │   └── tai.js                 # Executable CLI entrypoint (#!/usr/bin/env node)
 ├── src/
@@ -25,7 +25,7 @@ ai-termux/
 │   │   └── help.js            # Dynamic help and version display
 │   ├── config/
 │   │   ├── constants.js       # Default constants, paths, fallback model name
-│   │   └── manager.js         # Configuration loader/setter (~/.t-ai/config.json)
+│   │   └── manager.js         # Configuration loader/setter (~/.termuxai/config.json)
 │   └── utils/
 │       ├── ansi.js            # Zero-dependency ANSI color & style formatter
 │       └── logger.js          # Leveled console logger (info, warn, error, debug, success)
@@ -49,8 +49,7 @@ ai-termux/
     "description": "Autonomous AI Agent CLI optimized for Termux Android environment",
     "type": "module",
     "bin": {
-      "t-ai": "./bin/tai.js",
-      "tai": "./bin/tai.js"
+      "termuxai": "./bin/tai.js"
     },
     "scripts": {
       "test": "node --test tests/*.test.js"
@@ -60,22 +59,23 @@ ai-termux/
 * **Catatan Kritis:** Jangan menambahkan paket yang memerlukan kompilasi C++ (`node-gyp`).
 
 ### 3.2 `src/config/constants.js`
-* Direktori default: `~/.t-ai/` (pada Android Termux: `/data/data/com.termux/files/home/.t-ai/`).
-* File konfigurasi: `~/.t-ai/config.json`.
-* Direktori sesi: `~/.t-ai/sessions/`.
+* Direktori default: `~/.termuxai/` (pada Android Termux: `/data/data/com.termux/files/home/.termuxai/`).
+* File konfigurasi: `~/.termuxai/config.json`.
+* Direktori sesi: `~/.termuxai/sessions/`.
 * Model Default: `gemini-2.5-flash` (cepat, hemat token, latency rendah).
 * Default Execution Timeout: `30000` (30 detik).
 * Default Max Context Tokens: `1000000`.
 
 ### 3.3 `src/config/manager.js`
 * Fungsi utama:
-  - `getConfigDir()`: Mendeteksi `process.env.T_AI_CONFIG_DIR` atau `~/.t-ai`.
+  - `getConfigDir()`: Mendeteksi `process.env.TERMUXAI_CONFIG_DIR`, `process.env.T_AI_CONFIG_DIR` (legacy fallback), atau `~/.termuxai`.
   - `loadConfig()`: Membaca dan mem-parsing `config.json`. Jika belum ada, buat otomatis dengan konfigurasi default.
   - `saveConfig(data)`: Menyimpan konfigurasi secara aman (atomic write).
   - `getApiKey()`: Prioritas pembacaan API Key:
     1. Flag CLI `--api-key`
     2. Environment variable `GEMINI_API_KEY`
-    3. File konfigurasi `~/.t-ai/config.json` (`apiKey`)
+    3. Environment variable `TERMUXAI_API_KEY` (fallback: `T_AI_API_KEY`)
+    4. File konfigurasi `~/.termuxai/config.json` (`apiKey`)
   - `get(key)`, `set(key, value)`, `list()`: Manajemen item konfigurasi individual.
 
 ### 3.4 `src/cli/args.js`
@@ -89,7 +89,7 @@ Parser ringan untuk menangani:
   - `-v`, `--version`: Menampilkan versi saat ini.
   - `-h`, `--help`: Menampilkan menu bantuan.
   - `--verbose`: Mode debug verbose.
-* Positional Arguments: Prompt perintah langsung (misal: `t-ai "buatkan script python"`).
+* Positional Arguments: Prompt perintah langsung (misal: `termuxai "buatkan script python"`).
 
 ### 3.5 `src/utils/ansi.js` & `src/utils/logger.js`
 * Format warna ANSI murni (tanpa chalk / kolorist untuk menjaga overhead < 0.1ms).
@@ -105,7 +105,7 @@ Gunakan Node.js built-in test runner (`node --test`):
    - Menguji parsing subcommands `config set`, `config get`.
    - Menguji parsing multi-word positional prompt.
 2. **Config Manager Tests (`tests/step1-config.test.js`):**
-   - Menguji pembuatan otomatis direktori `~/.t-ai/`.
+   - Menguji pembuatan otomatis direktori `~/.termuxai/`.
    - Menguji `getApiKey()` dari env vs file.
    - Menguji pembacaan dan penulisan nilai konfigurasi.
 3. **Manual CLI Execution:**

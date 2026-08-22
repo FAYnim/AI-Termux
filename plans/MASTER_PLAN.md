@@ -1,6 +1,6 @@
-# Master Plan: Termux AI CLI (`t-ai`)
+# Master Plan: Termux AI CLI (`termuxai`)
 
-Dokumen ini adalah **Master Execution Plan** untuk pembangunan sistem **Termux AI CLI (`t-ai`)** secara menyeluruh berdasarkan [AI Termux.md](../AI%20Termux.md) (Product Requirements Document v1.0).
+Dokumen ini adalah **Master Execution Plan** untuk pembangunan sistem **Termux AI CLI (`termuxai`)** secara menyeluruh berdasarkan [AI Termux.md](../AI%20Termux.md) (Product Requirements Document v1.0).
 
 ---
 
@@ -17,7 +17,7 @@ Dokumen ini adalah **Master Execution Plan** untuk pembangunan sistem **Termux A
 4. **Resilient Agentic Loop (ReAct):**
    - Mendukung multi-turn autonomous reasoning and acting.
    - Self-healing bug fixing loop dengan penanganan kegagalan tool yang adaptif.
-   - Manajemen sesi persisten (`~/.t-ai/sessions/`) dan pemangkasan token otomatis (*context pruning*).
+   - Manajemen sesi persisten (`~/.termuxai/sessions/`) dan pemangkasan token otomatis (*context pruning*).
 
 ---
 
@@ -36,12 +36,12 @@ flowchart TD
 
 | Step | Dokumen Rencana | Deskripsi & Cakupan Utama | Estimasi Waktu |
 |---|---|---|---|
-| **Step 1** | [STEP_1_FOUNDATION_CONFIG.md](./STEP_1_FOUNDATION_CONFIG.md) | Setup Node.js ESM, entry point `bin/tai.js`, CLI argument parser, config manager (`~/.t-ai/config.json`), logger & ANSI format. | ~1 Turn |
+| **Step 1** | [STEP_1_FOUNDATION_CONFIG.md](./STEP_1_FOUNDATION_CONFIG.md) | Setup Node.js ESM, entry point `bin/tai.js`, CLI argument parser, config manager (`~/.termuxai/config.json`), logger & ANSI format. | ~1 Turn |
 | **Step 2** | [STEP_2_SECURITY_TOOLS.md](./STEP_2_SECURITY_TOOLS.md) | Security guard (safe path, command safety, confirmation prompt, timeout), 5 local tools (`read_file`, `write_file`, `patch_file`, `list_dir`, `execute_command`), tool registry & schemas. | ~1 Turn |
 | **Step 3** | [STEP_3_LLM_STREAMING.md](./STEP_3_LLM_STREAMING.md) | LLM Client Gemini API (pure fetch), SSE streaming parser, tool call serializer/deserializer, exponential backoff retry (429/503). | ~1 Turn |
-| **Step 4** | [STEP_4_REACT_AGENT_SESSION.md](./STEP_4_REACT_AGENT_SESSION.md) | ReAct orchestrator loop, handling tool dispatching & feedback, session persistence (`~/.t-ai/sessions/`), context pruning / token management. | ~1 Turn |
+| **Step 4** | [STEP_4_REACT_AGENT_SESSION.md](./STEP_4_REACT_AGENT_SESSION.md) | ReAct orchestrator loop, handling tool dispatching & feedback, session persistence (`~/.termuxai/sessions/`), context pruning / token management. | ~1 Turn |
 | **Step 5** | [STEP_5_REPL_UI_PIPING.md](./STEP_5_REPL_UI_PIPING.md) | Interactive REPL (`node:readline`), slash commands (`/help`, `/exit`, dll.), UNIX stdin piping, ANSI markdown renderer, syntax highlight, live spinner, SIGINT handling. | ~1 Turn |
-| **Step 6** | [STEP_6_INTEGRATION_TERMUX_PACKAGING.md](./STEP_6_INTEGRATION_TERMUX_PACKAGING.md) | End-to-end testing, memory & startup benchmark, Termux path adjustments, global binary linkage (`t-ai`), `install.sh` script, documentation. | ~1 Turn |
+| **Step 6** | [STEP_6_INTEGRATION_TERMUX_PACKAGING.md](./STEP_6_INTEGRATION_TERMUX_PACKAGING.md) | End-to-end testing, memory & startup benchmark, Termux path adjustments, global binary linkage (`termuxai`), `install.sh` script, documentation. | ~1 Turn |
 
 ---
 
@@ -50,12 +50,12 @@ flowchart TD
 Gunakan checklist ini untuk memantau kemajuan pembangunan proyek:
 
 ### Step 1: Foundation, CLI Entry & Configuration
-- [x] Inisialisasi `package.json` dengan Node.js ESM (`"type": "module"`) dan konfigurasi bin (`t-ai`, `tai`).
+- [x] Inisialisasi `package.json` dengan Node.js ESM (`"type": "module"`) dan konfigurasi bin (`termuxai`).
 - [x] Buat struktur folder proyek (`src/cli`, `src/config`, `src/tools`, `src/security`, `src/llm`, `src/agent`, `src/ui`, `src/utils`).
 - [x] Implementasi CLI Argument Parser ringan (`src/cli/args.js`) untuk parsing flags (`--model`, `--api-key`, `--session`, `-y`, `--help`, dll.).
-- [x] Implementasi Config Manager (`src/config/manager.js`) untuk membaca/menyimpan ke `~/.t-ai/config.json` dan membaca environment variable `GEMINI_API_KEY`.
+- [x] Implementasi Config Manager (`src/config/manager.js`) untuk membaca/menyimpan ke `~/.termuxai/config.json` dan membaca environment variable `GEMINI_API_KEY`, `TERMUXAI_API_KEY`.
 - [x] Implementasi Utility Format & Logger (`src/utils/logger.js`, `src/utils/ansi.js`).
-- [x] Implementasi CLI Sub-commands (`t-ai config set <key> <val>`, `t-ai config get <key>`, `t-ai --help`, `t-ai --version`).
+- [x] Implementasi CLI Sub-commands (`termuxai config set <key> <val>`, `termuxai config get <key>`, `termuxai --help`, `termuxai --version`).
 - [x] Pengujian & Verifikasi Step 1 lulus uji.
 
 ### Step 2: Security Guard & Local Actuator Tools
@@ -89,8 +89,8 @@ Gunakan checklist ini untuk memantau kemajuan pembangunan proyek:
   - [x] Pencegahan infinite loop / max steps limit per turn.
   - [x] Error feedback injection (jika tool gagal dieksekusi, berikan error ke LLM agar memperbaiki diri).
 - [x] Implementasi Session State Manager (`src/agent/session.js`):
-  - [x] Penyimpanan riwayat sesi atomik ke `~/.t-ai/sessions/<session-id>.json`.
-  - [x] Dukungan resume sesi (`t-ai resume <session-id>` atau `t-ai --session <id>`).
+  - [x] Penyimpanan riwayat sesi atomik ke `~/.termuxai/sessions/<session-id>.json`.
+  - [x] Dukungan resume sesi (`termuxai resume <session-id>` atau `termuxai --session <id>`).
   - [x] Algoritma Context Pruning (pemangkasan histori jika akumulasi token mendekati batas limit model).
 - [x] Pengujian integrasi ReAct loop dan session persistence lulus uji.
 
@@ -98,8 +98,8 @@ Gunakan checklist ini untuk memantau kemajuan pembangunan proyek:
 - [x] Implementasi Interactive REPL (`src/cli/repl.js`):
   - [x] Menggunakan `node:readline` dengan dukungan multi-turn dan history.
   - [x] Perintah slash (`/help`, `/model`, `/session`, `/clear`, `/config`, `/exit`).
-- [x] Implementasi Mode Single-Shot (`t-ai "buat fungsi kalkulator"`).
-- [x] Implementasi UNIX Pipe & Stdin Stream (`cat access.log | t-ai "analisis IP"`).
+- [x] Implementasi Mode Single-Shot (`termuxai "buat fungsi kalkulator"`).
+- [x] Implementasi UNIX Pipe & Stdin Stream (`cat access.log | termuxai "analisis IP"`).
 - [x] Implementasi Terminal UI Renderer (`src/ui/`):
   - [x] ANSI Markdown renderer (headers, bold, lists, quotes, tables).
   - [x] Code syntax highlighter murni berbasis regex/ANSI tanpa dependensi native.

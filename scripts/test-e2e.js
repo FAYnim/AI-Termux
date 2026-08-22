@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`t-ai`) — E2E Test Runner
+ * Termux AI CLI (`termuxai`) — E2E Test Runner
  *
  * Runs all End-to-End test suites and displays a formatted summary report.
  *
