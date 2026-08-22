@@ -26,5 +26,12 @@
     "android"
   ],
   "author": "FAYnim",
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "src/",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ]
 }
