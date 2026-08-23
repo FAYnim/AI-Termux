@@ -4,7 +4,7 @@
  * Local Tools Actuator, Security Guard, and Session Persistence.
  */
 
-import { GeminiClient, createGeminiClient } from '../llm/gemini.js';
+import { createLlmClient } from '../llm/registry.js';
 import { SecurityGuard } from '../security/guard.js';
 import { getToolDeclarations, dispatchToolCall } from '../tools/registry.js';
 import { buildSystemPrompt } from './system-prompt.js';
@@ -20,7 +20,9 @@ export const DEFAULT_MAX_ITERATIONS = 15;
 export class AgentOrchestrator {
   /**
    * @param {object} [options={}]
-   * @param {GeminiClient} [options.geminiClient] - LLM client instance
+   * @param {object} [options.llmClient] - Generic LLM client instance
+   * @param {object} [options.geminiClient] - Legacy alias for LLM client
+   * @param {string} [options.provider='gemini'] - Active provider ID
    * @param {SecurityGuard} [options.securityGuard] - Security guard engine
    * @param {Session} [options.session] - Conversation session
    * @param {string} [options.model] - Model name override
@@ -47,20 +49,25 @@ export class AgentOrchestrator {
         baseDir: this.workingDir
       });
 
-    // Gemini Client
-    this.geminiClient =
+    // LLM client: prefer explicit llmClient, then geminiClient (legacy), then create from provider
+    this.provider = options.provider || 'gemini';
+    this.llmClient =
+      options.llmClient ||
       options.geminiClient ||
-      createGeminiClient({
+      createLlmClient({
+        provider: this.provider,
         model: options.model,
         apiKey: options.apiKey,
         logger: this.logger
       });
+    this.geminiClient = this.llmClient; // legacy alias
 
     // Session Management
     this.session =
       options.session ||
       createSession({
-        model: this.geminiClient.getModel(),
+        model: this.llmClient.getModel(),
+        provider: this.provider,
         workingDir: this.workingDir
       });
 
@@ -143,10 +150,10 @@ export class AgentOrchestrator {
         maxTokens: this.maxContextTokens
       });
 
-      // Step 2: Stream generation via Gemini API
+      // Step 2: Stream generation via LLM API
       let streamResult;
       try {
-        streamResult = await this.geminiClient.generateStream({
+        streamResult = await this.llmClient.generateStream({
           contents: prunedContents,
           tools: this.tools,
           systemInstruction: this.systemInstruction,
@@ -259,6 +266,30 @@ export class AgentOrchestrator {
   }
 
   /**
+   * Switch active provider, recreate llmClient, update session.
+   * @param {string} providerId
+   * @param {object} [overrides] - optional { model, apiKey, baseUrl }
+   */
+  setProvider(providerId, overrides = {}) {
+    if (!providerId || typeof providerId !== 'string') {
+      throw new TypeError('providerId must be a non-empty string');
+    }
+    this.provider = providerId;
+    this.llmClient = createLlmClient({
+      provider: providerId,
+      model: overrides.model || (this.llmClient ? this.llmClient.getModel() : undefined),
+      apiKey: overrides.apiKey || (this.llmClient ? this.llmClient.getApiKey() : undefined),
+      baseUrl: overrides.baseUrl,
+      logger: this.logger,
+    });
+    this.geminiClient = this.llmClient;
+    if (this.session) {
+      this.session.provider = providerId;
+      this.session.model = this.llmClient.getModel();
+    }
+  }
+
+  /**
    * Alias for runTurn
    * @param {string} prompt
    * @param {object} [options]
@@ -278,3 +309,4 @@ export class AgentOrchestrator {
 export function createAgentOrchestrator(options = {}) {
   return new AgentOrchestrator(options);
 }
+

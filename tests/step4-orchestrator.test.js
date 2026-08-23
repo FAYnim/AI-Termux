@@ -326,4 +326,26 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
       /User interrupted|aborted/
     );
   });
+
+  test('should accept llmClient option and ignore geminiClient fallback', async () => {
+    const mockClient = {
+      getModel: () => 'gpt-4o',
+      getApiKey: () => 'k',
+      generateStream: async () => ({
+        text: 'OpenAI answer',
+        functionCalls: [],
+        finishReason: 'STOP',
+      }),
+    };
+    const session = sessionManager.createSession({ workingDir: tempDir, provider: 'openai' });
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mockClient,
+      session,
+      workingDir: tempDir,
+    });
+    assert.equal(orchestrator.llmClient, mockClient);
+    const result = await orchestrator.runTurn('hi');
+    assert.equal(result.text, 'OpenAI answer');
+  });
 });
+
