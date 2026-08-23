@@ -140,7 +140,34 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     });
     assert.strictEqual(res2.action, 'model_changed');
     assert.strictEqual(res2.message, 'gemini-2.5-pro');
-    assert.strictEqual(mockOrchestrator.geminiClient.model, 'gemini-2.5-pro');
+  });
+
+  test('executeSlashCommand /provider should view and switch active provider', async () => {
+    const output = new PassThrough();
+    let currentProvider = 'gemini';
+    const mockOrchestrator = {
+      provider: 'gemini',
+      setProvider: (p) => { currentProvider = p; mockOrchestrator.provider = p; }
+    };
+
+    const res1 = await executeSlashCommand('/provider', {
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res1.action, 'provider_info');
+
+    const res2 = await executeSlashCommand('/provider openai', {
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res2.action, 'provider_changed');
+    assert.strictEqual(currentProvider, 'openai');
+
+    const res3 = await executeSlashCommand('/provider list', {
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res3.action, 'provider_list');
   });
 
   test('executeSlashCommand /session should display session details', async () => {

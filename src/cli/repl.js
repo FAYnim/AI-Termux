@@ -48,7 +48,8 @@ export async function startRepl(options = {}) {
     });
 
   const session = orchestrator.getSession();
-  const activeModel = orchestrator.geminiClient ? orchestrator.geminiClient.getModel() : 'gemini-2.5-flash';
+  const activeModel = orchestrator.llmClient ? orchestrator.llmClient.getModel() : 'gemini-2.5-flash';
+  const activeProvider = orchestrator.provider || 'gemini';
 
   // Display Welcome Banner
   const banner = renderBanner({
@@ -56,6 +57,7 @@ export async function startRepl(options = {}) {
     version: 'v1.0.0',
     subtitle: 'Autonomous AI Agent CLI for Termux Android',
     details: [
+      `Provider: ${ansi.bold(ansi.green(activeProvider))}`,
       `Model   : ${ansi.bold(ansi.cyan(activeModel))}`,
       `Session : ${ansi.bold(ansi.yellow(session.id))}`,
       `WorkDir : ${ansi.dim(orchestrator.workingDir)}`,
@@ -147,7 +149,8 @@ export async function startRepl(options = {}) {
     let hasStreamedToken = false;
 
     try {
-      spinner.start('Menghubungi Gemini API...');
+      const providerName = orchestrator.provider ? orchestrator.provider.toUpperCase() : 'LLM';
+      spinner.start(`Menghubungi ${providerName} API...`);
 
       const result = await orchestrator.runTurn(line, {
         signal: activeAbortController.signal,
