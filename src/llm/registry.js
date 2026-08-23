@@ -9,6 +9,9 @@ export function createLlmClient(options = {}) {
     case 'openai':
       return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch });
     default:
+      if (baseUrl || options.adapter === 'openai') {
+        return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch });
+      }
       throw new Error(`Unknown provider: ${provider}`);
   }
 }

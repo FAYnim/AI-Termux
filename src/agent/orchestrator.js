@@ -51,6 +51,7 @@ export class AgentOrchestrator {
 
     // LLM client: prefer explicit llmClient, then geminiClient (legacy), then create from provider
     this.provider = options.provider || 'gemini';
+    this.baseUrl = options.baseUrl;
     this.llmClient =
       options.llmClient ||
       options.geminiClient ||
@@ -58,6 +59,7 @@ export class AgentOrchestrator {
         provider: this.provider,
         model: options.model,
         apiKey: options.apiKey,
+        baseUrl: this.baseUrl,
         logger: this.logger
       });
     this.geminiClient = this.llmClient; // legacy alias

@@ -302,7 +302,9 @@ ${ansi.yellow('Or export as environment variable:')}
   }
 
   const sessionProvider = activeSession?.provider || effectiveProvider;
+  const sessionProviderConfig = configMgr.getProviderConfig(sessionProvider);
   const sessionApiKey = configMgr.getApiKey(parsed.flags.apiKey, sessionProvider);
+  const sessionBaseUrl = parsed.flags.baseUrl || sessionProviderConfig.baseUrl || sessionProviderConfig.defaultBaseUrl;
   if (!sessionApiKey) {
     logger.error(`API key for session provider "${sessionProvider}" is not configured.`);
     process.exit(1);
@@ -312,6 +314,7 @@ ${ansi.yellow('Or export as environment variable:')}
     provider: sessionProvider,
     model: parsed.flags.model || activeSession?.model || model,
     apiKey: sessionApiKey,
+    baseUrl: sessionBaseUrl,
     session: activeSession,
     autoApprove,
     logger

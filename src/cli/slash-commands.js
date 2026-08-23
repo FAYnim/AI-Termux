@@ -94,8 +94,13 @@ export async function executeSlashCommand(input, context = {}) {
 
       if (orchestrator && typeof orchestrator.setProvider === 'function') {
         try {
+          const providerConfig = configMgr ? configMgr.getProviderConfig(providerId) : {};
           const apiKey = configMgr ? configMgr.getApiKey(null, providerId) : null;
-          orchestrator.setProvider(providerId, { apiKey });
+          orchestrator.setProvider(providerId, {
+            apiKey,
+            model: providerConfig.model || providerConfig.defaultModel,
+            baseUrl: providerConfig.baseUrl || providerConfig.defaultBaseUrl
+          });
           if (configMgr) configMgr.set('activeProvider', providerId);
           stream.write(`\n${ansi.green('✔')} Switched provider to: ${ansi.bold(ansi.yellow(providerId))}\n\n`);
           return { handled: true, action: 'provider_changed' };
