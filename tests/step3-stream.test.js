@@ -6,6 +6,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { SSEStreamParser, parseSSEStream } from '../src/llm/stream-parser.js';
+import { createLlmClient } from '../src/llm/registry.js';
+
 
 describe('Step 3: SSE Stream Parser', () => {
   test('should parse normal single chunk stream with text tokens', () => {
@@ -238,4 +240,25 @@ describe('Step 3: SSE Stream Parser', () => {
       /User cancelled/
     );
   });
+
+  test('registry e2e: OpenAI SSE stream text', async () => {
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"Hi "}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"there!"},"finish_reason":"stop"}]}\n\n',
+      'data: [DONE]\n\n',
+    ];
+    const fetch = async () => ({
+      ok: true,
+      body: new ReadableStream({
+        start(ctrl) { for (const c of chunks) ctrl.enqueue(new TextEncoder().encode(c)); ctrl.close(); },
+      }),
+    });
+    const client = createLlmClient({ provider: 'openai', model: 'gpt-4o', apiKey: 'k', fetch });
+    const result = await client.generateStream({
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
+    assert.equal(result.text, 'Hi there!');
+    assert.equal(result.finishReason, 'STOP');
+  });
 });
+
