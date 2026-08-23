@@ -22,8 +22,9 @@ ${ansi.bold('USAGE:')}
   ${ansi.green(APP_NAME)} ${ansi.cyan('resume')} ${ansi.yellow('<session-id>')}
 
 ${ansi.bold('OPTIONS:')}
+  ${ansi.green('-p, --provider <id>')}     One-shot provider override (does not persist)
   ${ansi.green('-m, --model <name>')}       Set LLM model ${ansi.gray(`(default: ${DEFAULT_MODEL})`)}
-  ${ansi.green('-k, --api-key <key>')}      Override Gemini API key for this run
+  ${ansi.green('-k, --api-key <key>')}      Override API key for this run
   ${ansi.green('-s, --session <id>')}       Attach to or continue a specific session ID
   ${ansi.green('-y, --yes')}                Auto-approve tool execution (skip [y/N] prompts)
   ${ansi.green('-v, --version')}            Show version number
@@ -31,6 +32,13 @@ ${ansi.bold('OPTIONS:')}
   ${ansi.green('--verbose')}                Enable verbose debug logging
   ${ansi.green('--timeout <ms>')}           Command execution timeout in milliseconds
   ${ansi.green('--config-dir <dir>')}       Use custom configuration directory
+
+${ansi.bold('PROVIDER COMMANDS:')}
+  ${ansi.green(APP_NAME + ' provider list')}               List configured providers
+  ${ansi.green(APP_NAME + ' provider use <id>')}           Set active provider (persist)
+  ${ansi.green(APP_NAME + ' provider add <id>')}           Interactively add a provider
+  ${ansi.green(APP_NAME + ' provider remove <id>')}        Remove a custom provider
+  ${ansi.green(APP_NAME + ' provider show [id]')}          Show provider config as JSON
 
 ${ansi.bold('CONFIG COMMANDS:')}
   ${ansi.green(APP_NAME + ' config set apiKey <val>')}   Save your Gemini API key

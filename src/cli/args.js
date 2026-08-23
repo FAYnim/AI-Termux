@@ -10,8 +10,10 @@
  */
 export function parseArgs(rawArgs = []) {
   const flags = {
+    provider: null,
     model: null,
     apiKey: null,
+    baseUrl: null,
     session: null,
     yes: false,
     help: false,
@@ -35,6 +37,18 @@ export function parseArgs(rawArgs = []) {
       flags.verbose = true;
     } else if (arg === '--yes' || arg === '-y') {
       flags.yes = true;
+    } else if (arg.startsWith('--provider=')) {
+      flags.provider = arg.slice(11).trim();
+    } else if (arg === '--provider' || arg === '-p') {
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        flags.provider = args[++i].trim();
+      }
+    } else if (arg.startsWith('--base-url=')) {
+      flags.baseUrl = arg.slice(11).trim();
+    } else if (arg === '--base-url') {
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        flags.baseUrl = args[++i].trim();
+      }
     } else if (arg.startsWith('--model=')) {
       flags.model = arg.slice(8).trim();
     } else if (arg === '--model' || arg === '-m') {
@@ -86,6 +100,10 @@ export function parseArgs(rawArgs = []) {
 
     if (firstWord === 'config') {
       command = 'config';
+      subcommand = positional[1]?.toLowerCase() || 'list';
+      subArgs = positional.slice(2);
+    } else if (firstWord === 'provider' || firstWord === 'providers') {
+      command = 'provider';
       subcommand = positional[1]?.toLowerCase() || 'list';
       subArgs = positional.slice(2);
     } else if (firstWord === 'session' || firstWord === 'sessions') {
