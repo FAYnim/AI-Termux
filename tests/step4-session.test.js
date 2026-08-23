@@ -261,4 +261,16 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
     assert.equal(cleared, 1);
     assert.equal(sessionManager.listSessions().length, 0);
   });
+
+  test('should persist and restore provider field', () => {
+    const sess = sessionManager.createSession({ provider: 'openai', model: 'gpt-4o', workingDir: tempDir });
+    assert.equal(sess.provider, 'openai');
+    assert.equal(sess.model, 'gpt-4o');
+
+    sess.save();
+    const loaded = sessionManager.loadSession(sess.id);
+    assert.equal(loaded.provider, 'openai');
+    assert.equal(loaded.model, 'gpt-4o');
+  });
 });
+

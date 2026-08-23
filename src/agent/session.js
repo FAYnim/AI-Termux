@@ -46,6 +46,7 @@ export class Session {
     this.createdAt = data.createdAt || now;
     this.updatedAt = data.updatedAt || now;
     this.model = data.model || DEFAULT_MODEL;
+    this.provider = data.provider || 'gemini';
     this.workingDir = data.workingDir || process.cwd();
     this.metadata = data.metadata || {};
     this.sessionsDir = data.sessionsDir || null;
@@ -171,6 +172,7 @@ export class Session {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       model: this.model,
+      provider: this.provider,
       workingDir: this.workingDir,
       messages: this.messages,
       metadata: this.metadata
@@ -343,6 +345,7 @@ export class SessionManager {
           createdAt: data.createdAt || null,
           updatedAt: data.updatedAt || null,
           model: data.model || DEFAULT_MODEL,
+          provider: data.provider || 'gemini',
           workingDir: data.workingDir || '',
           messageCount: Array.isArray(data.messages) ? data.messages.length : 0,
           preview: lastMessageText,
