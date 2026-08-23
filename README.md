@@ -89,15 +89,57 @@ termuxai provider add openai --api-key "$KEY"  # Configure OpenAI
 termuxai provider show gemini                  # Dump provider configuration as JSON
 ```
 
+### Popular Provider Setup Examples
+
+All OpenAI-compatible providers can be added easily using `--base-url`:
+
+#### 1. Groq (Ultra-Fast Inference)
+```bash
+termuxai provider add groq \
+  --api-key "gsk_..." \
+  --base-url "https://api.groq.com/openai/v1" \
+  --model "llama-3.3-70b-versatile"
+
+termuxai provider use groq
+```
+
+#### 2. OpenRouter (Access Claude 3.5 Sonnet, GPT-4o, DeepSeek, etc.)
+```bash
+termuxai provider add openrouter \
+  --api-key "sk-or-..." \
+  --base-url "https://openrouter.ai/api/v1" \
+  --model "anthropic/claude-3.5-sonnet"
+
+termuxai provider use openrouter
+```
+
+#### 3. DeepSeek
+```bash
+termuxai provider add deepseek \
+  --api-key "sk-..." \
+  --base-url "https://api.deepseek.com/v1" \
+  --model "deepseek-chat"
+
+termuxai provider use deepseek
+```
+
+#### 4. Ollama (Local / Offline in Termux or PC)
+```bash
+termuxai provider add ollama \
+  --base-url "http://localhost:11434/v1" \
+  --model "llama3.2"
+
+termuxai provider use ollama
+```
+
 ### One-Shot Provider Override
 
 Run a command with a different provider without altering your default configuration:
 
 ```bash
 termuxai --provider openai --model gpt-4o "translate this sentence"
+termuxai --provider groq "analisis file package.json"
 ```
-
-Built-in providers: `gemini` (default), `openai`. OpenAI-compatible custom endpoints (OpenRouter, Groq, Ollama, LM Studio, etc.) are also supported.
 
 ### Environment Variables
 
@@ -106,7 +148,13 @@ Built-in providers: `gemini` (default), `openai`. OpenAI-compatible custom endpo
 | Gemini | `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, `T_AI_API_KEY` | — | — |
 | OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
 
-Existing configurations and environment variables continue to work seamlessly. On first launch with no API keys configured, an interactive setup wizard appears automatically.
+### Developer Guide: Adding a Custom Native Adapter
+
+To add a provider with a non-OpenAI protocol (e.g. Anthropic `/v1/messages`):
+
+1. Create a client class extending `BaseLlmClient` in `src/llm/your-provider.js`.
+2. Register your provider in `src/llm/registry.js` under `createLlmClient`.
+3. Add built-in defaults in `src/config/constants.js` (`BUILTIN_PROVIDERS`).
 
 ---
 
