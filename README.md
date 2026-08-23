@@ -78,6 +78,38 @@ export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
 
 ---
 
+## 🌐 Multi-Provider Support
+
+`termuxai` supports multiple LLM providers. Each provider owns its own API key, model, and base URL.
+
+```bash
+termuxai provider list                         # Show configured providers
+termuxai provider use openai                   # Switch active provider (persists)
+termuxai provider add openai --api-key "$KEY"  # Configure OpenAI
+termuxai provider show gemini                  # Dump provider configuration as JSON
+```
+
+### One-Shot Provider Override
+
+Run a command with a different provider without altering your default configuration:
+
+```bash
+termuxai --provider openai --model gpt-4o "translate this sentence"
+```
+
+Built-in providers: `gemini` (default), `openai`. OpenAI-compatible custom endpoints (OpenRouter, Groq, Ollama, LM Studio, etc.) are also supported.
+
+### Environment Variables
+
+| Provider | API Key | Base URL | Model |
+|---|---|---|---|
+| Gemini | `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, `T_AI_API_KEY` | — | — |
+| OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
+
+Existing configurations and environment variables continue to work seamlessly. On first launch with no API keys configured, an interactive setup wizard appears automatically.
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
@@ -86,6 +118,9 @@ termuxai
 
 # Single-shot task
 termuxai "Buat fungsi kalkulator dalam JavaScript dengan operasi dasar"
+
+# Single-shot task using OpenAI
+termuxai --provider openai --model gpt-4o-mini "Buat REST API sederhana"
 
 # UNIX pipe analysis
 cat error.log | termuxai "Analisis IP mencurigakan dan ringkas error utama"
@@ -473,18 +508,26 @@ MODES:
   cat file | termuxai "INSTRUCTION" UNIX stdin pipe analysis
   termuxai resume SESSION_ID        Resume saved session
 
-SUBCOMMANDS:
-  config list                       List all configuration
-  config get KEY                    Get config value
-  config set KEY VALUE              Set config value
-  config delete KEY                 Reset key to default
-  config reset                      Reset all to defaults
-  session list                      List saved sessions
-  session delete SESSION_ID         Delete a session
-  session clear                     Delete all sessions
+PROVIDER COMMANDS:
+  termuxai provider list            List configured providers
+  termuxai provider use <id>        Set active provider (persist)
+  termuxai provider add <id>        Add or update provider settings
+  termuxai provider remove <id>     Remove a custom provider
+  termuxai provider show [id]       Show provider config as JSON
+
+CONFIG COMMANDS:
+  termuxai config list              List all configuration
+  termuxai config get KEY           Get config value
+  termuxai config set KEY VALUE     Set config value
+  termuxai config delete KEY        Reset key to default
+  termuxai config reset             Reset all to defaults
+  termuxai session list             List saved sessions
+  termuxai session delete SESS_ID   Delete a session
+  termuxai session clear            Delete all sessions
 
 OPTIONS:
-  -m, --model MODEL                 Use specified Gemini model
+  -p, --provider ID                 One-shot provider override (e.g. gemini, openai)
+  -m, --model MODEL                 Use specified model
   -k, --api-key KEY                 Override API key for this run
   -s, --session SESSION_ID          Resume or attach session
   -y, --yes                         Auto-approve all security prompts
@@ -493,14 +536,13 @@ OPTIONS:
   --help                            Show this help message
   --version                         Show version number
 
-SUPPORTED MODELS:
-  gemini-2.5-flash (default), gemini-2.5-pro, gemini-1.5-flash,
-  gemini-1.5-pro, gemini-2.0-flash
-
 ENVIRONMENT VARIABLES:
   GEMINI_API_KEY                    Gemini API key
-  TERMUXAI_API_KEY                  Primary API key env var (fallback: T_AI_API_KEY)
-  TERMUXAI_CONFIG_DIR               Override config directory path (fallback: T_AI_CONFIG_DIR)
+  OPENAI_API_KEY                    OpenAI API key
+  OPENAI_BASE_URL                   Custom OpenAI endpoint base URL
+  OPENAI_MODEL                      Default OpenAI model
+  TERMUXAI_API_KEY                  Fallback Gemini API key (legacy: T_AI_API_KEY)
+  TERMUXAI_CONFIG_DIR               Override config directory path (legacy: T_AI_CONFIG_DIR)
 ```
 
 ---
