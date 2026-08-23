@@ -7,9 +7,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {
+  BUILTIN_PROVIDERS,
+  DEFAULT_ACTIVE_PROVIDER,
   DEFAULT_CONFIG,
   DEFAULT_CONFIG_DIR_NAME,
   DEFAULT_CONFIG_FILE_NAME,
+  DEFAULT_MODEL,
   DEFAULT_SESSIONS_DIR_NAME,
   TERMUX_HOME_FALLBACK
 } from './constants.js';
@@ -87,18 +90,57 @@ export class ConfigManager {
     const configPath = this.getConfigPath();
 
     if (!fs.existsSync(configPath)) {
-      this.saveConfig(DEFAULT_CONFIG);
-      return { ...DEFAULT_CONFIG };
+      const fresh = structuredClone(DEFAULT_CONFIG);
+      this.saveConfig(fresh);
+      return fresh;
     }
 
+    let parsed;
     try {
       const raw = fs.readFileSync(configPath, 'utf8');
-      const parsed = JSON.parse(raw);
-      return { ...DEFAULT_CONFIG, ...parsed };
+      parsed = JSON.parse(raw);
     } catch (err) {
       // In case of corrupt file, fallback to defaults
-      return { ...DEFAULT_CONFIG };
+      return structuredClone(DEFAULT_CONFIG);
     }
+    const config = {
+      ...structuredClone(DEFAULT_CONFIG),
+      ...parsed,
+      providers: { ...(parsed.providers || {}) }
+    };
+
+    // Auto-promote legacy apiKey into providers[activeProvider] if providers missing
+    if (!config.providers || Object.keys(config.providers).length === 0) {
+      const act = config.activeProvider || DEFAULT_ACTIVE_PROVIDER;
+      if (!config.providers) config.providers = {};
+      if (!config.providers[act]) {
+        const provCfg = {};
+        // Carry over legacy apiKey if present
+        if (config.apiKey && typeof config.apiKey === 'string' && config.apiKey.trim()) {
+          provCfg.apiKey = config.apiKey.trim();
+        }
+        if (config.model && typeof config.model === 'string' && config.model.trim()) {
+          provCfg.model = config.model.trim();
+        }
+        // Check env match
+        const builtin = BUILTIN_PROVIDERS[act];
+        if (builtin && !provCfg.apiKey) {
+          for (const envVar of builtin.envVars) {
+            if (process.env[envVar]?.trim()) {
+              provCfg.apiKey = process.env[envVar].trim();
+              break;
+            }
+          }
+        }
+        if (Object.keys(provCfg).length > 0) {
+          config.providers[act] = provCfg;
+          config.activeProvider = act;
+          this.saveConfig(config);
+        }
+      }
+    }
+
+    return config;
   }
 
   /**
@@ -133,6 +175,15 @@ export class ConfigManager {
    */
   get(key) {
     const config = this.loadConfig();
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let curr = config;
+      for (const p of parts) {
+        if (curr == null) return undefined;
+        curr = curr[p];
+      }
+      return curr;
+    }
     return config[key];
   }
 
@@ -157,7 +208,20 @@ export class ConfigManager {
       }
     }
 
-    config[key] = castedValue;
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let curr = config;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const p = parts[i];
+        if (!curr[p] || typeof curr[p] !== 'object') {
+          curr[p] = {};
+        }
+        curr = curr[p];
+      }
+      curr[parts[parts.length - 1]] = castedValue;
+    } else {
+      config[key] = castedValue;
+    }
     this.saveConfig(config);
     return castedValue;
   }
@@ -169,8 +233,9 @@ export class ConfigManager {
    */
   delete(key) {
     const config = this.loadConfig();
-    if (Object.prototype.hasOwnProperty.call(DEFAULT_CONFIG, key)) {
-      config[key] = DEFAULT_CONFIG[key];
+    const defaults = structuredClone(DEFAULT_CONFIG);
+    if (Object.prototype.hasOwnProperty.call(defaults, key)) {
+      config[key] = defaults[key];
     } else {
       delete config[key];
     }
@@ -183,8 +248,9 @@ export class ConfigManager {
    * @returns {object}
    */
   reset() {
-    this.saveConfig(DEFAULT_CONFIG);
-    return { ...DEFAULT_CONFIG };
+    const fresh = structuredClone(DEFAULT_CONFIG);
+    this.saveConfig(fresh);
+    return fresh;
   }
 
   /**
@@ -199,6 +265,16 @@ export class ConfigManager {
 
     if (options.maskApiKey && result.apiKey) {
       result.apiKey = this.maskApiKey(result.apiKey);
+    }
+    if (options.maskApiKey && result.providers) {
+      const maskedProviders = {};
+      for (const [k, v] of Object.entries(result.providers)) {
+        maskedProviders[k] = { ...v };
+        if (maskedProviders[k].apiKey) {
+          maskedProviders[k].apiKey = this.maskApiKey(maskedProviders[k].apiKey);
+        }
+      }
+      result.providers = maskedProviders;
     }
 
     return result;
@@ -216,39 +292,115 @@ export class ConfigManager {
   }
 
   /**
+   * Get merged provider configuration
+   * @param {string} providerId
+   * @returns {object}
+   */
+  getProviderConfig(providerId) {
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const config = this.loadConfig();
+    const stored = config.providers?.[providerId] || {};
+    if (!builtin && !config.providers?.[providerId]) {
+      throw new Error(`Unknown provider: ${providerId}`);
+    }
+    const merged = { ...(builtin || {}), ...stored };
+
+    // Env vars override defaults if stored value is not present
+    if (!stored.apiKey && builtin?.envVars) {
+      for (const envVar of builtin.envVars) {
+        const v = process.env[envVar];
+        if (v?.trim()) {
+          merged.apiKey = v.trim();
+          break;
+        }
+      }
+    }
+
+    if (!stored.baseUrl && builtin?.envBaseUrlVars) {
+      for (const envVar of builtin.envBaseUrlVars) {
+        const v = process.env[envVar];
+        if (v?.trim()) {
+          merged.baseUrl = v.trim();
+          break;
+        }
+      }
+    }
+
+    if (!stored.model && builtin?.envModelVars) {
+      for (const envVar of builtin.envModelVars) {
+        const v = process.env[envVar];
+        if (v?.trim()) {
+          merged.model = v.trim();
+          break;
+        }
+      }
+    }
+
+    return merged;
+  }
+
+  /**
    * Resolve API Key following precedence:
    * 1. overrideKey (CLI flag)
-   * 2. process.env.GEMINI_API_KEY
-   * 3. process.env.TERMUXAI_API_KEY
-   * 4. process.env.T_AI_API_KEY (legacy fallback)
-   * 5. config.json apiKey
+   * 2. process.env per provider
+   * 3. config.json providers[providerId].apiKey
    * @param {string} [overrideKey]
+   * @param {string} [providerId]
    * @returns {string|null}
    */
-  getApiKey(overrideKey = null) {
+  getApiKey(overrideKey = null, providerId = null) {
     if (overrideKey && typeof overrideKey === 'string' && overrideKey.trim().length > 0) {
       return overrideKey.trim();
     }
-
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0) {
-      return process.env.GEMINI_API_KEY.trim();
+    const resolvedProvider = providerId || this.loadConfig().activeProvider || DEFAULT_ACTIVE_PROVIDER;
+    const builtin = BUILTIN_PROVIDERS[resolvedProvider];
+    // 1. Env vars lookup
+    if (builtin?.envVars) {
+      for (const envVar of builtin.envVars) {
+        const v = process.env[envVar];
+        if (v && typeof v === 'string' && v.trim().length > 0) {
+          return v.trim();
+        }
+      }
     }
-
-    if (process.env.TERMUXAI_API_KEY && process.env.TERMUXAI_API_KEY.trim().length > 0) {
-      return process.env.TERMUXAI_API_KEY.trim();
-    }
-
-    // Legacy fallback for users upgrading from t-ai
-    if (process.env.T_AI_API_KEY && process.env.T_AI_API_KEY.trim().length > 0) {
-      return process.env.T_AI_API_KEY.trim();
-    }
-
+    // 2. Config lookup (providers[providerId].apiKey or legacy config.apiKey)
     const config = this.loadConfig();
-    if (config.apiKey && typeof config.apiKey === 'string' && config.apiKey.trim().length > 0) {
-      return config.apiKey.trim();
+    const storedKey = config.providers?.[resolvedProvider]?.apiKey || (resolvedProvider === 'gemini' ? config.apiKey : null);
+    if (storedKey && typeof storedKey === 'string' && storedKey.trim().length > 0) {
+      return storedKey.trim();
     }
-
     return null;
+  }
+
+  /**
+   * Set a specific provider field and persist
+   * @param {string} providerId
+   * @param {string} field
+   * @param {any} value
+   */
+  setProviderField(providerId, field, value) {
+    const config = this.loadConfig();
+    if (!config.providers) config.providers = {};
+    if (!config.providers[providerId]) config.providers[providerId] = {};
+    if (value === '' || value === null || value === undefined) {
+      delete config.providers[providerId][field];
+    } else {
+      config.providers[providerId][field] = value;
+    }
+    this.saveConfig(config);
+  }
+
+  /**
+   * Remove custom provider (refuses built-in providers)
+   * @param {string} providerId
+   */
+  removeProvider(providerId) {
+    if (BUILTIN_PROVIDERS[providerId]) {
+      throw new Error(`Cannot remove builtin provider "${providerId}"`);
+    }
+    const config = this.loadConfig();
+    delete config.providers?.[providerId];
+    this.saveConfig(config);
   }
 }
 

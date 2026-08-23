@@ -31,12 +31,33 @@ export const DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 export const DEFAULT_MAX_CONTEXT_TOKENS = 1000000;
 export const DEFAULT_TEMPERATURE = 0.7;
 
+// Built-in Providers & Defaults
+export const BUILTIN_PROVIDERS = {
+  gemini: {
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+    defaultModel: 'gemini-2.5-flash',
+    envVars: ['GEMINI_API_KEY', 'TERMUXAI_API_KEY', 'T_AI_API_KEY'],
+    envBaseUrlVars: [],
+    envModelVars: [],
+  },
+  openai: {
+    defaultBaseUrl: 'https://api.openai.com/v1',
+    defaultModel: 'gpt-4o-mini',
+    envVars: ['OPENAI_API_KEY'],
+    envBaseUrlVars: ['OPENAI_BASE_URL'],
+    envModelVars: ['OPENAI_MODEL'],
+  },
+};
+
+export const DEFAULT_ACTIVE_PROVIDER = 'gemini';
+
 // Default Config Object
 export const DEFAULT_CONFIG = {
-  model: DEFAULT_MODEL,
-  apiKey: '',
+  activeProvider: DEFAULT_ACTIVE_PROVIDER,
+  providers: {},
   timeoutMs: DEFAULT_TIMEOUT_MS,
   maxContextTokens: DEFAULT_MAX_CONTEXT_TOKENS,
   autoConfirm: false,
-  verbose: false
+  verbose: false,
 };
+

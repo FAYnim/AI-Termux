@@ -25,15 +25,15 @@ describe('Config Manager (src/config/manager.js)', () => {
 
   test('should create directories and default config on first load', () => {
     const config = manager.loadConfig();
-    assert.equal(config.model, DEFAULT_MODEL);
+    assert.equal(config.activeProvider, 'gemini');
     assert.equal(config.timeoutMs, 30000);
     assert.equal(fs.existsSync(manager.getConfigPath()), true);
     assert.equal(fs.existsSync(manager.getSessionsDir()), true);
   });
 
   test('should get and set config properties with correct type casting', () => {
-    manager.set('model', 'gemini-2.5-pro');
-    assert.equal(manager.get('model'), 'gemini-2.5-pro');
+    manager.set('activeProvider', 'openai');
+    assert.equal(manager.get('activeProvider'), 'openai');
 
     manager.set('timeoutMs', '45000');
     assert.equal(manager.get('timeoutMs'), 45000);
@@ -46,24 +46,24 @@ describe('Config Manager (src/config/manager.js)', () => {
   });
 
   test('should delete / reset specific config key', () => {
-    manager.set('model', 'gemini-1.5-pro');
-    assert.equal(manager.get('model'), 'gemini-1.5-pro');
+    manager.set('activeProvider', 'openai');
+    assert.equal(manager.get('activeProvider'), 'openai');
 
-    manager.delete('model');
-    assert.equal(manager.get('model'), DEFAULT_MODEL);
+    manager.delete('activeProvider');
+    assert.equal(manager.get('activeProvider'), 'gemini');
   });
 
   test('should reset all configs to defaults', () => {
-    manager.set('model', 'custom-model');
+    manager.set('activeProvider', 'openai');
     manager.set('timeoutMs', 99999);
-    manager.set('apiKey', 'my-api-key');
+    manager.set('providers.gemini.apiKey', 'my-api-key');
 
     manager.reset();
 
     const loaded = manager.loadConfig();
-    assert.equal(loaded.model, DEFAULT_MODEL);
+    assert.equal(loaded.activeProvider, 'gemini');
     assert.equal(loaded.timeoutMs, DEFAULT_CONFIG.timeoutMs);
-    assert.equal(loaded.apiKey, '');
+    assert.deepEqual(loaded.providers, {});
   });
 
   test('should list config with masked api key by default', () => {
@@ -103,6 +103,7 @@ describe('Config Manager (src/config/manager.js)', () => {
 
       // 6. Returns null if none set
       manager.set('apiKey', '');
+      manager.set('providers.gemini.apiKey', '');
       assert.equal(manager.getApiKey(), null);
     } finally {
       process.env = originalEnv;
