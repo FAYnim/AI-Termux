@@ -4,6 +4,33 @@
  */
 import { BaseLlmClient } from './base.js';
 
+/**
+ * Recursively converts Gemini UPPERCASE schema types to standard lowercase JSON Schema types.
+ * @param {object} schema
+ * @returns {object}
+ */
+export function convertToJsonSchema(schema) {
+  if (!schema || typeof schema !== 'object') return schema;
+  if (Array.isArray(schema)) {
+    return schema.map(item => {
+      if (item && typeof item === 'object') return convertToJsonSchema(item);
+      return item;
+    });
+  }
+
+  const res = {};
+  for (const [k, v] of Object.entries(schema)) {
+    if (k === 'type' && typeof v === 'string') {
+      res[k] = v.toLowerCase();
+    } else if (v && typeof v === 'object') {
+      res[k] = convertToJsonSchema(v);
+    } else {
+      res[k] = v;
+    }
+  }
+  return res;
+}
+
 export class OpenAIClient extends BaseLlmClient {
   constructor(options = {}) {
     super(options);
@@ -34,6 +61,8 @@ export class OpenAIClient extends BaseLlmClient {
     }
 
     if (Array.isArray(contents)) {
+      const toolCallIdQueue = [];
+
       for (const msg of contents) {
         if (msg.role === 'user') {
           const text = (msg.parts || []).map(p => p.text || '').join('');
@@ -41,11 +70,14 @@ export class OpenAIClient extends BaseLlmClient {
         } else if (msg.role === 'model') {
           const texts = [];
           const toolCalls = [];
-          for (const part of (msg.parts || [])) {
+          for (let pIdx = 0; pIdx < (msg.parts || []).length; pIdx++) {
+            const part = msg.parts[pIdx];
             if (part.text) texts.push(part.text);
             if (part.functionCall) {
+              const callId = part.functionCall.id || part.functionCall.toolCallId || `call_${Date.now()}_${pIdx}`;
+              toolCallIdQueue.push({ name: part.functionCall.name, id: callId });
               toolCalls.push({
-                id: `call_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                id: callId,
                 type: 'function',
                 function: {
                   name: part.functionCall.name,
@@ -63,9 +95,21 @@ export class OpenAIClient extends BaseLlmClient {
         } else if (msg.role === 'function') {
           for (const part of (msg.parts || [])) {
             if (part.functionResponse) {
+              let callId = part.functionResponse.toolCallId || part.functionResponse.id;
+              if (!callId) {
+                const qIdx = toolCallIdQueue.findIndex(q => q.name === part.functionResponse.name);
+                if (qIdx !== -1) {
+                  callId = toolCallIdQueue[qIdx].id;
+                  toolCallIdQueue.splice(qIdx, 1);
+                } else if (toolCallIdQueue.length > 0) {
+                  callId = toolCallIdQueue.shift().id;
+                } else {
+                  callId = `call_${Date.now()}_0`;
+                }
+              }
               messages.push({
                 role: 'tool',
-                tool_call_id: part.functionResponse.toolCallId || `call_${Date.now()}`,
+                tool_call_id: callId,
                 content: JSON.stringify(part.functionResponse.response),
               });
             }
@@ -83,19 +127,24 @@ export class OpenAIClient extends BaseLlmClient {
     if (tools && tools.length > 0) {
       const oaTools = [];
       for (const t of tools) {
-        const fds = t.functionDeclarations || [];
+        const fds = Array.isArray(t.functionDeclarations) ? t.functionDeclarations : [t];
         for (const fd of fds) {
-          oaTools.push({
-            type: 'function',
-            function: {
-              name: fd.name,
-              description: fd.description || '',
-              parameters: fd.parameters || { type: 'object', properties: {} },
-            },
-          });
+          if (fd && fd.name) {
+            oaTools.push({
+              type: 'function',
+              function: {
+                name: fd.name,
+                description: fd.description || '',
+                parameters: convertToJsonSchema(fd.parameters),
+              },
+            });
+          }
         }
       }
-      if (oaTools.length) payload.tools = oaTools;
+      if (oaTools.length) {
+        payload.tools = oaTools;
+        payload.tool_choice = 'auto';
+      }
     }
 
     if (generationConfig) {
@@ -227,6 +276,19 @@ export class OpenAIClient extends BaseLlmClient {
 
     emitToolCalls();
 
+    if (functionCalls.length === 0) {
+      const rawText = tokens.join('');
+      const fallbackCalls = parseTextToolCalls(rawText);
+      if (fallbackCalls.length > 0) {
+        functionCalls.push(...fallbackCalls);
+        for (const fc of fallbackCalls) {
+          if (typeof options.onFunctionCall === 'function') {
+            options.onFunctionCall(fc);
+          }
+        }
+      }
+    }
+
     return {
       text: tokens.join(''),
       functionCalls,
@@ -310,6 +372,13 @@ export class OpenAIClient extends BaseLlmClient {
       finishReason = map[choice.finish_reason] ?? choice.finish_reason ?? null;
     }
 
+    if (functionCalls.length === 0 && text) {
+      const fallbackCalls = parseTextToolCalls(text);
+      if (fallbackCalls.length > 0) {
+        functionCalls.push(...fallbackCalls);
+      }
+    }
+
     let usage = null;
     if (data.usage) {
       usage = {
@@ -322,3 +391,168 @@ export class OpenAIClient extends BaseLlmClient {
     return { text, functionCalls, finishReason, usage, raw: data };
   }
 }
+
+/**
+ * Extracts embedded XML or JSON tool calls from raw assistant text (e.g. from DeepSeek-R1 / Qwen models).
+ * @param {string} text
+ * @returns {Array<{ name: string, args: object }>}
+ */
+export function parseTextToolCalls(rawText) {
+  const calls = [];
+  if (!rawText || typeof rawText !== 'string') return calls;
+
+  // Strip reasoning think tags if present
+  const text = rawText
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/think>/gi, '')
+    .replace(/<think>/gi, '');
+
+  const validTools = ['read_file', 'write_file', 'patch_file', 'list_dir', 'execute_command'];
+  const validToolsRegex = validTools.join('|');
+
+  // Helper to add call without duplicate
+  const addCall = (name, args) => {
+    if (!name || !args || typeof args !== 'object') return;
+    const cleanName = name.trim();
+    if (validTools.includes(cleanName)) {
+      if (!calls.some(c => c.name === cleanName && JSON.stringify(c.args) === JSON.stringify(args))) {
+        calls.push({ name: cleanName, args });
+      }
+    }
+  };
+
+  // Helper to extract JSON from a string
+  const extractJson = (str) => {
+    if (!str) return null;
+    const firstBrace = str.indexOf('{');
+    const lastBrace = str.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        return JSON.parse(str.slice(firstBrace, lastBrace + 1));
+      } catch {}
+    }
+    return null;
+  };
+
+  // Pattern 1: <tool_calls> ... <tool_call>write_file<tool_sep> ... { ... } ... </tool_calls>
+  const toolCallsBlocks = text.matchAll(/<tool_calls?>([\s\S]*?)<\/tool_calls?>/gi);
+  for (const match of toolCallsBlocks) {
+    const block = match[1];
+    const nameMatch = block.match(new RegExp(`(?:<tool_name>|<tool_call>|name[:=]?\\s*)?(${validToolsRegex})`, 'i'));
+    if (nameMatch) {
+      const name = nameMatch[1];
+      const parsedArgs = extractJson(block);
+      if (parsedArgs) {
+        addCall(name, parsedArgs);
+      }
+    }
+  }
+
+  // Pattern 2: XML tags <tool_call><_function_call>... or <function_call>...<tool_name>name</tool_name>...
+  const xmlMatches = text.matchAll(/<(?:tool_call>)?<_(?:function_call|action)>([\s\S]*?)<\/(?:function_call|action)>/gi);
+  for (const match of xmlMatches) {
+    const block = match[1];
+    const nameMatch = block.match(/<tool_name>([\s\S]*?)<\/tool_name>/i) || block.match(/<action_name>([\s\S]*?)<\/action_name>/i);
+    if (nameMatch) {
+      const name = nameMatch[1].trim();
+      const args = {};
+      const tagMatches = block.matchAll(/<([a-zA-Z0-9_]+)>([\s\S]*?)<\/\1>/g);
+      for (const tm of tagMatches) {
+        const key = tm[1];
+        if (key !== 'tool_name' && key !== 'action_name') {
+          const mappedKey = key === 'path' ? 'filePath' : key;
+          args[mappedKey] = tm[2].trim();
+        }
+      }
+      addCall(name, args);
+    }
+  }
+
+  // Pattern 2b: <function=write_file><parameter=filePath>...</parameter></function>
+  const fnParamMatches = text.matchAll(/<function=([a-zA-Z0-9_]+)>([\s\S]*?)<\/function>/gi);
+  for (const match of fnParamMatches) {
+    const name = match[1].trim();
+    const block = match[2];
+    const args = {};
+    const paramMatches = block.matchAll(/<parameter(?:=|\s+name=)["']?([a-zA-Z0-9_]+)["']?>([\s\S]*?)<\/parameter>/gi);
+    for (const pm of paramMatches) {
+      const key = pm[1];
+      const mappedKey = key === 'path' ? 'filePath' : key;
+      args[mappedKey] = pm[2].trim();
+    }
+    addCall(name, args);
+  }
+
+  // Pattern 3: <tool_call> JSON </tool_call> or <function_call> JSON </function_call>
+  const jsonMatches = text.matchAll(/<(?:tool_call|function_call)>\s*(\{[\s\S]*?\})\s*<\/(?:tool_call|function_call)>/gi);
+  for (const match of jsonMatches) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      const name = parsed.name || parsed.tool || parsed.function;
+      if (name) {
+        const args = typeof parsed.arguments === 'string' ? JSON.parse(parsed.arguments) : (parsed.arguments || parsed.args || parsed.parameters || {});
+        addCall(name, args);
+      }
+    } catch {}
+  }
+
+  // Pattern 4: Markdown JSON code blocks
+  const mdMatches = text.matchAll(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi);
+  for (const match of mdMatches) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      const name = parsed.name || parsed.tool || parsed.function || parsed.tool_name || parsed.action;
+      if (name) {
+        const args = typeof parsed.arguments === 'string' ? JSON.parse(parsed.arguments) : (parsed.arguments || parsed.parameters || parsed.args || parsed.action_input || {});
+        addCall(name, args);
+      }
+    } catch {}
+  }
+
+  // Pattern 5: Action: tool \n Action Input: {...}
+  const actionMatch = text.match(/Action:\s*([a-zA-Z0-9_]+)[\s\S]*?Action\s*Input:\s*(\{[\s\S]*?\})/i);
+  if (actionMatch) {
+    const name = actionMatch[1].trim();
+    try {
+      const args = JSON.parse(actionMatch[2]);
+      addCall(name, args);
+    } catch {}
+  }
+
+  // Pattern 6: Tool name followed by JSON object anywhere with arbitrary delimiter
+  // e.g. execute_command\nwrite_file\n{"path": "..."} or write_file<tool_sep>{"filePath": ...}
+  const plainRegex = new RegExp(`(?:^|\\n|\\s|<tool_call>)(${validToolsRegex})[^\\w{]*(\\{[\\s\\S]*?\\})`, 'gi');
+  for (const match of text.matchAll(plainRegex)) {
+    const name = match[1];
+    try {
+      const args = JSON.parse(match[2]);
+      addCall(name, args);
+    } catch {}
+  }
+
+  // Pattern 7: Standalone JSON object with characteristic tool parameters
+  if (calls.length === 0) {
+    const jsonObjectRegex = /\{[\s\S]*?\}/g;
+    for (const match of text.matchAll(jsonObjectRegex)) {
+      try {
+        const obj = JSON.parse(match[0]);
+        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+          if (obj.content !== undefined || (obj.filePath && obj.content) || (obj.path && obj.content)) {
+            addCall('write_file', obj);
+          } else if (obj.searchString || obj.replaceString || obj.search || obj.replace) {
+            addCall('patch_file', obj);
+          } else if (obj.command || obj.cmd) {
+            addCall('execute_command', obj);
+          } else if (obj.dirPath || obj.depth) {
+            addCall('list_dir', obj);
+          } else if (obj.filePath || obj.path) {
+            addCall('read_file', obj);
+          }
+        }
+      } catch {}
+    }
+  }
+
+  return calls;
+}
+

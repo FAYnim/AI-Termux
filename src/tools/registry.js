@@ -159,14 +159,59 @@ export function getTool(name) {
 }
 
 /**
+ * Normalizes tool arguments to support model variations and aliases.
+ * @param {string} name - Tool name
+ * @param {object} rawArgs - Raw tool arguments
+ * @returns {object}
+ */
+export function normalizeToolArgs(name, rawArgs = {}) {
+  const args = { ...(rawArgs || {}) };
+
+  if (name === 'write_file' || name === 'read_file' || name === 'patch_file') {
+    if (!args.filePath) {
+      args.filePath = args.path || args.file || args.filepath || args.file_path || args.filename || args.fileName || args.target_file || args.destination;
+    }
+  }
+
+  if (name === 'write_file') {
+    if (args.content === undefined) {
+      args.content = args.text ?? args.data ?? args.contents ?? args.body ?? args.code;
+    }
+  }
+
+  if (name === 'execute_command') {
+    if (!args.command) {
+      args.command = args.cmd || args.script || args.exec;
+    }
+  }
+
+  if (name === 'list_dir') {
+    if (!args.dirPath) {
+      args.dirPath = args.path || args.dir || args.directory || args.folder || '.';
+    }
+  }
+
+  if (name === 'patch_file') {
+    if (!args.searchString) {
+      args.searchString = args.search || args.find || args.pattern || args.old_string || args.oldString;
+    }
+    if (!args.replaceString) {
+      args.replaceString = args.replace || args.new_string || args.newString;
+    }
+  }
+
+  return args;
+}
+
+/**
  * Safely dispatches a tool call with security authorization check and error handling.
  *
  * @param {string} name - Tool name
- * @param {object} args - Tool arguments
+ * @param {object} rawArgs - Tool arguments
  * @param {object} [context={}] - Execution context (e.g. securityGuard, baseDir, logger)
  * @returns {Promise<{ success?: boolean, error?: boolean, result?: any, message?: string }>}
  */
-export async function dispatchToolCall(name, args = {}, context = {}) {
+export async function dispatchToolCall(name, rawArgs = {}, context = {}) {
   const tool = getTool(name);
 
   if (!tool) {
@@ -175,6 +220,8 @@ export async function dispatchToolCall(name, args = {}, context = {}) {
       message: `Tool "${name}" is not recognized. Available tools: ${Object.keys(TOOLS_MAP).join(', ')}`
     };
   }
+
+  const args = normalizeToolArgs(name, rawArgs);
 
   // Authorize via SecurityGuard if present in context
   if (context.securityGuard && typeof context.securityGuard.authorize === 'function') {

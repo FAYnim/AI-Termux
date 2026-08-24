@@ -161,6 +161,9 @@ export async function startRepl(options = {}) {
           }
         },
         onToken: (token) => {
+          const clean = token.replace(/<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi, '');
+          if (!clean) return;
+
           if (spinner.isSpinning()) {
             spinner.stop();
           }
@@ -168,7 +171,7 @@ export async function startRepl(options = {}) {
             hasStreamedToken = true;
             output.write('\n');
           }
-          output.write(token);
+          output.write(clean);
         },
         onToolCall: (call) => {
           if (spinner.isSpinning()) {

@@ -5,6 +5,7 @@
  */
 
 import { createLlmClient } from '../llm/registry.js';
+import { parseTextToolCalls } from '../llm/openai.js';
 import { SecurityGuard } from '../security/guard.js';
 import { getToolDeclarations, dispatchToolCall } from '../tools/registry.js';
 import { buildSystemPrompt } from './system-prompt.js';
@@ -172,7 +173,15 @@ export class AgentOrchestrator {
         throw genErr;
       }
 
-      const { text, functionCalls } = streamResult;
+      let { text, functionCalls } = streamResult;
+
+      // Fallback: If no structured function calls returned, detect embedded tool calls in text
+      if (!functionCalls || functionCalls.length === 0) {
+        const textCalls = parseTextToolCalls(text);
+        if (textCalls.length > 0) {
+          functionCalls = textCalls;
+        }
+      }
 
       // Step 3: Handle Pure Text Response (No tool calls)
       if (!functionCalls || functionCalls.length === 0) {

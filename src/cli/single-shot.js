@@ -63,6 +63,9 @@ export async function runSingleShot(prompt, options = {}) {
         }
       },
       onToken: (token) => {
+        const clean = token.replace(/<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi, '');
+        if (!clean) return;
+
         if (spinner.isSpinning()) {
           spinner.stop();
         }
@@ -71,8 +74,8 @@ export async function runSingleShot(prompt, options = {}) {
             hasStreamedToken = true;
             stream.write('\n');
           }
-          stream.write(token);
-          streamedText += token;
+          stream.write(clean);
+          streamedText += clean;
         }
       },
       onToolCall: (call) => {
