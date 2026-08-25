@@ -9,7 +9,7 @@ import { parseTextToolCalls } from '../llm/openai.js';
 import { SecurityGuard } from '../security/guard.js';
 import { getToolDeclarations, dispatchToolCall } from '../tools/registry.js';
 import { buildSystemPrompt } from './system-prompt.js';
-import { pruneMessages } from './pruner.js';
+import { pruneMessages, estimateSessionTokens } from './pruner.js';
 import { Session, createSession, defaultSessionManager } from './session.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 
@@ -145,6 +145,17 @@ export class AgentOrchestrator {
       currentIteration++;
       if (typeof options.onIterationStart === 'function') {
         options.onIterationStart(currentIteration);
+      }
+
+      // Step 0: Token Budget Check — stop before context overflows
+      const currentTokens = estimateSessionTokens(this.session);
+      const budgetLimit = Math.floor((this.maxContextTokens || 800000) * 0.85);
+      if (currentTokens > budgetLimit) {
+        this.logger.warn(
+          `Token budget exceeded (${currentTokens.toLocaleString()} / ${budgetLimit.toLocaleString()} tokens). ` +
+          `Stopping ReAct loop at iteration ${currentIteration} to avoid context overflow.`
+        );
+        break;
       }
 
       // Step 1: Context Pruning
