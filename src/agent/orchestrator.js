@@ -14,7 +14,7 @@ import { Session, createSession, defaultSessionManager } from './session.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { ReflectionChecker } from './reflection.js';
 
-export const DEFAULT_MAX_ITERATIONS = 15;
+export const DEFAULT_MAX_ITERATIONS = 30;
 
 /**
  * Core ReAct Agent Orchestrator Class
