@@ -12,6 +12,7 @@ import { buildSystemPrompt } from './system-prompt.js';
 import { pruneMessages, estimateSessionTokens } from './pruner.js';
 import { Session, createSession, defaultSessionManager } from './session.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { ReflectionChecker } from './reflection.js';
 
 export const DEFAULT_MAX_ITERATIONS = 15;
 
@@ -35,11 +36,13 @@ export class AgentOrchestrator {
    * @param {boolean} [options.autoApprove=false] - Auto-approve risky actions
    * @param {object} [options.logger] - Logger instance
    * @param {number} [options.maxContextTokens] - Max context tokens before pruning
+   * @param {number} [options.reflectionInterval=3] - Reflection check interval (0 = disabled)
    */
   constructor(options = {}) {
     this.workingDir = options.workingDir || process.cwd();
     this.maxIterations = options.maxIterations || DEFAULT_MAX_ITERATIONS;
     this.maxContextTokens = options.maxContextTokens;
+    this.reflectionInterval = options.reflectionInterval != null ? options.reflectionInterval : 3;
     this.logger = options.logger || defaultLogger;
 
     // Security Guard
@@ -115,6 +118,7 @@ export class AgentOrchestrator {
    * @param {(iteration: number) => void} [options.onIterationStart] - Turn hook
    * @param {AbortSignal} [options.signal] - Abort controller signal
    * @param {number} [options.maxIterations] - Override max iterations
+   * @param {number} [options.reflectionInterval] - Override reflection check interval (0 = disabled)
    * @returns {Promise<{
    *   success: boolean,
    *   text: string,
@@ -131,6 +135,14 @@ export class AgentOrchestrator {
     let finalText = '';
     let loopLimitReached = false;
     let currentIteration = 0;
+
+    // Reflection checker (0 means disabled)
+    const reflectionEnabled = (options.reflectionInterval ?? this.reflectionInterval) > 0;
+    const reflectionInterval = reflectionEnabled ? (options.reflectionInterval ?? this.reflectionInterval) : 0;
+    const reflectionChecker = reflectionEnabled ? new ReflectionChecker(this.llmClient, {
+      interval: reflectionInterval,
+      logger: this.logger
+    }) : null;
 
     // Add user prompt to session history if provided
     if (prompt && typeof prompt === 'string' && prompt.trim() !== '') {
@@ -260,6 +272,25 @@ export class AgentOrchestrator {
 
         // Add function response to session history
         this.session.addFunctionResponseMessage(name, responsePayload);
+      }
+
+      // Step 5.5: Record for reflection and run periodic check
+      if (reflectionChecker) {
+        reflectionChecker.record(currentIteration, executedToolCalls);
+
+        // Run reflection check at interval, but skip on the very last iteration
+        const isLastIteration = currentIteration >= maxIters - 1;
+        if (!isLastIteration && currentIteration % reflectionInterval === 0) {
+          try {
+            const verdict = await reflectionChecker.check(prompt || '', currentIteration);
+            if (verdict.finish) {
+              this.logger.info(`[Reflection] Stopping early — ${verdict.reason}`);
+              break;
+            }
+          } catch (refErr) {
+            this.logger.warn(`[Reflection] Check failed at iter ${currentIteration}: ${refErr.message}`);
+          }
+        }
       }
 
       // Check if we hit the iteration ceiling
