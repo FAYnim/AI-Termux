@@ -387,7 +387,46 @@ export class ConfigManager {
     } else {
       config.providers[providerId][field] = value;
     }
+    // Auto-populate `models` from builtin when first configuring a builtin provider
+    if (BUILTIN_PROVIDERS[providerId] && !config.providers[providerId].models) {
+      const builtinModels = BUILTIN_PROVIDERS[providerId].models;
+      if (Array.isArray(builtinModels) && builtinModels.length > 0) {
+        config.providers[providerId].models = [...builtinModels];
+      }
+    }
     this.saveConfig(config);
+  }
+
+  /**
+   * Get available models for a provider
+   * Merges builtin defaults with any user-customized list
+   * @param {string} providerId
+   * @returns {string[]}
+   */
+  getProviderModels(providerId) {
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const config = this.loadConfig();
+    const stored = config.providers?.[providerId] || {};
+
+    const builtinModels = builtin?.models || [];
+    const storedModels = Array.isArray(stored.models) ? stored.models : [];
+
+    // Combine: builtin default model first, then any extras
+    const merged = [];
+    if (builtin?.defaultModel && !merged.includes(builtin.defaultModel)) {
+      merged.push(builtin.defaultModel);
+    }
+    for (const m of storedModels) {
+      if (typeof m === 'string' && m.trim() && !merged.includes(m)) {
+        merged.push(m.trim());
+      }
+    }
+    for (const m of builtinModels) {
+      if (typeof m === 'string' && m.trim() && !merged.includes(m)) {
+        merged.push(m.trim());
+      }
+    }
+    return merged;
   }
 
   /**

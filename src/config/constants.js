@@ -36,6 +36,13 @@ export const BUILTIN_PROVIDERS = {
   gemini: {
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
     defaultModel: 'gemini-2.5-flash',
+    models: [
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash'
+    ],
     envVars: ['GEMINI_API_KEY', 'TERMUXAI_API_KEY', 'T_AI_API_KEY'],
     envBaseUrlVars: [],
     envModelVars: [],
@@ -43,6 +50,12 @@ export const BUILTIN_PROVIDERS = {
   openai: {
     defaultBaseUrl: 'https://api.openai.com/v1',
     defaultModel: 'gpt-4o-mini',
+    models: [
+      'gpt-4o',
+      'gpt-4o-mini',
+      'gpt-4',
+      'gpt-3.5-turbo'
+    ],
     envVars: ['OPENAI_API_KEY'],
     envBaseUrlVars: ['OPENAI_BASE_URL'],
     envModelVars: ['OPENAI_MODEL'],
