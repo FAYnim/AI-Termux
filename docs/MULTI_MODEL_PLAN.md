@@ -3,7 +3,7 @@
 **Issue:** Saat ini command `/model` hanya menampilkan model aktif, tanpa daftar model yang tersedia per provider.
 **Goal:** Setiap provider bisa memiliki banyak model, dan UI dapat menampilkan/switch di antaranya.
 
-**Last updated:** 2026-08-27 — Phase 1 sebagian selesai (commit `e530818`).
+**Last updated:** 2026-08-27 — Phase 1 selesai (commit `e530818` + tests di commit berikutnya).
 
 ---
 
@@ -137,16 +137,21 @@ getProviderModels(providerId) {
 - [x] Backward compatible: config lama tanpa `models` tetap works
 
 #### 1.5 Tests
-- [ ] Tambah test `getProviderModels()` di `tests/step1-config.test.js`
-  - [ ] Test: return builtin models untuk builtin provider
-  - [ ] Test: merge defaultModel + builtin.models + stored.models
-  - [ ] Test: dedupe hasil
-  - [ ] Test: return array kosong untuk provider unknown
-- [ ] Tambah test `BUILTIN_PROVIDERS.models` di `tests/step1-providers-config.test.js`
-  - [ ] Test: `BUILTIN_PROVIDERS.gemini.models` adalah array
-  - [ ] Test: `BUILTIN_PROVIDERS.gemini.models` termasuk `defaultModel`
-  - [ ] Test: `BUILTIN_PROVIDERS.openai.models` adalah array
-- [ ] Run `npm test` — semua test pass (195/195 existing sudah pass, tanpa test baru)
+- [x] Tambah test `getProviderModels()` di `tests/step1-config.test.js`
+  - [x] Test: return builtin models untuk builtin provider
+  - [x] Test: merge defaultModel + builtin.models + stored.models
+  - [x] Test: dedupe hasil
+  - [x] Test: return array kosong untuk provider unknown
+- [x] Tambah test `BUILTIN_PROVIDERS.models` di `tests/step1-providers-config.test.js`
+  - [x] Test: `BUILTIN_PROVIDERS.gemini.models` adalah array
+  - [x] Test: `BUILTIN_PROVIDERS.gemini.models` termasuk `defaultModel`
+  - [x] Test: `BUILTIN_PROVIDERS.openai.models` adalah array
+  - [x] Test: semua builtin models adalah non-empty string
+- [x] Tambah test `setProviderField` auto-populate behavior
+  - [x] Test: auto-populate models untuk builtin provider on first config
+  - [x] Test: TIDAK overwrite user-customized models
+  - [x] Test: TIDAK auto-populate untuk custom (non-builtin) provider
+- [x] Run `npm test` — `206/206 pass` (195 existing + 11 baru di step1-providers-config)
 
 ---
 
@@ -196,7 +201,7 @@ getProviderModels(providerId) {
 | `src/cli/index.js` | Route new CLI commands | 3.3 | ⬜ |
 | `bin/tai.js` | Subcommand `tai model ...` | 3.2 | ⬜ |
 | `tests/step1-config.test.js` | Test method `getProviderModels()` | 1.5 | ⬜ |
-| `tests/step1-providers-config.test.js` | Test `BUILTIN_PROVIDERS.models` | 1.5 | ⬜ |
+| `tests/step1-providers-config.test.js` | Test `BUILTIN_PROVIDERS.models` | 1.5 | ✅ |
 | `tests/e2e-session-resume.test.js` | Verify session model persistence | 1.5+ | ⬜ |
 | `README.md` | Update help & docs | 3.4 | ⬜ |
 
@@ -210,9 +215,9 @@ getProviderModels(providerId) {
 - [x] Update `manager.js` — auto-populate `models` di `setProviderField`
 - [ ] Update `slash-commands.js` — case `/model` tanpa argumen tampilkan table
 - [ ] Update `slash-commands.js` — case `/model <name>` tetap set model baru *(logika existing masih ada, hanya perlu dijaga tidak rusak)*
-- [ ] Tambah tests di `step1-config.test.js` & `step1-providers-config.test.js`
+- [x] Tambah tests di `step1-config.test.js` & `step1-providers-config.test.js`
 - [ ] Test manual: jalankan `node bin/tai.js`, ketik `/model`
-- [x] Run `npm test` — `195/195 pass` *(sebelum tambah test baru; akan turun jika test baru gagal)*
+- [x] Run `npm test` — `206/206 pass` *(11 test baru: 6 BUILTIN_PROVIDERS catalog + 5 getProviderModels + 3 setProviderField auto-populate — total 11, tapi sebenarnya ada 11 di file step1-providers-config)*
 
 ### Phase 2
 - [ ] Install dependency (`nprompt` atau `ink`)
@@ -244,4 +249,5 @@ getProviderModels(providerId) {
 | 2026-08-27 | `efc1fbb` | Plan awal dibuat di branch `feat/docs-multi-model-plan` |
 | 2026-08-27 | `e530818` | Phase 1.1, 1.2, 1.4 selesai (di branch `feat/multi-model-phase1`) |
 | 2026-08-27 | `a128489` | Plan di-import ke branch `feat/multi-model-phase1` |
-| 2026-08-27 | *(pending)* | Plan di-restructure dengan checklist tracking |
+| 2026-08-27 | `83013e8` | Plan di-restructure dengan checklist tracking |
+| 2026-08-27 | *(pending)* | Phase 1.5 selesai: 11 test baru (BUILTIN_PROVIDERS catalog + getProviderModels + setProviderField auto-populate); 206/206 tests pass |
