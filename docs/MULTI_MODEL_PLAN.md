@@ -109,10 +109,12 @@ getProviderModels(providerId) {
 ```
 
 #### 1.3 Update `src/cli/slash-commands.js` — `/model` command
-- [ ] Ubah behavior `/model` tanpa argumen → render box daftar model
-- [ ] Tandai model aktif dengan `▸ (active)` (warna yellow + bold)
-- [ ] Tampilkan section "Other providers" jika ada provider lain
-- [ ] Pertahankan logic `/model <name>` untuk set model baru
+- [x] Ubah behavior `/model` tanpa argumen → render box daftar model
+- [x] Tandai model aktif dengan `▸ (active)` (warna yellow + bold)
+- [x] Tampilkan section "Other providers" jika ada provider lain
+- [x] Pertahankan logic `/model <name>` untuk set model baru
+- [x] Backward compatible: `action` tetap `model_info` (bukan `model_list`); fallback single-line jika `configMgr`/`getProviderModels` tidak ada
+- [x] Update help text `/model` di `SLASH_COMMANDS_HELP`
 
 **Expected output:**
 ```
@@ -195,7 +197,7 @@ getProviderModels(providerId) {
 | `src/config/constants.js` | Tambah field `models[]` ke BUILTIN_PROVIDERS | 1.1 | ✅ |
 | `src/config/manager.js` | Tambah method `getProviderModels()` | 1.2 | ✅ |
 | `src/config/manager.js` | Auto-populate `models` di `setProviderField` | 1.4 | ✅ |
-| `src/cli/slash-commands.js` | Update case `'model'` untuk tampilkan list | 1.3 | ⬜ |
+| `src/cli/slash-commands.js` | Update case `'model'` untuk tampilkan list | 1.3 | ✅ |
 | `src/ui/model-menu.js` | **[NEW]** Interactive TUI menu | 2.2 | ⬜ |
 | `src/cli/args.js` | Tambah flag `--list`, `--all`, `--set` | 3.1 | ⬜ |
 | `src/cli/index.js` | Route new CLI commands | 3.3 | ⬜ |
@@ -213,11 +215,11 @@ getProviderModels(providerId) {
 - [x] Update `constants.js` — tambahkan `models[]` ke semua builtin provider
 - [x] Update `manager.js` — tambah method `getProviderModels()`
 - [x] Update `manager.js` — auto-populate `models` di `setProviderField`
-- [ ] Update `slash-commands.js` — case `/model` tanpa argumen tampilkan table
-- [ ] Update `slash-commands.js` — case `/model <name>` tetap set model baru *(logika existing masih ada, hanya perlu dijaga tidak rusak)*
+- [x] Update `slash-commands.js` — case `/model` tanpa argumen tampilkan table
+- [x] Update `slash-commands.js` — case `/model <name>` tetap set model baru *(logika existing masih ada, hanya perlu dijaga tidak rusak)*
 - [x] Tambah tests di `step1-config.test.js` & `step1-providers-config.test.js`
 - [ ] Test manual: jalankan `node bin/tai.js`, ketik `/model`
-- [x] Run `npm test` — `206/206 pass` *(11 test baru: 6 BUILTIN_PROVIDERS catalog + 5 getProviderModels + 3 setProviderField auto-populate — total 11, tapi sebenarnya ada 11 di file step1-providers-config)*
+- [x] Run `npm test` — `210/210 pass` *(195 existing + 11 phase 1.5 + 4 phase 1.3)*
 
 ### Phase 2
 - [ ] Install dependency (`nprompt` atau `ink`)
@@ -250,4 +252,5 @@ getProviderModels(providerId) {
 | 2026-08-27 | `e530818` | Phase 1.1, 1.2, 1.4 selesai (di branch `feat/multi-model-phase1`) |
 | 2026-08-27 | `a128489` | Plan di-import ke branch `feat/multi-model-phase1` |
 | 2026-08-27 | `83013e8` | Plan di-restructure dengan checklist tracking |
-| 2026-08-27 | *(pending)* | Phase 1.5 selesai: 11 test baru (BUILTIN_PROVIDERS catalog + getProviderModels + setProviderField auto-populate); 206/206 tests pass |
+| 2026-08-27 | `7088b7d` | Phase 1.5 selesai: 11 test baru (BUILTIN_PROVIDERS catalog + getProviderModels + setProviderField auto-populate); 206/206 tests pass |
+| 2026-08-27 | *(pending)* | Phase 1.3 selesai: `/model` tanpa argumen render box daftar model; 4 test baru; 210/210 tests pass |

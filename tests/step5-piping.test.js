@@ -142,6 +142,135 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.strictEqual(res2.message, 'gemini-2.5-pro');
   });
 
+  // === Phase 1.3: /model without args renders model catalog box ===
+  test('executeSlashCommand /model (no args) renders model catalog box with getProviderModels', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-model-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', chunk => { written += chunk.toString('utf8'); });
+
+    const mockOrchestrator = {
+      provider: 'gemini',
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() { return this.model; }
+      }
+    };
+
+    const res = await executeSlashCommand('/model', {
+      orchestrator: mockOrchestrator,
+      configMgr,
+      stream: output
+    });
+    assert.strictEqual(res.action, 'model_info');
+    assert.strictEqual(res.message, 'gemini-2.5-flash');
+
+    const plain = stripAnsi(written);
+    // Box rendering should include all builtin gemini models
+    assert.ok(plain.includes('Model (gemini)'), 'output should include box title');
+    assert.ok(plain.includes('gemini-2.5-flash'));
+    assert.ok(plain.includes('gemini-2.5-pro'));
+    assert.ok(plain.includes('gemini-1.5-flash'));
+    assert.ok(plain.includes('gemini-1.5-pro'));
+    assert.ok(plain.includes('gemini-2.0-flash'));
+    // Active model marker
+    assert.ok(plain.includes('(active)'), 'active model should be marked');
+    // Box should use unicode border characters (round style)
+    assert.ok(/[╭╮╰╯─│]/.test(plain), 'output should include round-style box border chars');
+
+    // cleanup
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  });
+
+  test('executeSlashCommand /model (no args) shows other providers section when multiple configured', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-model-multi-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+    // Configure openai too
+    configMgr.setProviderField('openai', 'apiKey', 'test-openai-key');
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', chunk => { written += chunk.toString('utf8'); });
+
+    const mockOrchestrator = {
+      provider: 'gemini',
+      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+    };
+
+    await executeSlashCommand('/model', {
+      orchestrator: mockOrchestrator,
+      configMgr,
+      stream: output
+    });
+
+    const plain = stripAnsi(written);
+    // Other providers section should be present
+    assert.ok(plain.includes('Other providers:'), 'should include other-providers section');
+    assert.ok(plain.includes('openai:'), 'should list openai in other-providers');
+    assert.ok(plain.includes('gpt-4o-mini'), 'should include openai builtin models');
+
+    // cleanup
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  });
+
+  test('executeSlashCommand /model (no args) falls back to single-line when configMgr missing', async () => {
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', chunk => { written += chunk.toString('utf8'); });
+
+    const mockOrchestrator = {
+      provider: 'gemini',
+      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+    };
+
+    // No configMgr -> should use single-line fallback
+    const res = await executeSlashCommand('/model', {
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res.action, 'model_info');
+    assert.strictEqual(res.message, 'gemini-2.5-flash');
+
+    const plain = stripAnsi(written);
+    assert.ok(plain.includes('Active model: gemini-2.5-flash'));
+    // No box should be rendered
+    assert.ok(!/╔/.test(plain), 'fallback should not render box');
+  });
+
+  test('executeSlashCommand /model gemini-2.5-pro still works (set model unchanged behavior)', async () => {
+    const output = new PassThrough();
+    const mockOrchestrator = {
+      provider: 'gemini',
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() { return this.model; },
+        setModel(m) { this.model = m; }
+      },
+      session: { model: 'gemini-2.5-flash' }
+    };
+
+    const res = await executeSlashCommand('/model gemini-2.5-pro', {
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res.action, 'model_changed');
+    assert.strictEqual(res.message, 'gemini-2.5-pro');
+    assert.strictEqual(mockOrchestrator.geminiClient.getModel(), 'gemini-2.5-pro');
+    assert.strictEqual(mockOrchestrator.session.model, 'gemini-2.5-pro');
+  });
+
   test('executeSlashCommand /provider should view and switch active provider', async () => {
     const output = new PassThrough();
     let currentProvider = 'gemini';

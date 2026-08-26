@@ -11,7 +11,7 @@ export const SLASH_COMMANDS_HELP = [
   { cmd: '/help', desc: 'Show this slash commands help menu' },
   { cmd: '/provider [id]', desc: 'Show active provider or switch provider + persist' },
   { cmd: '/provider list', desc: 'List configured providers' },
-  { cmd: '/model [name]', desc: 'Show active model or switch to a new model' },
+  { cmd: '/model [name]', desc: 'Show available models for active provider, or switch to a new model' },
   { cmd: '/session', desc: 'Display current session ID, token usage & stats' },
   { cmd: '/clear', desc: 'Clear the terminal screen' },
   { cmd: '/config', desc: 'Display active CLI configuration settings' },
@@ -129,6 +129,49 @@ export async function executeSlashCommand(input, context = {}) {
             currentModel = 'gemini-2.5-flash';
           }
         }
+
+        // Phase 1.3: Render box with available models for active provider
+        let modelLines = [];
+        if (configMgr && typeof configMgr.getProviderModels === 'function') {
+          const act = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
+          const allModels = configMgr.getProviderModels(act);
+          if (allModels.length > 0) {
+            modelLines = allModels.map((m) =>
+              m === currentModel
+                ? `  ${ansi.green('▸')} ${ansi.bold(ansi.yellow(m))} ${ansi.dim('(active)')}`
+                : `    ${ansi.white(m)}`
+            );
+
+            // Show other providers' models in a second section
+            const stored = configMgr.loadConfig().providers || {};
+            const otherIds = Object.keys(stored).filter((pid) => pid !== act);
+            if (otherIds.length > 0) {
+              const otherLines = [];
+              for (const pid of otherIds) {
+                const pm = configMgr.getProviderModels(pid);
+                if (pm.length > 0) {
+                  otherLines.push(`  ${ansi.cyan(pid + ':')} ${pm.join(', ')}`);
+                }
+              }
+              if (otherLines.length > 0) {
+                modelLines.push('');
+                modelLines.push(ansi.dim('  Other providers:'));
+                modelLines.push(...otherLines);
+              }
+            }
+
+            const box = renderBox(modelLines.join('\n'), {
+              title: `Model (${act})`,
+              borderColor: 'cyan',
+              borderStyle: 'round',
+              minWidth: 48
+            });
+            stream.write(`\n${box}\n\n`);
+            return { handled: true, action: 'model_info', message: currentModel };
+          }
+        }
+
+        // Fallback: original single-line output (no getProviderModels or empty list)
         stream.write(`\n${ansi.cyan('ℹ')} Active model: ${ansi.bold(ansi.yellow(currentModel))}\n\n`);
         return { handled: true, action: 'model_info', message: currentModel };
       }
