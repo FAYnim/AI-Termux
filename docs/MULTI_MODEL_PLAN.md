@@ -21,7 +21,7 @@
 ### Masalah Ditemukan
 - [x] **1.** `SUPPORTED_MODELS` di `constants.js` hanya berisi Gemini models (hardcoded, tidak dinamis per provider)
 - [x] **2.** `BUILTIN_PROVIDERS` hanya menyimpan default model tunggal, bukan array
-- [ ] **3.** `/model` slash command hanya show current + set new value, tanpa list *(belum di-fix, menunggu phase 1.3)*
+- [x] **3.** `/model` slash command hanya show current + set new value, tanpa list *(belum di-fix, menunggu phase 1.3)*
 - [x] **4.** Config structure belum punya field `models[]` per provider *(field sudah ada di builtin; auto-populate untuk user config juga sudah)*
 
 ---
@@ -161,15 +161,41 @@ getProviderModels(providerId) {
 
 **Target:** User bisa navigasi dan pilih model dengan arrow keys.
 
-- [ ] **2.1** Pilih dependency: `nprompt` atau `ink`
-- [ ] **2.2** Buat file baru `src/ui/model-menu.js`
-  - [ ] Interactive vertical menu dengan arrow keys
-  - [ ] Menampilkan semua provider + model mereka
-  - [ ] Active model ditandai dengan `●`
-  - [ ] Enter untuk select
-- [ ] **2.3** Integrasi ke `slash-commands.js`
-  - [ ] Saat `/model` dipanggil tanpa argumen di REPL, jalankan interactive menu
-  - [ ] Fallback ke text output jika bukan TTY (pipa/redirect)
+- [x] **2.1** Pilih dependency: **zero-dep** (Node.js built-in `readline.emitKeypressEvents` + raw mode) — Termux-friendly, lightweight, no third-party deps
+- [x] **2.2** Buat file baru `src/ui/model-menu.js`
+  - [x] Interactive vertical menu dengan arrow keys (↑/↓/j/k), Enter, Esc/Ctrl+C/q
+  - [x] Menampilkan semua provider + model mereka (grouped by provider with section headers)
+  - [x] Active model ditandai dengan `●` (selected) / `○` (unselected) + `(active)` tag
+  - [x] Enter untuk select
+  - [x] Home/End jump ke first/last item
+  - [x] Pre-select model aktif saat menu dibuka
+  - [x] Pure-function `buildModelMenuItems()` untuk testability
+  - [x] Convenience wrapper `showModelMenuFromConfig()` untuk integrasi dengan ConfigManager
+- [x] **2.3** Integrasi ke `slash-commands.js`
+  - [x] Saat `/model` dipanggil tanpa argumen di REPL dengan TTY, jalankan interactive menu
+  - [x] Pilih model → terapkan via setModel() + setProviderField() + update session
+  - [x] Escape/Ctrl+C → fall through ke text box (Phase 1.3)
+  - [x] Fallback ke text output jika bukan TTY (pipa/redirect)
+  - [x] Update help text `/model`
+- [x] **2.4** Tests di `tests/step2-model-menu.test.js` (18 tests)
+  - [x] buildModelMenuItems: flat ordering, active marker, empty input
+  - [x] showModelMenu: cancelled (no items / not TTY)
+  - [x] showModelMenu: Enter selects active
+  - [x] showModelMenu: down arrow moves selection
+  - [x] showModelMenu: up arrow wraps from index 0
+  - [x] showModelMenu: down arrow wraps from last item
+  - [x] showModelMenu: escape / q / ctrl-c cancel
+  - [x] showModelMenu: pre-selects active
+  - [x] showModelMenu: home/end keys
+  - [x] showModelMenu: output contains model names & markers
+  - [x] showModelMenuFromConfig: missing configMgr returns cancelled
+  - [x] showModelMenuFromConfig: builds items from real ConfigManager
+  - [x] showModelMenuFromConfig: non-TTY input returns cancelled
+- [x] **2.5** Integration tests di `tests/step5-piping.test.js` (3 tests)
+  - [x] TTY: Enter applies selected model via `/model`
+  - [x] TTY: Escape falls back to text box (no model change)
+  - [x] Non-TTY: skips menu, renders text box
+- [x] **2.6** `npm test` — `231/231 pass` (210 baseline + 18 step2-model-menu + 3 step5 integration)
 
 ---
 
@@ -198,7 +224,9 @@ getProviderModels(providerId) {
 | `src/config/manager.js` | Tambah method `getProviderModels()` | 1.2 | ✅ |
 | `src/config/manager.js` | Auto-populate `models` di `setProviderField` | 1.4 | ✅ |
 | `src/cli/slash-commands.js` | Update case `'model'` untuk tampilkan list | 1.3 | ✅ |
-| `src/ui/model-menu.js` | **[NEW]** Interactive TUI menu | 2.2 | ⬜ |
+| `src/ui/model-menu.js` | **[NEW]** Interactive TUI menu | 2.2 | ✅ |
+| `tests/step2-model-menu.test.js` | **[NEW]** Unit tests for model-menu | 2.4 | ✅ |
+| `src/cli/slash-commands.js` | Update case `'model'` for interactive menu | 2.3 | ✅ |
 | `src/cli/args.js` | Tambah flag `--list`, `--all`, `--set` | 3.1 | ⬜ |
 | `src/cli/index.js` | Route new CLI commands | 3.3 | ⬜ |
 | `bin/tai.js` | Subcommand `tai model ...` | 3.2 | ⬜ |
@@ -222,10 +250,11 @@ getProviderModels(providerId) {
 - [x] Run `npm test` — `210/210 pass` *(195 existing + 11 phase 1.5 + 4 phase 1.3)*
 
 ### Phase 2
-- [ ] Install dependency (`nprompt` atau `ink`)
-- [ ] Buat `src/ui/model-menu.js`
-- [ ] Integrasikan ke slash-commands
-- [ ] Test interaktivitas (TTY only)
+- [x] Pilih dependency: zero-dep (Node.js `readline.emitKeypressEvents`)
+- [x] Buat `src/ui/model-menu.js`
+- [x] Integrasikan ke slash-commands
+- [x] Test interaktivitas (TTY only) — 18 unit + 3 integration tests
+- [x] `npm test` — 231/231 pass
 
 ### Phase 3
 - [ ] Update `args.js` parser
@@ -254,3 +283,4 @@ getProviderModels(providerId) {
 | 2026-08-27 | `83013e8` | Plan di-restructure dengan checklist tracking |
 | 2026-08-27 | `7088b7d` | Phase 1.5 selesai: 11 test baru (BUILTIN_PROVIDERS catalog + getProviderModels + setProviderField auto-populate); 206/206 tests pass |
 | 2026-08-27 | *(pending)* | Phase 1.3 selesai: `/model` tanpa argumen render box daftar model; 4 test baru; 210/210 tests pass |
+| 2026-08-27 | *(pending)* | Phase 2 selesai: zero-dep interactive TUI menu (`src/ui/model-menu.js`) dengan arrow-key navigation, group-by-provider, active marker, & TTY fallback. 18 unit + 3 integration tests. 231/231 tests pass. |
