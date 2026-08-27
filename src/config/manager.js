@@ -683,6 +683,72 @@ export class ConfigManager {
   }
 
   /**
+   * Get the effective ACTIVE model for a provider.
+   *
+   * This is the **read-side alias** introduced in Phase 2.1 of the
+   * provider-model clarity refactor. The goal is to disambiguate the three
+   * near-identical names (`model`, `models[]`, `--model`) by giving the
+   * "active" concept an explicit getter name, while keeping the on-disk
+   * format (`providers[id].model`) untouched for backward compatibility.
+   *
+   * Resolution precedence (first non-empty wins, mirroring the legacy
+   * inline logic in `getProviderConfig()`):
+   *   1. `providers[id].model` (user's persisted choice — could be a
+   *      custom finetune not in the builtin catalog)
+   *   2. env var override (`builtin.envModelVars`, first non-empty)
+   *   3. `BUILTIN_PROVIDERS[id].defaultModel` (the builtin default)
+   *
+   * @param {string} providerId
+   * @returns {string|null} the effective active model, or `null` if the
+   *   provider is unknown AND no stored value exists
+   */
+  getActiveModel(providerId) {
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const config = this.loadConfig();
+    const stored = config.providers?.[providerId] || {};
+
+    // 1. Stored user choice (highest priority)
+    if (typeof stored.model === 'string' && stored.model.trim()) {
+      return stored.model.trim();
+    }
+    // 2. Env var override (only meaningful for builtin providers with envModelVars)
+    if (builtin?.envModelVars) {
+      for (const envVar of builtin.envModelVars) {
+        const v = process.env[envVar];
+        if (typeof v === 'string' && v.trim()) {
+          return v.trim();
+        }
+      }
+    }
+    // 3. Builtin default
+    if (builtin?.defaultModel && typeof builtin.defaultModel === 'string' && builtin.defaultModel.trim()) {
+      return builtin.defaultModel.trim();
+    }
+    return null;
+  }
+
+  /**
+   * Get the MODEL CATALOG for a provider (the list of available models).
+   *
+   * This is the **read-side alias** introduced in Phase 2.1 to disambiguate
+   * `model` (active, single value) from `models[]` (catalog, many values).
+   * It is a thin wrapper around the existing `getProviderModels()` so that
+   * call sites can read the *intent* ("give me the catalog") rather than
+   * the *storage shape* ("give me the `models[]` array").
+   *
+   * The returned list always includes the currently active model (if any),
+   * even when it is a custom finetune outside the builtin catalog — see
+   * `getProviderModels()` for the exact precedence rules.
+   *
+   * @param {string} providerId
+   * @returns {string[]} deduplicated list of model names (may be empty for
+   *   unknown providers with no stored catalog)
+   */
+  getModelCatalog(providerId) {
+    return this.getProviderModels(providerId);
+  }
+
+  /**
    * List all known provider IDs.
    *
    * Returns the union of builtin providers (from `BUILTIN_PROVIDERS`) and

@@ -95,12 +95,17 @@ Hapus duplikasi dan jadikan `BUILTIN_PROVIDERS[*].models[]` sebagai satu-satunya
 
 Tujuannya: `model` (aktif) vs `models[]` (katalog) tidak lagi ambigu. Karena mengubah nama field di config adalah breaking change, kita lakukan **renaming internal + backward-compatible alias** agar file config lama tetap terbaca.
 
-#### 2.1 Desain nama field baru (internal)
-- [ ] Field internal baru: `providers[id].activeModel` (menggantikan `model` sebagai nama aktif yang eksplisit)
-- [ ] Field `providers[id].catalog` (alias dari `models[]`, lebih eksplisit)
-- [ ] **Keputusan desain:** simpan alias `model` & `models` untuk backward-compat config lama, ATAU migrasi otomatis di `loadConfig()` (pilih & dokumentasikan)
+#### 2.1 Desain nama field baru (internal) ✅
+- [x] Field internal baru: `providers[id].activeModel` (menggantikan `model` sebagai nama aktif yang eksplisit) — **diadopsi sebagai read-side alias, bukan field tersimpan**
+- [x] Field `providers[id].catalog` (alias dari `models[]`, lebih eksplisit) — **diadopsi sebagai read-side alias, bukan field tersimpan**
+- [x] **Keputusan desain (ADR):** gunakan **getter pembaca saja** (`getActiveModel`, `getModelCatalog`) — **JANGAN ubah format tersimpan** di `config.json` agar 100% non-breaking
+  - **Alasan:** backward-compat prioritas tertinggi; user yang sudah punya config lama (`{ model: "...", models: [...] }`) tidak boleh terganggu.
+  - **Konsekuensi:** nama `model` & `models` tetap dipakai di storage layer; nama `activeModel` & `catalog` adalah **konsep baca** yang diekspos lewat getter.
+  - **Implikasi ke step 2.2:** implementasi getter (sudah selesai di 2.1 sebagai fondasi); step 2.2 tinggal memigrasi call sites (CLI/REPL/registry) untuk prefer getter baru.
 
 > ⚠️ Catatan: Langkah ini opsional dan berisiko breaking. Konsep baru menentukan apakah renaming field layak, atau cukup **dokumentasi + alias pembaca** (getter) tanpa mengubah format tersimpan. **Default recommendation: lakukan getter/alias pembaca saja, jangan ubah format tersimpan** agar migrasi minimal.
+>
+> ✅ **Status (2026-08-27):** Keputusan akhir = **getter pembaca saja, format tersimpan tidak berubah**. Stub `getActiveModel(providerId)` dan `getModelCatalog(providerId)` ditambahkan di `src/config/manager.js` (read-side alias non-breaking). Lihat JSDoc di method untuk kontrak lengkap.
 
 #### 2.2 `src/config/manager.js` — getter pembaca (reader alias)
 - [ ] Tambahkan `getActiveModel(providerId)` sebagai eksplisit getter untuk model aktif (membungkus logika `stored.model || builtin.defaultModel || envModelVars`)
@@ -178,7 +183,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | File | Perubahan | Phase | Status |
 |------|-----------|:-----:|:------:|
 | `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ✅ |
-| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.2 | 🟡 (1.3 ✅, 2.2 ⬜) |
+| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.1, 2.2 | 🟡 (1.3 ✅, 2.1 ✅, 2.2 ⬜) |
 | `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ⬜ |
 | `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ⬜ |
 | `src/cli/model-commands.js` | (ops.) gunakan getter baru bila renaming field diterapkan | 2.2 | ⬜ |
@@ -187,7 +192,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | `docs/REFACTOR_PROVIDER_MODEL_CLARITY.md` | **[THIS]** Update checklist & history | semua | ⬜ |
 | `README.md` | Rapi ulang section provider/model, hapus/mark legacy | 3.3, 4.1 | ⬜ |
 | `tests/phase1-source-of-truth.test.js` | **[NEW]** Test source-of-truth (1.4-A/B/C/D): invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames | 1.4 | ✅ |
-| `tests/*.test.js` | Test getter baru, backward-compat (Phase 2.3) | 2.3 | ⬜ |
+| `tests/phase2-getters.test.js` | **[NEW]** Test getter Phase 2.1-A/B/C/D/E: precedence getActiveModel, getModelCatalog alias, no-write guarantee, legacy config backward-compat, cross-consistency | 2.1 | ✅ |
+| `tests/*.test.js` | Migrasi call sites ke getter baru (Phase 2.2) + deprecation warnings (Phase 2.3) | 2.2, 2.3 | ⬜ |
 
 ---
 
@@ -200,9 +206,9 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 - [x] **1.4** Tambah test source-of-truth (`phase1-source-of-truth.test.js`): 22/22 pass; `npm test` — unit tests tidak ada regresi dari perubahan Phase 1
 
 ### Phase 2 — Penamaan Eksplisit (getter, non-breaking)
-- [ ] **2.1** Tetapkan desain: getter pembaca, JANGAN ubah format tersimpan (default recommendation)
-- [ ] **2.2** Tambah `getActiveModel()` & `getModelCatalog()` di `manager.js`; `getProviderModels()` jadi alias deprecated
-- [ ] **2.3** Test getter baru + backward-compat config lama
+- [x] **2.1** Tetapkan desain: getter pembaca, JANGAN ubah format tersimpan (default recommendation) — **ADR dicatat + stub getter `getActiveModel()` & `getModelCatalog()` ditambahkan di `manager.js` (read-side alias non-breaking)**
+- [ ] **2.2** Migrasikan call sites (`model-commands.js`, `slash-commands.js`, `bin/tai.js`, `ui/model-menu.js`) agar prefer `getActiveModel()`/`getModelCatalog()`; `getProviderModels()` jadi alias deprecated (tetap jalan untuk backward-compat)
+- [ ] **2.3** Test getter baru (`phase2-getters.test.js`) + backward-compat config lama (config dengan `model`/`models` legacy)
 
 ### Phase 3 — Dokumentasi Urgensi Resolusi
 - [ ] **3.1** Buat `docs/PROVIDER_MODEL_CONCEPT.md` (hirarki, tabel one-shot vs persistent, alur resolusi)
@@ -261,7 +267,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-27 | Phase 1.2 selesai: verifikasi `grep` mengonfirmasi 0 dependensi `SUPPORTED_MODELS` di seluruh codebase |
 | 2026-08-27 | Phase 1.3 selesai: IIFE `validateBuiltinProviderInvariants()` di `manager.js` (fail-fast module-load) + method `getProviderNames()` (builtin ∪ sorted custom) |
 | 2026-08-27 | Phase 1.4 selesai: tambah `tests/phase1-source-of-truth.test.js` — 22 test pass (4 grup: invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames SoT) |
-| *(pending)* | Phase 2 selesai: getter eksplisit non-breaking |
+| 2026-08-27 | Phase 2.1 selesai: ADR getter-only (NON-breaking), stub `getActiveModel()` + `getModelCatalog()` ditambahkan di `manager.js`; `npm test` 346/346 pass, 0 regression |
+| *(pending)* | Phase 2.2 selesai: migrasi call sites ke getter baru + deprecate `getProviderModels()` |
 | *(pending)* | Phase 3 selesai: dokumentasi konsep + help + README |
 | *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |
 | *(pending)* | Phase 5 selesai: verifikasi & regression 0 |
