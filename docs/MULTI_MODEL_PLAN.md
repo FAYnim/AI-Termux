@@ -3,7 +3,7 @@
 **Issue:** Saat ini command `/model` hanya menampilkan model aktif, tanpa daftar model yang tersedia per provider.
 **Goal:** Setiap provider bisa memiliki banyak model, dan UI dapat menampilkan/switch di antaranya.
 
-**Last updated:** 2026-08-27 — Phase 1 selesai (commit `e530818` + tests di commit berikutnya).
+**Last updated:** 2026-08-27 — Phase 1, 2, 3 selesai (semua 263/263 tests pass).
 
 ---
 
@@ -203,16 +203,32 @@ getProviderModels(providerId) {
 
 **Target:** Bisa manage model dari command line tanpa masuk REPL.
 
-- [ ] **3.1** Update `src/cli/args.js`
-  - [ ] Flag `flags.modelList = false`    → `--list`
-  - [ ] Flag `flags.modelAll = false`     → `--all`
-  - [ ] Flag `flags.modelSet = null`      → `--set <model>`
-- [ ] **3.2** Subcommand baru di `bin/tai.js`
-  - [ ] `tai model --list --provider nara`
-  - [ ] `tai model --list --all`
-  - [ ] `tai model --set <model> --provider <id>`
-- [ ] **3.3** CLI handler di `src/cli/index.js` — route command ke fungsi yang sesuai
-- [ ] **3.4** Update help text & README
+- [x] **3.1** Update `src/cli/args.js`
+  - [x] Flag `flags.modelList = false`    → `--list`
+  - [x] Flag `flags.modelAll = false`     → `--all`
+  - [x] Flag `flags.modelSet = null`      → `--set <model>`
+  - [x] Recognize `model` / `models` as top-level command → routes to `model` with `list`/`set` subcommand
+- [x] **3.2** Subcommand baru di `bin/tai.js`
+  - [x] `tai model --list --provider nara`  *(implemented as `--provider <id>`)*
+  - [x] `tai model --list --all`
+  - [x] `tai model --set <model> --provider <id>`
+  - [x] Bare `tai model` defaults to listing
+- [x] **3.3** CLI handler di `src/cli/model-commands.js` (new module) — `listModelsCli`, `setModelCli`, `handleModelCommand`
+  - [x] Registered in `src/cli/index.js`
+  - [x] Renders ASCII box with `▸ (active)` marker (matches `/model` REPL output)
+  - [x] `--all` groups every provider in a single box
+  - [x] Unknown provider → exit 1 with helpful error
+  - [x] Custom models not in builtin catalog are still saved (marked as such)
+- [x] **3.4** Tests di `tests/step3-cli-model.test.js` (32 tests)
+  - [x] 9 args.js: --list, --all, --set, --set=, bare `model`, `models` plural, defaults, --provider interplay, empty --set
+  - [x] 6 listModelsCli: missing configMgr, active provider, --all, --provider override, unknown provider, box chars
+  - [x] 6 setModelCli: persistence, custom model, --provider override, missing/empty name, missing configMgr, output
+  - [x] 4 handleModelCommand dispatcher: list routing, set routing, --list flag fallback, unknown subcommand
+  - [x] 7 e2e via `bin/tai.js` subprocess: --list, --list --all, --list --provider, --set persistence, bare `model`, --provider bogus exit 1, --help
+- [x] **3.5** Update help text & README
+  - [x] `src/cli/help.js`: MODEL COMMANDS section + examples
+  - [x] `README.md`: Model Management section under Configuration
+- [x] **3.6** `npm test` — `263/263 pass` (231 baseline + 32 phase 3)
 
 ---
 
@@ -227,13 +243,16 @@ getProviderModels(providerId) {
 | `src/ui/model-menu.js` | **[NEW]** Interactive TUI menu | 2.2 | ✅ |
 | `tests/step2-model-menu.test.js` | **[NEW]** Unit tests for model-menu | 2.4 | ✅ |
 | `src/cli/slash-commands.js` | Update case `'model'` for interactive menu | 2.3 | ✅ |
-| `src/cli/args.js` | Tambah flag `--list`, `--all`, `--set` | 3.1 | ⬜ |
-| `src/cli/index.js` | Route new CLI commands | 3.3 | ⬜ |
-| `bin/tai.js` | Subcommand `tai model ...` | 3.2 | ⬜ |
-| `tests/step1-config.test.js` | Test method `getProviderModels()` | 1.5 | ⬜ |
-| `tests/step1-providers-config.test.js` | Test `BUILTIN_PROVIDERS.models` | 1.5 | ✅ |
-| `tests/e2e-session-resume.test.js` | Verify session model persistence | 1.5+ | ⬜ |
-| `README.md` | Update help & docs | 3.4 | ⬜ |
+| `src/cli/args.js` | Tambah flag `--list`, `--all`, `--set` | 3.1 | ✅ |
+| `src/cli/index.js` | Export `model-commands` module | 3.3 | ✅ |
+| `bin/tai.js` | Subcommand `tai model ...` | 3.2 | ✅ |
+| `src/cli/model-commands.js` | **[NEW]** CLI handler module (listModelsCli / setModelCli / handleModelCommand) | 3.3 | ✅ |
+| `tests/step3-cli-model.test.js` | **[NEW]** 32 tests for `tai model` flags + handlers + e2e | 3.4 | ✅ |
+| `tests/step1-config.test.js` | Test method `getProviderModels()` (tercover di `step1-providers-config.test.js`) | 1.5 | ✅ |
+| `tests/step1-providers-config.test.js` | Test `BUILTIN_PROVIDERS.models` + `getProviderModels()` | 1.5 | ✅ |
+| `tests/e2e-session-resume.test.js` | Verify session model persistence (model field save/load) | 1.5+ | ✅ |
+| `README.md` | Update help & docs | 3.5 | ✅ |
+| `docs/MULTI_MODEL_PLAN.md` | Update checklist + history | 3.5 | ✅ |
 
 ---
 
@@ -257,10 +276,12 @@ getProviderModels(providerId) {
 - [x] `npm test` — 231/231 pass
 
 ### Phase 3
-- [ ] Update `args.js` parser
-- [ ] Buat CLI handler baru di `index.js`
-- [ ] Test command line flags
-- [ ] Update README & help text
+- [x] Update `args.js` parser (`--list`, `--all`, `--set`, `model` command)
+- [x] Buat CLI handler baru di `src/cli/model-commands.js` (listModelsCli / setModelCli / handleModelCommand)
+- [x] Wire handler ke `bin/tai.js`
+- [x] Update `help.js` (MODEL COMMANDS section + examples)
+- [x] Update `README.md` (Model Management section)
+- [x] Add `tests/step3-cli-model.test.js` (32 tests, 263/263 total pass)
 
 ---
 
@@ -284,3 +305,5 @@ getProviderModels(providerId) {
 | 2026-08-27 | `7088b7d` | Phase 1.5 selesai: 11 test baru (BUILTIN_PROVIDERS catalog + getProviderModels + setProviderField auto-populate); 206/206 tests pass |
 | 2026-08-27 | *(pending)* | Phase 1.3 selesai: `/model` tanpa argumen render box daftar model; 4 test baru; 210/210 tests pass |
 | 2026-08-27 | *(pending)* | Phase 2 selesai: zero-dep interactive TUI menu (`src/ui/model-menu.js`) dengan arrow-key navigation, group-by-provider, active marker, & TTY fallback. 18 unit + 3 integration tests. 231/231 tests pass. |
+| 2026-08-27 | *(pending)* | Phase 3 selesai: non-interactive `tai model` CLI commands. Flags `--list` / `--all` / `--set` di `args.js`; handler module `src/cli/model-commands.js` (listModelsCli / setModelCli / handleModelCommand); wired ke `bin/tai.js`; updated help + README. 32 new tests di `tests/step3-cli-model.test.js`. 263/263 tests pass. |
+| 2026-08-27 | *(pending)* | Final docs pass: checklist table dirapikan (`step1-config.test.js` → ✅ karena test ter-cover di `step1-providers-config.test.js`; `e2e-session-resume.test.js` → ✅ sudah verify `model` field persistence). |

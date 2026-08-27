@@ -207,7 +207,7 @@ $ termuxai
 | Command | Description |
 |---|---|
 | `/help` | Display all available slash commands |
-| `/model [name]` | View or switch active model |
+| `/model [name]` | View or switch active model (interactive TUI menu on TTY) |
 | `/session` | Show current session info and ID |
 | `/clear` | Clear conversation history |
 | `/config` | View current configuration |
@@ -303,6 +303,31 @@ termuxai config reset
 | `gemini-1.5-flash` | Lightweight, very fast |
 | `gemini-1.5-pro` | High-capability v1.5 |
 | `gemini-2.0-flash` | Latest v2.0 flash variant |
+
+### Model Management (`tai model`)
+
+Manage models from the command line without entering the REPL:
+
+```bash
+# List models for the active provider (gemini by default)
+termuxai model --list
+
+# List models for ALL configured providers
+termuxai model --list --all
+
+# List models for a specific provider
+termuxai model --list --provider openai
+
+# Set the active model and persist it
+termuxai model --set gemini-2.5-pro
+
+# Set the model for a specific provider
+termuxai model --set gpt-4o --provider openai
+```
+
+The catalog is sourced from each provider's `models[]` array (Gemini ships 5 models,
+OpenAI ships 4). Custom models not in the catalog are still saved (marked as
+"custom" in the output).
 
 ---
 
