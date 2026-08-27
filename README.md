@@ -21,6 +21,13 @@
 - 📱 **Termux-Native** — no `node-gyp`, no binary compilation, pure ESM Node.js
 - 🔧 **5 Local Tools** — `read_file`, `write_file`, `patch_file`, `list_dir`, `execute_command`
 - 🎨 **Rich Terminal UI** — ANSI Markdown renderer, live spinner, syntax highlighting
+- 🌐 **Multi-Provider** — Gemini, OpenAI, OpenRouter, Groq, DeepSeek, Ollama, custom endpoints
+- 🧩 **Multi-Model Catalog** — per-provider model lists with interactive TUI picker & CLI CRUD (`tai model`)
+
+> **Latest on `feat/multi-model-phase1`:** Phase 1–4 of the multi-model plan landed — per-provider
+> `models[]` catalog, zero-dependency interactive `/model` picker, non-interactive `tai model
+> --list/--set` flags, and catalog CRUD (`--add` / `--remove` / `--clear`).
+> **324/324 tests pass, 0 regression.** See [docs/MULTI_MODEL_PLAN.md](./docs/MULTI_MODEL_PLAN.md).
 
 ---
 
@@ -329,6 +336,59 @@ The catalog is sourced from each provider's `models[]` array (Gemini ships 5 mod
 OpenAI ships 4). Custom models not in the catalog are still saved (marked as
 "custom" in the output).
 
+#### Catalog CRUD — `add` / `remove` / `clear`
+
+Manage each provider's model catalog itself (not just the active model). All three
+operations are **script-friendly** and exit non-zero on failure.
+
+```bash
+# Add a single model to the active provider's catalog
+termuxai model --add gpt-4-turbo
+
+# Add multiple models at once (comma-, semicolon-, or newline-separated)
+termuxai model --add gpt-4-turbo,gpt-4o,gpt-3.5-turbo --provider openai
+
+# Top-level shortcut — equivalent to `tai model --add`
+termuxai add gpt-4-turbo --provider openai
+
+# Remove a model from the catalog
+termuxai model --remove gpt-3.5-turbo --provider openai
+termuxai remove gpt-3.5-turbo          # shortcut
+
+# Reset a provider's catalog to the builtin defaults
+termuxai model --clear --provider openai
+termuxai clear --provider openai        # shortcut
+```
+
+**Rules enforced by the CLI:**
+
+- `--add` dedupes against the existing catalog **and** the active model, and initializes
+  the catalog from `BUILTIN_PROVIDERS[pid].models` on first use.
+- `--remove` **refuses** to delete the currently active model (whether stored in config
+  or the builtin `defaultModel`). Switch with `--set` first.
+- `--clear` resets the catalog to the provider's builtin defaults but preserves any
+  custom `model` you've previously set active.
+- Unknown provider → exit `1` with a helpful error.
+
+#### Interactive `/model` picker (REPL)
+
+Inside the REPL, `/model` (no args) opens a **zero-dependency** interactive picker
+(arrow keys / `j` `k` / `Enter` / `Esc`) when stdout is a TTY. Non-TTY sessions
+(pipes, redirects) fall back to a static text box — the same one used by
+`termuxai model --list`.
+
+```text
+╔══════════════════════════════════════════════╗
+║              Model (gemini)                  ║
+╠══════════════════════════════════════════════╣
+║   ▸ gemini-2.5-flash  (active)               ║
+║      gemini-2.5-pro                          ║
+║      gemini-1.5-flash                        ║
+║      gemini-1.5-pro                          ║
+║      gemini-2.0-flash                        ║
+╚══════════════════════════════════════════════╝
+```
+
 ---
 
 ## 🛡️ Security System
@@ -587,6 +647,21 @@ PROVIDER COMMANDS:
   termuxai provider add <id>        Add or update provider settings
   termuxai provider remove <id>     Remove a custom provider
   termuxai provider show [id]       Show provider config as JSON
+
+MODEL COMMANDS:
+  termuxai model --list             List models for the active provider
+  termuxai model --list --all       List models for ALL providers
+  termuxai model --list --provider <id>   List models for a specific provider
+  termuxai model --set <name>       Set the active model and persist
+  termuxai model --set <name> --provider <id>  Set model for a specific provider
+  termuxai model --add <name[,..]>  Add model(s) to a provider's catalog (no switch)
+  termuxai model --remove <name>    Remove a model from the catalog
+  termuxai model --clear            Reset a provider's catalog to builtin defaults
+  termuxai add <name>               Shortcut for `tai model --add`
+  termuxai remove <name>            Shortcut for `tai model --remove`
+  termuxai clear                    Shortcut for `tai model --clear`
+  (in REPL) /model                  Interactive picker (TTY) or static box (non-TTY)
+  (in REPL) /model <name>           Set the active model from the REPL
 
 CONFIG COMMANDS:
   termuxai config list              List all configuration
