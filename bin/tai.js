@@ -13,6 +13,7 @@ import { createAgentOrchestrator } from '../src/agent/orchestrator.js';
 import { startRepl } from '../src/cli/repl.js';
 import { runSingleShot } from '../src/cli/single-shot.js';
 import { isPipedInput, readPipedStdin, mergePipedPrompt } from '../src/cli/piping.js';
+import { handleModelCommand } from '../src/cli/model-commands.js';
 import { logger } from '../src/utils/logger.js';
 import { ansi } from '../src/utils/ansi.js';
 
@@ -224,6 +225,14 @@ async function main() {
 
     logger.error(`Unknown provider subcommand "${sub}". Available: list, use, add, remove, show`);
     process.exit(1);
+  }
+
+  // Handle Model Subcommands (Phase 3)
+  if (parsed.command === 'model') {
+    const result = handleModelCommand(parsed, configMgr);
+    if (result.output) process.stdout.write(result.output);
+    if (result.error) logger.error(result.error);
+    process.exit(result.exitCode ?? 0);
   }
 
   // Determine effective provider (CLI flag > config)

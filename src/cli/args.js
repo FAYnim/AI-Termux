@@ -20,7 +20,11 @@ export function parseArgs(rawArgs = []) {
     version: false,
     verbose: false,
     configDir: null,
-    timeout: null
+    timeout: null,
+    // Phase 3 — `tai model` non-interactive subcommand flags
+    modelList: false,  // --list    : list available models
+    modelAll: false,   // --all     : when combined with --list, include all providers
+    modelSet: null     // --set <m> : set active model (alternative to `--model`)
   };
 
   const positional = [];
@@ -81,6 +85,22 @@ export function parseArgs(rawArgs = []) {
         const num = Number(args[++i]);
         if (!Number.isNaN(num)) flags.timeout = num;
       }
+    } else if (arg === '--list') {
+      // Phase 3: used by `tai model --list`
+      flags.modelList = true;
+    } else if (arg === '--all') {
+      // Phase 3: used by `tai model --list --all` (all providers)
+      flags.modelAll = true;
+    } else if (arg.startsWith('--set=')) {
+      // Phase 3: `tai model --set=<model>`
+      const v = arg.slice(6).trim();
+      if (v) flags.modelSet = v;
+    } else if (arg === '--set') {
+      // Phase 3: `tai model --set <model>`
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        const v = args[++i].trim();
+        if (v) flags.modelSet = v;
+      }
     } else if (!arg.startsWith('-')) {
       positional.push(arg);
     }
@@ -109,6 +129,20 @@ export function parseArgs(rawArgs = []) {
     } else if (firstWord === 'session' || firstWord === 'sessions') {
       command = 'session';
       subcommand = positional[1]?.toLowerCase() || 'list';
+      subArgs = positional.slice(2);
+    } else if (firstWord === 'model' || firstWord === 'models') {
+      // Phase 3: `tai model ...` non-interactive model management
+      // Subcommands inferred from flags:
+      //   --list               → list
+      //   --set <m>            → set
+      //   (no flags)           → list (back-compat: default to listing)
+      if (flags.modelSet) {
+        command = 'model';
+        subcommand = 'set';
+      } else {
+        command = 'model';
+        subcommand = 'list';
+      }
       subArgs = positional.slice(2);
     } else if (firstWord === 'resume') {
       command = 'resume';
