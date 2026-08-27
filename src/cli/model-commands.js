@@ -202,6 +202,168 @@ export function setModelCli({ configMgr, model, providerOverride = null } = {}) 
 }
 
 /**
+ * Add one or more models to a provider's catalog (does NOT change active model).
+ *
+ * Usage:
+ *   addModelsCli({ configMgr, models: 'gpt-4,gpt-4o', providerOverride: 'openai' })
+ *
+ * Accepts:
+ *   - comma/semicolon/newline separated string
+ *   - array of strings
+ *   - single string
+ *
+ * @param {object} options
+ * @param {object} options.configMgr
+ * @param {string|string[]} options.models
+ * @param {string|null} [options.providerOverride=null]
+ * @returns {{ exitCode: number, output: string|null, added: string[], skipped: string[], provider: string }}
+ */
+export function addModelsCli({ configMgr, models, providerOverride = null } = {}) {
+  if (!configMgr) {
+    return { exitCode: 1, output: null, error: 'ConfigManager unavailable' };
+  }
+  if (models === null || models === undefined ||
+      (typeof models === 'string' && !models.trim()) ||
+      (Array.isArray(models) && models.length === 0)) {
+    return {
+      exitCode: 1,
+      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --add <name[,name2,...]> [--provider <id>]\n`
+    };
+  }
+
+  const target = providerOverride || configMgr.get('activeProvider') || 'gemini';
+
+  // Normalize to array for the manager call
+  const input = Array.isArray(models) ? models : models;
+  const result = configMgr.addProviderModels(target, input);
+  const { added, skipped, catalog } = result;
+
+  if (added.length === 0 && skipped.length > 0) {
+    return {
+      exitCode: 0,
+      output: `\n${ansi.yellow('ℹ')} No new models added to ${ansi.bold(target)} — all ${skipped.length} already in catalog.\n`,
+      added,
+      skipped,
+      provider: target,
+      catalog
+    };
+  }
+
+  const lines = [];
+  lines.push(`${ansi.green('✔')} Added ${ansi.bold(String(added.length))} model(s) to ${ansi.bold(ansi.cyan(target))}:`);
+  for (const m of added) {
+    lines.push(`  ${ansi.green('+')} ${ansi.cyan(m)}`);
+  }
+  if (skipped.length > 0) {
+    lines.push(ansi.dim(`  (${skipped.length} already in catalog, skipped: ${skipped.join(', ')})`));
+  }
+  lines.push(ansi.dim(`  Catalog now has ${catalog.length} model(s).`));
+
+  return {
+    exitCode: 0,
+    output: '\n' + lines.join('\n') + '\n',
+    added,
+    skipped,
+    provider: target,
+    catalog
+  };
+}
+
+/**
+ * Remove one or more models from a provider's catalog.
+ * Will NOT remove the active model (use `tai model --set <other>` first).
+ *
+ * @param {object} options
+ * @param {object} options.configMgr
+ * @param {string|string[]} options.models
+ * @param {string|null} [options.providerOverride=null]
+ * @returns {{ exitCode: number, output: string|null, removed: string[], skipped: string[], provider: string }}
+ */
+export function removeModelCli({ configMgr, models, providerOverride = null } = {}) {
+  if (!configMgr) {
+    return { exitCode: 1, output: null, error: 'ConfigManager unavailable' };
+  }
+  if (models === null || models === undefined ||
+      (typeof models === 'string' && !models.trim()) ||
+      (Array.isArray(models) && models.length === 0)) {
+    return {
+      exitCode: 1,
+      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --remove <name[,name2,...]> [--provider <id>]\n`
+    };
+  }
+
+  const target = providerOverride || configMgr.get('activeProvider') || 'gemini';
+  const result = configMgr.removeProviderModels(target, models);
+  const { removed, skipped, catalog } = result;
+
+  if (removed.length === 0 && skipped.length > 0) {
+    return {
+      exitCode: 1,
+      output: `\n${ansi.red('✖')} Could not remove ${skipped.length} model(s) from ${ansi.bold(target)} — they include the active model. Switch first with ${ansi.cyan(`tai model --set <other>`)}.\n`,
+      removed,
+      skipped,
+      provider: target,
+      catalog
+    };
+  }
+
+  const lines = [];
+  if (removed.length > 0) {
+    lines.push(`${ansi.green('✔')} Removed ${ansi.bold(String(removed.length))} model(s) from ${ansi.bold(ansi.cyan(target))}:`);
+    for (const m of removed) {
+      lines.push(`  ${ansi.red('-')} ${ansi.cyan(m)}`);
+    }
+  } else {
+    lines.push(`${ansi.yellow('ℹ')} No models removed from ${ansi.bold(target)} — none of the specified names were in the catalog.`);
+  }
+  if (skipped.length > 0) {
+    lines.push(ansi.dim(`  Skipped (active model): ${skipped.join(', ')}`));
+  }
+  lines.push(ansi.dim(`  Catalog now has ${catalog.length} model(s).`));
+
+  return {
+    exitCode: 0,
+    output: '\n' + lines.join('\n') + '\n',
+    removed,
+    skipped,
+    provider: target,
+    catalog
+  };
+}
+
+/**
+ * Reset a provider's catalog to its builtin defaults.
+ * Preserves any custom finetune that is the active model.
+ *
+ * @param {object} options
+ * @param {object} options.configMgr
+ * @param {string|null} [options.providerOverride=null]
+ * @returns {{ exitCode: number, output: string|null, provider: string, catalog: string[] }}
+ */
+export function clearModelsCli({ configMgr, providerOverride = null } = {}) {
+  if (!configMgr) {
+    return { exitCode: 1, output: null, error: 'ConfigManager unavailable' };
+  }
+
+  const target = providerOverride || configMgr.get('activeProvider') || 'gemini';
+  const builtin = BUILTIN_PROVIDERS[target];
+  const result = configMgr.clearProviderModels(target);
+  const { catalog } = result;
+
+  const isBuiltin = Boolean(builtin);
+  const source = isBuiltin
+    ? 'builtin defaults'
+    : 'empty (custom provider)';
+
+  return {
+    exitCode: 0,
+    output: `\n${ansi.green('✔')} Reset ${ansi.bold(ansi.cyan(target))} catalog to ${ansi.dim(source)}.\n${ansi.dim('  Catalog now has ' + catalog.length + ' model(s).')}\n`,
+    provider: target,
+    catalog
+  };
+}
+
+/**
  * Dispatcher for `tai model ...`. Called by bin/tai.js.
  *
  * @param {object} parsed - result of parseArgs()
@@ -223,6 +385,29 @@ export function handleModelCommand(parsed, configMgr) {
     return setModelCli({
       configMgr,
       model: parsed?.flags?.modelSet,
+      providerOverride: parsed?.flags?.provider || null
+    });
+  }
+
+  if (sub === 'add' || parsed?.flags?.modelAdd) {
+    return addModelsCli({
+      configMgr,
+      models: parsed?.flags?.modelAdd,
+      providerOverride: parsed?.flags?.provider || null
+    });
+  }
+
+  if (sub === 'remove' || parsed?.flags?.modelRemove) {
+    return removeModelCli({
+      configMgr,
+      models: parsed?.flags?.modelRemove,
+      providerOverride: parsed?.flags?.provider || null
+    });
+  }
+
+  if (sub === 'clear' || parsed?.flags?.modelClear) {
+    return clearModelsCli({
+      configMgr,
       providerOverride: parsed?.flags?.provider || null
     });
   }

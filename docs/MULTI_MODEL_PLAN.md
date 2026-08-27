@@ -232,6 +232,52 @@ getProviderModels(providerId) {
 
 ---
 
+## Phase 4: Catalog CRUD (add/remove/clear)
+
+**Target:** User bisa manage model catalog per-provider secara non-interaktif (script-friendly), bukan cuma `--set` aktif model.
+
+- [x] **4.1** `src/config/manager.js` — 3 method baru:
+  - [x] `addProviderModels(pid, input)` — add 1/banyak model (comma/semicolon/newline/array), init dari builtin catalog untuk builtin provider, dedupe terhadap catalog + active model
+  - [x] `removeProviderModels(pid, input)` — hapus 1/banyak, **refuse to remove effective active model** (stored `model` ATAU builtin `defaultModel`)
+  - [x] `clearProviderModels(pid)` — reset catalog ke builtin defaults, preserve active finetune kalau ada
+- [x] **4.2** `src/cli/args.js` — flag baru + routing:
+  - [x] `flags.modelAdd` (--add <name[,name2,...]>, --add=<...>)
+  - [x] `flags.modelRemove` (--remove <name>, --remove=<...>)
+  - [x] `flags.modelClear` (--clear, tanpa value)
+  - [x] Subcommand routing: `model` → `add` / `remove` / `clear` berdasarkan flag
+  - [x] Shortcut top-level: `tai add <name>`, `tai remove <name>`, `tai clear`
+- [x] **4.3** `src/cli/model-commands.js` — handler baru:
+  - [x] `addModelsCli()` — success / all-skipped / unknown provider
+  - [x] `removeModelCli()` — success / refuse-active (exit 1) / empty input
+  - [x] `clearModelsCli()` — reset to builtin defaults
+  - [x] `handleModelCommand()` dispatcher routes untuk `add` / `remove` / `clear`
+- [x] **4.4** `src/cli/help.js` — `MODEL COMMANDS` section diperluas dengan `--add` / `--remove` / `--clear`
+- [x] **4.5** `tests/step4-cli-model-crud.test.js` **[NEW]** — 53 tests (11 args + 7 manager.add + 5 manager.remove + 3 manager.clear + 5 addModelsCli + 5 removeModelCli + 3 clearModelsCli + 3 dispatcher + 8 e2e bin/tai.js)
+- [x] **4.6** `npm test` — `324/324 pass` (sebelumnya 263 → +61 test, 0 regression)
+
+**Contoh penggunaan:**
+```bash
+# Tambah 1 model
+tai model --add gpt-4-turbo --provider openai
+
+# Tambah banyak sekaligus
+tai model --add gpt-4,gpt-4o,gpt-3.5-turbo --provider openai
+
+# Shortcut top-level
+tai add gpt-4-turbo --provider openai
+
+# Hapus model tertentu
+tai model --remove gpt-3.5-turbo --provider openai
+
+# Reset catalog ke builtin defaults
+tai model --clear --provider openai
+
+# Gak bisa hapus model yang lagi aktif
+tai model --remove gpt-4o-mini   # exit 1, error: switch first
+```
+
+---
+
 ## File yang Akan Diubah
 
 | File | Perubahan | Phase | Status |
@@ -247,6 +293,11 @@ getProviderModels(providerId) {
 | `src/cli/index.js` | Export `model-commands` module | 3.3 | ✅ |
 | `bin/tai.js` | Subcommand `tai model ...` | 3.2 | ✅ |
 | `src/cli/model-commands.js` | **[NEW]** CLI handler module (listModelsCli / setModelCli / handleModelCommand) | 3.3 | ✅ |
+| `src/config/manager.js` | **[PHASE 4]** Add `addProviderModels` / `removeProviderModels` / `clearProviderModels` | 4.1 | ✅ |
+| `src/cli/args.js` | **[PHASE 4]** Add flags `--add` / `--remove` / `--clear` + shortcut `tai add/remove/clear` | 4.2 | ✅ |
+| `src/cli/model-commands.js` | **[PHASE 4]** Add `addModelsCli` / `removeModelCli` / `clearModelsCli` + dispatcher routes | 4.3 | ✅ |
+| `src/cli/help.js` | **[PHASE 4]** Extend MODEL COMMANDS section with `--add` / `--remove` / `--clear` | 4.4 | ✅ |
+| `tests/step4-cli-model-crud.test.js` | **[NEW]** 53 tests for add/remove/clear | 4.5 | ✅ |
 | `tests/step3-cli-model.test.js` | **[NEW]** 32 tests for `tai model` flags + handlers + e2e | 3.4 | ✅ |
 | `tests/step1-config.test.js` | Test method `getProviderModels()` (tercover di `step1-providers-config.test.js`) | 1.5 | ✅ |
 | `tests/step1-providers-config.test.js` | Test `BUILTIN_PROVIDERS.models` + `getProviderModels()` | 1.5 | ✅ |
@@ -307,3 +358,4 @@ getProviderModels(providerId) {
 | 2026-08-27 | *(pending)* | Phase 2 selesai: zero-dep interactive TUI menu (`src/ui/model-menu.js`) dengan arrow-key navigation, group-by-provider, active marker, & TTY fallback. 18 unit + 3 integration tests. 231/231 tests pass. |
 | 2026-08-27 | *(pending)* | Phase 3 selesai: non-interactive `tai model` CLI commands. Flags `--list` / `--all` / `--set` di `args.js`; handler module `src/cli/model-commands.js` (listModelsCli / setModelCli / handleModelCommand); wired ke `bin/tai.js`; updated help + README. 32 new tests di `tests/step3-cli-model.test.js`. 263/263 tests pass. |
 | 2026-08-27 | *(pending)* | Final docs pass: checklist table dirapikan (`step1-config.test.js` → ✅ karena test ter-cover di `step1-providers-config.test.js`; `e2e-session-resume.test.js` → ✅ sudah verify `model` field persistence). |
+| 2026-08-27 | *(pending)* | **Phase 4 selesai:** `tai model add/remove/clear` — catalog CRUD non-interaktif per provider. 3 method baru di `ConfigManager` (add/remove/clear); 3 flag baru di `args.js` (`--add`, `--remove`, `--clear`); 3 handler baru di `model-commands.js`; dispatcher routes; help text updated; shortcut top-level (`tai add/remove/clear`); 53 test baru di `step4-cli-model-crud.test.js`. **324/324 tests pass, 0 regression.** |

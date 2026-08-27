@@ -46,6 +46,10 @@ ${ansi.bold('MODEL COMMANDS:')}
   ${ansi.green(APP_NAME + ' model --list --provider <id>')} List models for a specific provider
   ${ansi.green(APP_NAME + ' model --set <name>')}          Set the active model and persist
   ${ansi.green(APP_NAME + ' model --set <name> --provider <id>')} Set model for a specific provider
+  ${ansi.green(APP_NAME + ' model --add <name[,name2,...]>')} Add model(s) to a provider's catalog (no switch)
+  ${ansi.green(APP_NAME + ' model --add <names> --provider <id>')} Add to a specific provider
+  ${ansi.green(APP_NAME + ' model --remove <name>')}       Remove a model from the catalog
+  ${ansi.green(APP_NAME + ' model --clear [--provider <id>]')} Reset a provider's catalog to builtin defaults
 
 ${ansi.bold('CONFIG COMMANDS:')}
   ${ansi.green(APP_NAME + ' config set apiKey <val>')}   Save your Gemini API key

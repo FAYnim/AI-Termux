@@ -418,6 +418,172 @@ export class ConfigManager {
   }
 
   /**
+   * Add one or more models to a provider's catalog.
+   *
+   * - Accepts a single name or a comma-/semicolon-separated list (e.g.
+   *   `"gpt-4,gpt-4o,gpt-3.5-turbo"`).
+   * - Trims whitespace, drops empty entries, dedupes against existing
+   *   `models[]` (and the active `model` if set).
+   * - Does NOT change the active model. Use `tai model --set <name>` to
+   *   switch after adding.
+   * - For builtin providers, the stored `models[]` is initialized from
+   *   the builtin catalog on first add (matches `setProviderField` behavior).
+   *
+   * @param {string} providerId
+   * @param {string|string[]} input
+   * @returns {{ added: string[], skipped: string[], catalog: string[] }}
+   */
+  addProviderModels(providerId, input) {
+    const config = this.loadConfig();
+    if (!config.providers) config.providers = {};
+    if (!config.providers[providerId]) config.providers[providerId] = {};
+    const prov = config.providers[providerId];
+
+    // Initialize `models[]` from builtin catalog for builtin providers on first add
+    if (BUILTIN_PROVIDERS[providerId] && !Array.isArray(prov.models)) {
+      const builtinModels = BUILTIN_PROVIDERS[providerId].models;
+      if (Array.isArray(builtinModels) && builtinModels.length > 0) {
+        prov.models = [...builtinModels];
+      } else {
+        prov.models = [];
+      }
+    } else if (!Array.isArray(prov.models)) {
+      prov.models = [];
+    }
+
+    // Normalize input → string[]
+    const raw = Array.isArray(input)
+      ? input
+      : String(input || '').split(/[,;\n]+/g);
+    const candidates = raw
+      .map(s => (typeof s === 'string' ? s.trim() : ''))
+      .filter(Boolean);
+
+    // Dedupe against the live catalog (so re-adding the same name is a no-op)
+    const existing = new Set(prov.models);
+    if (typeof prov.model === 'string' && prov.model.trim()) {
+      existing.add(prov.model.trim());
+    }
+
+    const added = [];
+    const skipped = [];
+    for (const name of candidates) {
+      if (existing.has(name)) {
+        skipped.push(name);
+        continue;
+      }
+      prov.models.push(name);
+      existing.add(name);
+      added.push(name);
+    }
+
+    if (added.length > 0) {
+      this.saveConfig(config);
+    }
+
+    return {
+      added,
+      skipped,
+      catalog: config.providers[providerId].models
+    };
+  }
+
+  /**
+   * Remove one or more models from a provider's catalog.
+   *
+   * - Accepts a single name or a comma-/semicolon-separated list.
+   * - Never removes the *effective* active model. The "effective" active
+   *   model is the stored `prov.model` if set, otherwise the builtin
+   *   `defaultModel` (since that's what the LLM client will actually use
+   *   if the user never explicitly picked one).
+   * - Empty result is allowed — returns `{ removed: [], skipped: [] }`.
+   *
+   * @param {string} providerId
+   * @param {string|string[]} input
+   * @returns {{ removed: string[], skipped: string[], catalog: string[] }}
+   */
+  removeProviderModels(providerId, input) {
+    const config = this.loadConfig();
+    const prov = config.providers?.[providerId];
+    if (!prov) {
+      return { removed: [], skipped: [], catalog: [] };
+    }
+    if (!Array.isArray(prov.models)) prov.models = [];
+
+    const raw = Array.isArray(input)
+      ? input
+      : String(input || '').split(/[,;\n]+/g);
+    const candidates = new Set(
+      raw
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean)
+    );
+
+    // Effective active = stored model, falling back to builtin default
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const storedActive = typeof prov.model === 'string' && prov.model.trim()
+      ? prov.model.trim()
+      : null;
+    const effectiveActive = storedActive || builtin?.defaultModel || null;
+
+    const removed = [];
+    const skipped = [];
+    const next = [];
+    for (const m of prov.models) {
+      if (candidates.has(m) && m !== effectiveActive) {
+        removed.push(m);
+      } else if (candidates.has(m) && m === effectiveActive) {
+        skipped.push(m);
+        next.push(m);
+      } else {
+        next.push(m);
+      }
+    }
+
+    if (removed.length > 0) {
+      prov.models = next;
+      this.saveConfig(config);
+    }
+
+    return {
+      removed,
+      skipped,
+      catalog: config.providers[providerId].models
+    };
+  }
+
+  /**
+   * Reset a provider's catalog back to its builtin defaults.
+   *
+   * - For builtin providers: `models[]` is restored from `BUILTIN_PROVIDERS`
+   *   and the active `model` is preserved (if still in the restored list).
+   * - For custom (non-builtin) providers: `models[]` is set to `[]`.
+   * - Safe to call on an unknown provider (returns empty catalog).
+   *
+   * @param {string} providerId
+   * @returns {{ catalog: string[] }}
+   */
+  clearProviderModels(providerId) {
+    const config = this.loadConfig();
+    if (!config.providers) config.providers = {};
+    if (!config.providers[providerId]) config.providers[providerId] = {};
+    const prov = config.providers[providerId];
+
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const builtinModels = Array.isArray(builtin?.models) ? [...builtin.models] : [];
+
+    // Preserve the active model even if it was a custom finetune (per the
+    // ⭐ "auto-include stored model" guarantee in getProviderModels).
+    if (typeof prov.model === 'string' && prov.model.trim() && !builtinModels.includes(prov.model.trim())) {
+      builtinModels.push(prov.model.trim());
+    }
+
+    prov.models = builtinModels;
+    this.saveConfig(config);
+    return { catalog: config.providers[providerId].models };
+  }
+
+  /**
    * Get available models for a provider
    * Merges builtin defaults with any user-customized list, and ALSO
    * guarantees that the currently stored active `model` (if any) is
