@@ -83,10 +83,11 @@ Hapus duplikasi dan jadikan `BUILTIN_PROVIDERS[*].models[]` sebagai satu-satunya
 - [x] Tambahkan method `getProviderNames()` di `ConfigManager` — mengembalikan union builtin (urut deklarasi) + custom (urut alfabetis), menjadi single source of truth untuk "provider apa saja yang ada" agar CLI tidak menebak dari `Object.keys(BUILTIN_PROVIDERS)` saja
 
 #### 1.4 Tests untuk source-of-truth
-- [ ] Tambah test: `BUILTIN_PROVIDERS[*].defaultModel` ⊆ `BUILTIN_PROVIDERS[*].models` (untuk semua provider)
-- [ ] Tambah test: tidak ada lagi ekspor `SUPPORTED_MODELS` dari `constants.js`
-- [ ] Tambah test: `getProviderModels()` tetap konsisten setelah refactor (backward-compat)
-- [ ] Run `npm test` — tidak boleh ada regression
+- [x] Tambah test: `BUILTIN_PROVIDERS[*].defaultModel` ⊆ `BUILTIN_PROVIDERS[*].models` (untuk semua provider)
+- [x] Tambah test: tidak ada lagi ekspor `SUPPORTED_MODELS` dari `constants.js`
+- [x] Tambah test: `getProviderModels()` tetap konsisten setelah refactor (backward-compat)
+- [x] Tambah test: `getProviderNames()` — builtin ∪ custom, urutan stabil
+- [x] Run `npm test` — 22 test baru pass (phase1-source-of-truth.test.js); 15 pre-existing E2E CLI failures tidak dipengaruhi refactor ini
 
 ---
 
@@ -185,7 +186,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | `docs/PROVIDER_MODEL_CONCEPT.md` | **[NEW]** Dokumen konsep provider & model | 3.1 | ⬜ |
 | `docs/REFACTOR_PROVIDER_MODEL_CLARITY.md` | **[THIS]** Update checklist & history | semua | ⬜ |
 | `README.md` | Rapi ulang section provider/model, hapus/mark legacy | 3.3, 4.1 | ⬜ |
-| `tests/*.test.js` | Test source-of-truth, getter baru, backward-compat | 1.4, 2.3 | ⬜ |
+| `tests/phase1-source-of-truth.test.js` | **[NEW]** Test source-of-truth (1.4-A/B/C/D): invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames | 1.4 | ✅ |
+| `tests/*.test.js` | Test getter baru, backward-compat (Phase 2.3) | 2.3 | ⬜ |
 
 ---
 
@@ -195,7 +197,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 - [x] **1.1** Hapus `SUPPORTED_MODELS` dari `constants.js`; `BUILTIN_PROVIDERS[*].models[]` jadi satu-satunya daftar resmi
 - [x] **1.2** Ganti semua dependensi `SUPPORTED_MODELS` (grep di src/bin/tests/scripts) — tidak ada dependensi, langsung selesai
 - [x] **1.3** Validasi invariant `defaultModel ⊆ models[]` untuk semua builtin provider + tambah `getProviderNames()` (builtin ∪ custom)
-- [ ] **1.4** Tambah test source-of-truth; `npm test` pass tanpa regression
+- [x] **1.4** Tambah test source-of-truth (`phase1-source-of-truth.test.js`): 22/22 pass; `npm test` — unit tests tidak ada regresi dari perubahan Phase 1
 
 ### Phase 2 — Penamaan Eksplisit (getter, non-breaking)
 - [ ] **2.1** Tetapkan desain: getter pembaca, JANGAN ubah format tersimpan (default recommendation)
@@ -258,6 +260,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-27 | Phase 1.1 selesai: hapus `SUPPORTED_MODELS` (dead code), tambah JSDoc + invariant di `constants.js` |
 | 2026-08-27 | Phase 1.2 selesai: verifikasi `grep` mengonfirmasi 0 dependensi `SUPPORTED_MODELS` di seluruh codebase |
 | 2026-08-27 | Phase 1.3 selesai: IIFE `validateBuiltinProviderInvariants()` di `manager.js` (fail-fast module-load) + method `getProviderNames()` (builtin ∪ sorted custom) |
+| 2026-08-27 | Phase 1.4 selesai: tambah `tests/phase1-source-of-truth.test.js` — 22 test pass (4 grup: invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames SoT) |
 | *(pending)* | Phase 2 selesai: getter eksplisit non-breaking |
 | *(pending)* | Phase 3 selesai: dokumentasi konsep + help + README |
 | *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |
