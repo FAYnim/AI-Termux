@@ -374,6 +374,13 @@ export class ConfigManager {
 
   /**
    * Set a specific provider field and persist
+   *
+   * Fallback auto-include: when `field === 'model'`, we always make
+   * sure the value is reflected in `providers[providerId].models[]`
+   * so listings (`tai model --list`, `/model`, etc.) can never lose
+   * the active selection — even for **custom (non-builtin) providers**
+   * and even when the `models[]` array is missing entirely.
+   *
    * @param {string} providerId
    * @param {string} field
    * @param {any} value
@@ -394,12 +401,39 @@ export class ConfigManager {
         config.providers[providerId].models = [...builtinModels];
       }
     }
+    // Fallback: when the user picks a `model`, make sure it lives in
+    // `models[]` too (create the array if missing). This covers:
+    //   - custom providers that have no builtin catalog
+    //   - legacy configs where `models[]` was wiped or never written
+    //   - builtin providers whose `models[]` was cleared by the user
+    if (field === 'model') {
+      const prov = config.providers[providerId];
+      if (!Array.isArray(prov.models)) prov.models = [];
+      const v = typeof value === 'string' ? value.trim() : '';
+      if (v && !prov.models.includes(v)) {
+        prov.models.push(v);
+      }
+    }
     this.saveConfig(config);
   }
 
   /**
    * Get available models for a provider
-   * Merges builtin defaults with any user-customized list
+   * Merges builtin defaults with any user-customized list, and ALSO
+   * guarantees that the currently stored active `model` (if any) is
+   * included so it never disappears from listings after the user sets
+   * it via `tai model --set <name>`.
+   *
+   * ⭐ Ideal solution: auto-include stored model even if `models[]`
+   *    is missing or empty (e.g. legacy configs, custom providers,
+   *    or configs where the user wiped the `models` array).
+   *
+   * Precedence (all deduplicated, first occurrence wins):
+   *   1. builtin.defaultModel
+   *   2. stored `model`           ← the user's active/selected model
+   *   3. stored `models[]`        ← user-customized catalog
+   *   4. builtin `models[]`       ← builtin catalog
+   *
    * @param {string} providerId
    * @returns {string[]}
    */
@@ -410,22 +444,29 @@ export class ConfigManager {
 
     const builtinModels = builtin?.models || [];
     const storedModels = Array.isArray(stored.models) ? stored.models : [];
+    // The currently-active model the user picked (may be a custom finetune
+    // or a model not present in the catalog). We always surface it.
+    const activeModel = typeof stored.model === 'string' && stored.model.trim()
+      ? stored.model.trim()
+      : null;
 
-    // Combine: builtin default model first, then any extras
+    // Combine: builtin default model first, then active model, then
+    // stored catalog, then builtin catalog. Deduplicate while preserving
+    // first-occurrence order so `(active)` markers stay consistent.
     const merged = [];
-    if (builtin?.defaultModel && !merged.includes(builtin.defaultModel)) {
-      merged.push(builtin.defaultModel);
-    }
-    for (const m of storedModels) {
-      if (typeof m === 'string' && m.trim() && !merged.includes(m)) {
-        merged.push(m.trim());
-      }
-    }
-    for (const m of builtinModels) {
-      if (typeof m === 'string' && m.trim() && !merged.includes(m)) {
-        merged.push(m.trim());
-      }
-    }
+    const seen = new Set();
+    const push = (m) => {
+      if (typeof m !== 'string') return;
+      const v = m.trim();
+      if (!v || seen.has(v)) return;
+      seen.add(v);
+      merged.push(v);
+    };
+
+    push(builtin?.defaultModel);
+    push(activeModel);
+    for (const m of storedModels) push(m);
+    for (const m of builtinModels) push(m);
     return merged;
   }
 

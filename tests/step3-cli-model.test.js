@@ -212,12 +212,25 @@ describe('setModelCli', () => {
     assert.equal(stored.providers.gemini.model, 'gemini-2.5-pro');
   });
 
-  test('saves a custom model that is NOT in the builtin catalog (inCatalog=false)', () => {
+  test('saves a custom model and auto-includes it in the catalog (inCatalog=true after auto-include)', () => {
+    // The user picked a model that was NOT in the builtin catalog.
+    // The setModelCli flow goes through setProviderField, which (per the
+    // ⭐ ideal patch) auto-injects the new value into `providers[pid].models[]`
+    // so that listings like `tai model --list` and `/model` can never lose it.
     const res = setModelCli({ configMgr, model: 'my-custom-finetune-v1' });
     assert.equal(res.exitCode, 0);
-    assert.equal(res.inCatalog, false);
+    // After auto-include, the model IS in the catalog (the inCatalog check
+    // is now evaluated against the *merged* list, which includes the
+    // stored active `model` even if the `models[]` array was missing).
+    assert.equal(res.inCatalog, true);
     const stored = configMgr.loadConfig();
     assert.equal(stored.providers.gemini.model, 'my-custom-finetune-v1');
+    // And it must be present in the stored `models[]` array as well.
+    assert.ok(
+      Array.isArray(stored.providers.gemini.models)
+        && stored.providers.gemini.models.includes('my-custom-finetune-v1'),
+      'custom model should be auto-included in providers[pid].models[]'
+    );
   });
 
   test('explicit --provider override sets model on that provider', () => {

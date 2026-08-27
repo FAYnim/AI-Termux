@@ -196,4 +196,118 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
     assert.ok(cfg.providers['my-custom-llm']);
     assert.equal(cfg.providers['my-custom-llm'].models, undefined);
   });
+
+  // -------------------------------------------------------------------
+  // ⭐ Ideal patch: auto-include stored `model` in getProviderModels()
+  // -------------------------------------------------------------------
+  test('⭐ getProviderModels auto-includes stored `model` when models[] is missing', () => {
+    // Simulate a config where the user has set a model directly (e.g. via
+    // legacy `config.model` or via a manual edit) but the `models[]` array
+    // is missing entirely. The active model must still surface.
+    const cfg = manager.loadConfig();
+    cfg.providers = { gemini: { model: 'gemini-2.5-pro' } }; // no models[]
+    manager.saveConfig(cfg);
+
+    const models = manager.getProviderModels('gemini');
+    assert.ok(models.includes('gemini-2.5-pro'),
+      'active stored model must be auto-included even when models[] is missing');
+    // Builtin catalog should still be present
+    assert.ok(models.includes('gemini-2.5-flash'));
+    // No duplicates
+    assert.equal(models.length, new Set(models).size);
+  });
+
+  test('⭐ getProviderModels auto-includes stored `model` for CUSTOM (non-builtin) provider', () => {
+    const cfg = manager.loadConfig();
+    cfg.providers = {
+      'my-custom-llm': { apiKey: 'k', model: 'my-custom-finetune-v1' }
+    };
+    manager.saveConfig(cfg);
+
+    const models = manager.getProviderModels('my-custom-llm');
+    // The custom provider has no builtin catalog — the only model the
+    // user can possibly use is the one they stored. It must be returned.
+    assert.deepEqual(models, ['my-custom-finetune-v1']);
+  });
+
+  test('⭐ getProviderModels preserves the active model as the FIRST non-default entry', () => {
+    // The default model stays first, then the user's stored `model` (if
+    // different) is right after, so the `(active)` marker is stable.
+    const cfg = manager.loadConfig();
+    cfg.providers = { gemini: { model: 'gemini-1.5-pro' } };
+    manager.saveConfig(cfg);
+
+    const models = manager.getProviderModels('gemini');
+    assert.equal(models[0], BUILTIN_PROVIDERS.gemini.defaultModel);
+    assert.equal(models[1], 'gemini-1.5-pro');
+  });
+
+  test('⭐ getProviderModels is idempotent (no duplicate active model)', () => {
+    // If the stored `model` is also present in `models[]`, the merged
+    // list must NOT contain duplicates.
+    const cfg = manager.loadConfig();
+    cfg.providers = {
+      gemini: { model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'extra-a'] }
+    };
+    manager.saveConfig(cfg);
+
+    const models = manager.getProviderModels('gemini');
+    const occurrences = models.filter((m) => m === 'gemini-2.5-pro').length;
+    assert.equal(occurrences, 1, 'active model should appear exactly once');
+  });
+
+  // -------------------------------------------------------------------
+  // Fallback patch: setProviderField auto-includes the new model
+  // -------------------------------------------------------------------
+  test('setProviderField("model", ...) auto-includes into models[] for builtin provider', () => {
+    // Start with a config that has NO models[] at all
+    const cfg = manager.loadConfig();
+    cfg.providers = { gemini: { model: 'gemini-1.5-pro' } };
+    manager.saveConfig(cfg);
+
+    // Setting the model again must create models[] if missing and
+    // ensure the new value is present.
+    manager.setProviderField('gemini', 'model', 'gemini-2.5-pro');
+    const after = manager.loadConfig();
+    assert.equal(after.providers.gemini.model, 'gemini-2.5-pro');
+    assert.ok(Array.isArray(after.providers.gemini.models));
+    assert.ok(after.providers.gemini.models.includes('gemini-2.5-pro'));
+  });
+
+  test('setProviderField("model", ...) auto-includes into models[] for CUSTOM provider', () => {
+    manager.setProviderField('my-custom-llm', 'model', 'my-custom-finetune-v1');
+    const cfg = manager.loadConfig();
+    assert.equal(cfg.providers['my-custom-llm'].model, 'my-custom-finetune-v1');
+    assert.ok(Array.isArray(cfg.providers['my-custom-llm'].models));
+    assert.ok(cfg.providers['my-custom-llm'].models.includes('my-custom-finetune-v1'));
+  });
+
+  test('setProviderField("model", ...) does NOT duplicate when value already in models[]', () => {
+    manager.setProviderField('gemini', 'model', 'gemini-2.5-pro');
+    const first = manager.loadConfig();
+    const countBefore = first.providers.gemini.models.filter(
+      (m) => m === 'gemini-2.5-pro'
+    ).length;
+    assert.equal(countBefore, 1);
+
+    // Setting the same value again must be a no-op for the models[] array
+    manager.setProviderField('gemini', 'model', 'gemini-2.5-pro');
+    const second = manager.loadConfig();
+    const countAfter = second.providers.gemini.models.filter(
+      (m) => m === 'gemini-2.5-pro'
+    ).length;
+    assert.equal(countAfter, 1, 'duplicate insertion must be prevented');
+  });
+
+  test('setProviderField on a non-model field does NOT touch models[]', () => {
+    // Setting apiKey or baseUrl should never add anything to models[]
+    const cfg = manager.loadConfig();
+    cfg.providers = { gemini: { models: ['gemini-2.5-flash'] } };
+    manager.saveConfig(cfg);
+
+    manager.setProviderField('gemini', 'apiKey', 'k1');
+    manager.setProviderField('gemini', 'baseUrl', 'https://x.example');
+    const after = manager.loadConfig();
+    assert.deepEqual(after.providers.gemini.models, ['gemini-2.5-flash']);
+  });
 });
