@@ -131,7 +131,8 @@ export async function startRepl(options = {}) {
         orchestrator,
         configMgr,
         logger,
-        stream: output
+        stream: output,
+        input
       });
 
       if (slashResult.action === 'exit') {

@@ -9,3 +9,4 @@ export * from './slash-commands.js';
 export * from './piping.js';
 export * from './single-shot.js';
 export * from './repl.js';
+export * from './model-commands.js';

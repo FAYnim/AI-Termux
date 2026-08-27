@@ -40,6 +40,17 @@ ${ansi.bold('PROVIDER COMMANDS:')}
   ${ansi.green(APP_NAME + ' provider remove <id>')}        Remove a custom provider
   ${ansi.green(APP_NAME + ' provider show [id]')}          Show provider config as JSON
 
+${ansi.bold('MODEL COMMANDS:')}
+  ${ansi.green(APP_NAME + ' model --list')}                List available models for active provider
+  ${ansi.green(APP_NAME + ' model --list --all')}          List models for ALL providers
+  ${ansi.green(APP_NAME + ' model --list --provider <id>')} List models for a specific provider
+  ${ansi.green(APP_NAME + ' model --set <name>')}          Set the active model and persist
+  ${ansi.green(APP_NAME + ' model --set <name> --provider <id>')} Set model for a specific provider
+  ${ansi.green(APP_NAME + ' model --add <name[,name2,...]>')} Add model(s) to a provider's catalog (no switch)
+  ${ansi.green(APP_NAME + ' model --add <names> --provider <id>')} Add to a specific provider
+  ${ansi.green(APP_NAME + ' model --remove <name>')}       Remove a model from the catalog
+  ${ansi.green(APP_NAME + ' model --clear [--provider <id>]')} Reset a provider's catalog to builtin defaults
+
 ${ansi.bold('CONFIG COMMANDS:')}
   ${ansi.green(APP_NAME + ' config set apiKey <val>')}   Save your Gemini API key
   ${ansi.green(APP_NAME + ' config set model <name>')}   Change default model (e.g. gemini-2.5-pro)
@@ -59,5 +70,10 @@ ${ansi.bold('EXAMPLES:')}
 
   ${ansi.gray('# Run with custom model & auto-approval:')}
   $ ${ansi.green(APP_NAME)} ${ansi.green('-m gemini-2.5-pro -y')} ${ansi.yellow('"perbaiki semua unit test"')}
+
+  ${ansi.gray('# Manage models non-interactively from CLI:')}
+  $ ${ansi.green(APP_NAME + ' model --list')}
+  $ ${ansi.green(APP_NAME + ' model --list --all')}
+  $ ${ansi.green(APP_NAME + ' model --set gemini-2.5-pro')}
 `);
 }
