@@ -8,6 +8,7 @@ out/
 coverage/
 .benchmark-tmp/
 tmp/
+.tmp/
 .termuxai/
 nul
 .DS_Store
