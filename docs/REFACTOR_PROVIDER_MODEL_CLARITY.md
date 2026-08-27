@@ -79,8 +79,8 @@ Hapus duplikasi dan jadikan `BUILTIN_PROVIDERS[*].models[]` sebagai satu-satunya
 - [x] Pastikan tidak ada test yang bergantung pada `SUPPORTED_MODELS` → konfirmasi via baseline `npm test` 324/324 pass setelah 1.1
 
 #### 1.3 `src/config/manager.js` — jembatan konsistensi
-- [ ] Validasi internal bahwa `defaultModel` **selalu** ada di `models[]` untuk setiap builtin provider (invariant/explicit check di `getProviderModels`)
-- [ ] Tambahkan method kecil `getProviderNames()` (jika belum ada) agar CLI tidak menebak dari `Object.keys(BUILTIN_PROVIDERS)` saja — tapi tetap merge dengan stored custom providers
+- [x] Validasi internal bahwa `defaultModel` **selalu** ada di `models[]` untuk setiap builtin provider — diimplementasikan sebagai IIFE `validateBuiltinProviderInvariants()` yang berjalan saat module dimuat, melempar error deskriptif bila invarian dilanggar (mencakup: defaultModel bukan string, models bukan array/non-empty, defaultModel tidak ada di models[], atau ada entry non-string/blank di models[])
+- [x] Tambahkan method `getProviderNames()` di `ConfigManager` — mengembalikan union builtin (urut deklarasi) + custom (urut alfabetis), menjadi single source of truth untuk "provider apa saja yang ada" agar CLI tidak menebak dari `Object.keys(BUILTIN_PROVIDERS)` saja
 
 #### 1.4 Tests untuk source-of-truth
 - [ ] Tambah test: `BUILTIN_PROVIDERS[*].defaultModel` ⊆ `BUILTIN_PROVIDERS[*].models` (untuk semua provider)
@@ -177,7 +177,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | File | Perubahan | Phase | Status |
 |------|-----------|:-----:|:------:|
 | `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ✅ |
-| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.2 | ⬜ |
+| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.2 | 🟡 (1.3 ✅, 2.2 ⬜) |
 | `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ⬜ |
 | `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ⬜ |
 | `src/cli/model-commands.js` | (ops.) gunakan getter baru bila renaming field diterapkan | 2.2 | ⬜ |
@@ -194,7 +194,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 ### Phase 1 — Single Source of Truth
 - [x] **1.1** Hapus `SUPPORTED_MODELS` dari `constants.js`; `BUILTIN_PROVIDERS[*].models[]` jadi satu-satunya daftar resmi
 - [x] **1.2** Ganti semua dependensi `SUPPORTED_MODELS` (grep di src/bin/tests/scripts) — tidak ada dependensi, langsung selesai
-- [ ] **1.3** Validasi invariant `defaultModel ⊆ models[]` untuk semua builtin provider
+- [x] **1.3** Validasi invariant `defaultModel ⊆ models[]` untuk semua builtin provider + tambah `getProviderNames()` (builtin ∪ custom)
 - [ ] **1.4** Tambah test source-of-truth; `npm test` pass tanpa regression
 
 ### Phase 2 — Penamaan Eksplisit (getter, non-breaking)
@@ -257,6 +257,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-27 | Plan awal dibuat di branch `refactor/provider-model-clarity` |
 | 2026-08-27 | Phase 1.1 selesai: hapus `SUPPORTED_MODELS` (dead code), tambah JSDoc + invariant di `constants.js` |
 | 2026-08-27 | Phase 1.2 selesai: verifikasi `grep` mengonfirmasi 0 dependensi `SUPPORTED_MODELS` di seluruh codebase |
+| 2026-08-27 | Phase 1.3 selesai: IIFE `validateBuiltinProviderInvariants()` di `manager.js` (fail-fast module-load) + method `getProviderNames()` (builtin ∪ sorted custom) |
 | *(pending)* | Phase 2 selesai: getter eksplisit non-breaking |
 | *(pending)* | Phase 3 selesai: dokumentasi konsep + help + README |
 | *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |

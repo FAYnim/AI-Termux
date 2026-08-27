@@ -17,6 +17,52 @@ import {
   TERMUX_HOME_FALLBACK
 } from './constants.js';
 
+// ---------------------------------------------------------------------------
+// Single Source of Truth invariant validation.
+//
+// For every builtin provider, `defaultModel` (the active model) MUST be a
+// member of `models[]` (the catalog). If a developer ever edits
+// `BUILTIN_PROVIDERS` in constants.js and accidentally drifts one entry,
+// downstream code (`getProviderModels`, slash `/model`, etc.) would silently
+// hide the active model from listings — a confusing bug. Failing fast at
+// module load catches the mistake before any test or runtime can be affected.
+// ---------------------------------------------------------------------------
+(function validateBuiltinProviderInvariants() {
+  for (const [id, def] of Object.entries(BUILTIN_PROVIDERS)) {
+    if (!def || typeof def !== 'object') {
+      throw new Error(
+        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}] is not an object`
+      );
+    }
+    if (typeof def.defaultModel !== 'string' || !def.defaultModel.trim()) {
+      throw new Error(
+        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel must be a non-empty string`
+      );
+    }
+    if (!Array.isArray(def.models) || def.models.length === 0) {
+      throw new Error(
+        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models must be a non-empty array`
+      );
+    }
+    if (!def.models.includes(def.defaultModel)) {
+      throw new Error(
+        `[config] Invariant violation: BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel ` +
+          `(${JSON.stringify(def.defaultModel)}) must be a member of ` +
+          `BUILTIN_PROVIDERS[${JSON.stringify(id)}].models ${JSON.stringify(def.models)}. ` +
+          `See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md Phase 1.3.`
+      );
+    }
+    // Catalog entries must be non-empty strings (no blanks, no nulls).
+    for (const m of def.models) {
+      if (typeof m !== 'string' || !m.trim()) {
+        throw new Error(
+          `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models contains a non-string or blank entry`
+        );
+      }
+    }
+  }
+})();
+
 export class ConfigManager {
   constructor(customConfigDir = null) {
     this.customConfigDir = customConfigDir;
@@ -634,6 +680,32 @@ export class ConfigManager {
     for (const m of storedModels) push(m);
     for (const m of builtinModels) push(m);
     return merged;
+  }
+
+  /**
+   * List all known provider IDs.
+   *
+   * Returns the union of builtin providers (from `BUILTIN_PROVIDERS`) and
+   * any custom providers the user has stored in `config.json.providers`.
+   * Order is stable: builtin IDs first (in declaration order), then
+   * custom IDs sorted alphabetically.
+   *
+   * This is the single source of truth for "what providers exist" so that
+   * CLI code (`tai provider list`, `tai model --list`, the `/model` picker)
+   * never has to call `Object.keys(BUILTIN_PROVIDERS)` directly and miss
+   * user-added custom providers.
+   *
+   * @returns {string[]}
+   */
+  getProviderNames() {
+    const builtinNames = Object.keys(BUILTIN_PROVIDERS);
+    const config = this.loadConfig();
+    const storedNames = Object.keys(config.providers || {});
+    const builtinSet = new Set(builtinNames);
+    const customNames = storedNames
+      .filter((n) => !builtinSet.has(n))
+      .sort((a, b) => a.localeCompare(b));
+    return [...builtinNames, ...customNames];
   }
 
   /**
