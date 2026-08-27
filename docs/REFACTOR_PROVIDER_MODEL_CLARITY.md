@@ -73,9 +73,10 @@ Hapus duplikasi dan jadikan `BUILTIN_PROVIDERS[*].models[]` sebagai satu-satunya
 **Check:** Tidak ada lagi dua daftar model yang redundan untuk provider yang sama.
 
 #### 1.2 Cek dependensi `SUPPORTED_MODELS` di seluruh codebase
-- [ ] `grep -rn "SUPPORTED_MODELS" src/ bin/ tests/ scripts/`
-- [ ] Ganti semua import/penggunaan `SUPPORTED_MODELS` dengan `BUILTIN_PROVIDERS[...].models` (atau `getProviderModels()`)
-- [ ] Pastikan tidak ada test yang bergantung pada `SUPPORTED_MODELS`
+- [x] `grep -rn "SUPPORTED_MODELS" src/ bin/ tests/ scripts/` → 0 hasil (dead code, hanya dideklarasikan di constants.js)
+- [x] `grep -rn "supportedModels\|supported.models" --include="*.js" .` → 0 hasil (tidak ada varian case-insensitive)
+- [x] Ganti semua import/penggunaan `SUPPORTED_MODELS` dengan `BUILTIN_PROVIDERS[...].models` (atau `getProviderModels()`) → tidak perlu, tidak ada import/penggunaan
+- [x] Pastikan tidak ada test yang bergantung pada `SUPPORTED_MODELS` → konfirmasi via baseline `npm test` 324/324 pass setelah 1.1
 
 #### 1.3 `src/config/manager.js` — jembatan konsistensi
 - [ ] Validasi internal bahwa `defaultModel` **selalu** ada di `models[]` untuk setiap builtin provider (invariant/explicit check di `getProviderModels`)
@@ -175,7 +176,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 | File | Perubahan | Phase | Status |
 |------|-----------|:-----:|:------:|
-| `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ⬜ |
+| `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ✅ |
 | `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.2 | ⬜ |
 | `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ⬜ |
 | `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ⬜ |
@@ -191,8 +192,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 ## ✅ Checklist Implementation (Ringkasan untuk Tracking)
 
 ### Phase 1 — Single Source of Truth
-- [ ] **1.1** Hapus `SUPPORTED_MODELS` dari `constants.js`; `BUILTIN_PROVIDERS[*].models[]` jadi satu-satunya daftar resmi
-- [ ] **1.2** Ganti semua dependensi `SUPPORTED_MODELS` (grep di src/bin/tests/scripts)
+- [x] **1.1** Hapus `SUPPORTED_MODELS` dari `constants.js`; `BUILTIN_PROVIDERS[*].models[]` jadi satu-satunya daftar resmi
+- [x] **1.2** Ganti semua dependensi `SUPPORTED_MODELS` (grep di src/bin/tests/scripts) — tidak ada dependensi, langsung selesai
 - [ ] **1.3** Validasi invariant `defaultModel ⊆ models[]` untuk semua builtin provider
 - [ ] **1.4** Tambah test source-of-truth; `npm test` pass tanpa regression
 
@@ -254,7 +255,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | Tanggal | Perubahan |
 |---------|-----------|
 | 2026-08-27 | Plan awal dibuat di branch `refactor/provider-model-clarity` |
-| *(pending)* | Phase 1 selesai: single source of truth |
+| 2026-08-27 | Phase 1.1 selesai: hapus `SUPPORTED_MODELS` (dead code), tambah JSDoc + invariant di `constants.js` |
+| 2026-08-27 | Phase 1.2 selesai: verifikasi `grep` mengonfirmasi 0 dependensi `SUPPORTED_MODELS` di seluruh codebase |
 | *(pending)* | Phase 2 selesai: getter eksplisit non-breaking |
 | *(pending)* | Phase 3 selesai: dokumentasi konsep + help + README |
 | *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |
