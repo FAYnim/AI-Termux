@@ -1,4 +1,14 @@
 /**
+ * @typedef {Object} BuiltinProviderDef
+ * @property {string} defaultBaseUrl  - Default base URL adapter.
+ * @property {string} defaultModel    - Model AKTIF default (satu nilai, persisten).
+ * @property {string[]} models        - KATALOG model yang tersedia (banyak nilai, persisten).
+ * @property {string[]} envVars       - Env var untuk API key (urut = prioritas).
+ * @property {string[]} [envBaseUrlVars] - Env var override base URL.
+ * @property {string[]} [envModelVars]   - Env var override model.
+ */
+
+/**
  * Application Constants & Default Configuration Values
  * Termux AI CLI (`termuxai`)
  */
@@ -16,15 +26,11 @@ export const DEFAULT_SESSIONS_DIR_NAME = 'sessions';
 // Fallback Termux home directory if os.homedir() returns empty or unusual root
 export const TERMUX_HOME_FALLBACK = '/data/data/com.termux/files/home';
 
-// Default Model & Parameters
+// Default Model (backward-compat bridge — tetap di-export agar import lama
+// di session.js, help.js, manager.js, gemini.js, dan tests tidak terputus).
+// Sumber kebenaran model Gemini resmi ada di `BUILTIN_PROVIDERS.gemini.models`
+// dan model aktif per provider ada di `BUILTIN_PROVIDERS[provider].defaultModel`.
 export const DEFAULT_MODEL = 'gemini-2.5-flash';
-export const SUPPORTED_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-2.0-flash'
-];
 
 // Execution Defaults
 export const DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
@@ -32,6 +38,24 @@ export const DEFAULT_MAX_CONTEXT_TOKENS = 1000000;
 export const DEFAULT_TEMPERATURE = 0.7;
 
 // Built-in Providers & Defaults
+// ---------------------------------------------------------------------------
+// Single Source of Truth untuk model per provider.
+//
+// Setiap entry di BUILTIN_PROVIDERS[id] adalah blueprint dari sebuah provider:
+//   - defaultBaseUrl : base URL default adapter (dipakai bila user tidak override)
+//   - defaultModel   : **model AKTIF default** — dipakai saat request, satu nilai
+//   - models[]       : **katalog model** yang tersedia — daftar resmi, banyak nilai
+//   - envVars[]      : daftar env var yang dibaca untuk api key (urut = prioritas)
+//   - envBaseUrlVars : daftar env var override base URL
+//   - envModelVars   : daftar env var override model
+//
+// Invariant: `defaultModel` WAJIB ada di `models[]` untuk setiap builtin provider.
+// Kalau invarian ini dilanggar, config/manager.js akan melempar error jelas.
+//
+// Catatan: `DEFAULT_MODEL` di atas adalah alias backward-compat yang nilainya
+// SELALU sama dengan `BUILTIN_PROVIDERS.gemini.defaultModel` (sumber kebenaran).
+// ---------------------------------------------------------------------------
+/** @type {Record<string, import('./constants.js').BuiltinProviderDef>} */
 export const BUILTIN_PROVIDERS = {
   gemini: {
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
