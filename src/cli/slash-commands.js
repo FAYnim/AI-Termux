@@ -7,17 +7,37 @@ import { ansi } from '../utils/ansi.js';
 import { renderBox, renderStatusCard } from '../ui/box.js';
 import { showModelMenuFromConfig } from '../ui/model-menu.js';
 import { estimateSessionTokens } from '../agent/pruner.js';
+import { addModelsCli, removeModelCli, clearModelsCli } from './model-commands.js';
+import { runProviderAddWizard } from './provider-wizard.js';
 
 export const SLASH_COMMANDS_HELP = [
-  { cmd: '/help', desc: 'Show this slash commands help menu' },
-  { cmd: '/provider [id]', desc: 'Show active provider or switch provider + persist' },
-  { cmd: '/provider list', desc: 'List configured providers' },
-  { cmd: '/model [name]', desc: 'Show available models (interactive TTY menu) or switch to a new model' },
-  { cmd: '/session', desc: 'Display current session ID, token usage & stats' },
-  { cmd: '/clear', desc: 'Clear the terminal screen' },
-  { cmd: '/config', desc: 'Display active CLI configuration settings' },
-  { cmd: '/exit, /quit', desc: 'Exit interactive REPL session' }
+  { cmd: '/help',                    desc: 'Show this slash commands help menu' },
+  { cmd: '/provider [id]',           desc: 'Show active provider or switch provider + persist' },
+  { cmd: '/provider list',           desc: 'List configured providers' },
+  { cmd: '/provider add [id]',       desc: 'Add a new provider via interactive wizard' },
+  { cmd: '/provider remove <id>',    desc: 'Remove a configured provider' },
+  { cmd: '/provider show [id]',      desc: 'Show provider config details' },
+  { cmd: '/model [name]',            desc: 'Show available models (interactive TTY menu) or switch to a new model' },
+  { cmd: '/model add <name[,...]>',  desc: 'Add model(s) to provider catalog' },
+  { cmd: '/model remove <name>',     desc: 'Remove a model from provider catalog' },
+  { cmd: '/model clear',             desc: 'Reset provider catalog to builtin defaults' },
+  { cmd: '/session',                 desc: 'Display current session ID, token usage & stats' },
+  { cmd: '/clear',                   desc: 'Clear the terminal screen' },
+  { cmd: '/config',                  desc: 'Display active CLI configuration settings' },
+  { cmd: '/exit, /quit',             desc: 'Exit interactive REPL session' }
 ];
+
+/**
+ * Parse --provider flag from an args array.
+ * e.g. ['add', 'gpt-4', '--provider', 'openai'] → 'openai'
+ * @param {string[]} args
+ * @returns {string|null}
+ */
+function parseProviderFlag(args) {
+  const idx = args.indexOf('--provider');
+  if (idx >= 0 && idx + 1 < args.length) return args[idx + 1];
+  return null;
+}
 
 /**
  * Determines if user input is a slash command
@@ -88,6 +108,123 @@ export async function executeSlashCommand(input, context = {}) {
         return { handled: true, action: 'provider_list' };
       }
 
+      // ── /provider add ──────────────────────────────────────────────
+      if (action === 'add') {
+        const prefilledId = args[1] || null; // /provider add <id> pre-fills step 1
+        const wizardResult = await runProviderAddWizard({
+          configMgr,
+          stream,
+          input: inputStream,
+          prefilledId
+        });
+
+        if (wizardResult.cancelled) {
+          return { handled: true, action: 'provider_add_cancelled' };
+        }
+
+        // Persist to config
+        const cfg = configMgr ? configMgr.loadConfig() : {};
+        if (!cfg.providers) cfg.providers = {};
+        cfg.providers[wizardResult.providerId] = wizardResult.config;
+        if (configMgr) configMgr.saveConfig(cfg);
+
+        // Optionally switch active provider
+        if (wizardResult.switchNow) {
+          if (configMgr) configMgr.set('activeProvider', wizardResult.providerId);
+          if (orchestrator && typeof orchestrator.setProvider === 'function') {
+            try {
+              orchestrator.setProvider(wizardResult.providerId, {
+                apiKey: wizardResult.config.apiKey,
+                model: wizardResult.config.model,
+                baseUrl: wizardResult.config.baseUrl
+              });
+            } catch (_) {
+              // setProvider may fail if adapter not loaded — config already saved
+              stream.write(`${ansi.yellow('ℹ')} Could not switch live session. Restart REPL to apply.\n\n`);
+            }
+          } else if (!orchestrator) {
+            stream.write(`${ansi.yellow('ℹ')} No active session. Restart REPL to apply provider switch.\n\n`);
+          }
+          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved and activated.\n\n`);
+        } else {
+          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved.\n  To use it: ${ansi.cyan('/provider ' + wizardResult.providerId)}\n\n`);
+        }
+
+        return { handled: true, action: 'provider_added', providerId: wizardResult.providerId };
+      }
+
+      // ── /provider remove <id> ──────────────────────────────────────
+      if (action === 'remove') {
+        const removeId = args[1];
+        if (!removeId) {
+          stream.write(`\n${ansi.yellow('⚠')} Usage: /provider remove <id>\n\n`);
+          return { handled: true, action: 'provider_remove_error', error: true };
+        }
+
+        // Guard: refuse to remove builtin providers
+        const { BUILTIN_PROVIDERS } = await import('../config/constants.js');
+        if (BUILTIN_PROVIDERS[removeId]) {
+          stream.write(`\n${ansi.red('✖')} Cannot remove builtin provider "${ansi.bold(removeId)}". Only custom providers can be removed.\n\n`);
+          return { handled: true, action: 'provider_remove_error', error: true };
+        }
+
+        // Confirm if removing active provider
+        const activeP = (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
+        if (removeId === activeP) {
+          stream.write(`\n${ansi.yellow('⚠')} "${ansi.bold(removeId)}" is the active provider. Remove anyway? [y/N]: `);
+          const confirm = await new Promise((resolve) => {
+            const onData = (chunk) => {
+              inputStream.removeListener('data', onData);
+              resolve(chunk.toString().trim());
+            };
+            inputStream.once('data', onData);
+          });
+          if (confirm.toLowerCase() !== 'y') {
+            stream.write(`${ansi.dim('Removal cancelled.')}\n\n`);
+            return { handled: true, action: 'provider_remove_cancelled' };
+          }
+        }
+
+        try {
+          if (configMgr) configMgr.removeProvider(removeId);
+          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(removeId))}" removed.\n\n`);
+          return { handled: true, action: 'provider_removed' };
+        } catch (err) {
+          stream.write(`\n${ansi.red('✖')} ${err.message}\n\n`);
+          return { handled: true, action: 'provider_remove_error', error: true };
+        }
+      }
+
+      // ── /provider show [id] ────────────────────────────────────────
+      if (action === 'show') {
+        const showId = args[1] || (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
+        try {
+          const provCfg = configMgr ? configMgr.getProviderConfig(showId) : {};
+          // Mask API key for display
+          const display = { ...provCfg };
+          if (display.apiKey && typeof display.apiKey === 'string' && display.apiKey.length > 8) {
+            display.apiKey = `${display.apiKey.slice(0, 4)}...${display.apiKey.slice(-4)}`;
+          }
+          const lines = Object.entries(display)
+            .filter(([, v]) => v !== undefined && v !== null && (!Array.isArray(v) || v.length > 0))
+            .map(([k, v]) => {
+              const val = Array.isArray(v) ? v.join(', ') : String(v);
+              return `  ${ansi.cyan(k.padEnd(14))} ${ansi.dim('│')} ${ansi.white(val)}`;
+            });
+          const box = renderBox(lines.join('\n'), {
+            title: `Provider: ${showId}`,
+            borderColor: 'cyan',
+            borderStyle: 'round',
+            minWidth: 48
+          });
+          stream.write(`\n${box}\n\n`);
+          return { handled: true, action: 'provider_show' };
+        } catch (err) {
+          stream.write(`\n${ansi.yellow('⚠')} ${err.message}\n\n`);
+          return { handled: true, action: 'provider_show_error', error: true };
+        }
+      }
+
       const providerId = action;
       if (!providerId) {
         const active = (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
@@ -118,7 +255,35 @@ export async function executeSlashCommand(input, context = {}) {
     }
 
     case 'model': {
-      const newModel = args[0];
+      const modelSubCmd = args[0];
+      const providerOverride = parseProviderFlag(args);
+
+      // Sub-command routing: add / remove / clear
+      if (modelSubCmd === 'add') {
+        // Collect everything between 'add' and any '--provider' flag as model names
+        const modelArgs = args.slice(1).filter(a => a !== '--provider' && a !== providerOverride);
+        const models = modelArgs.join(',') || '';
+        const result = addModelsCli({ configMgr, models, providerOverride });
+        if (result.output) stream.write(result.output);
+        return { handled: true, action: 'model_add', error: result.exitCode !== 0 };
+      }
+
+      if (modelSubCmd === 'remove') {
+        const modelArgs = args.slice(1).filter(a => a !== '--provider' && a !== providerOverride);
+        const models = modelArgs.join(',') || '';
+        const result = removeModelCli({ configMgr, models, providerOverride });
+        if (result.output) stream.write(result.output);
+        return { handled: true, action: 'model_remove', error: result.exitCode !== 0 };
+      }
+
+      if (modelSubCmd === 'clear') {
+        const result = clearModelsCli({ configMgr, providerOverride });
+        if (result.output) stream.write(result.output);
+        return { handled: true, action: 'model_clear', error: result.exitCode !== 0 };
+      }
+
+      // Not a sub-command — fall through to existing model switch/info behavior
+      const newModel = modelSubCmd;
       if (!newModel) {
         let currentModel = 'unknown';
         const client = orchestrator?.llmClient || orchestrator?.geminiClient;
