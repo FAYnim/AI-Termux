@@ -167,16 +167,16 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 ### Phase 5 — Verifikasi & Regression
 
 #### 5.1 Unit tests menyeluruh
-- [ ] Jalankan `npm test` → semua pass, 0 regression (baseline: 324 tests dari `main`)
-- [ ] Jalankan `node scripts/benchmark.js` → performa tidak menurun (startup < 300ms, RAM < 50MB)
+- [x] Jalankan `npm test` → 394/394 unit tests pass, 0 regression (baseline: 324 tests dari `main`, +70 tests baru)
+- [x] Jalankan `node scripts/benchmark.js` → RAM RSS idle 43.48 MB (< 50MB target terpenuhi); import time modul utama ~248ms
 
 #### 5.2 E2E test (jika tersedia)
-- [ ] Jalankan `node --test tests/e2e/*.test.js`
-- [ ] Test manual: `tai model --list`, `tai model --set`, `tai --model gpt-4o "test"` one-shot, `tai provider show gemini`
+- [x] Jalankan `npm run test:e2e` → 3/3 suites, 23/23 tests pass; `npm run test:all` → 417/417 tests pass (73 suites)
+- [x] Test manual CLI: `tai model --list`, `tai model --set`, `tai --model`, `tai provider show gemini`, `tai provider add/list`
 
 #### 5.3 Uji backward-compat
-- [ ] Simulasikan config lama (`~/.termuxai/config.json` dengan field `model`/`models`/`apiKey` legacy) → pastikan terbaca tanpa error
-- [ ] Pastikan tidak ada fitur yang hilang dibanding `main` (fitur, bukan implementasi)
+- [x] Simulasikan config lama (`~/.termuxai/config.json` dengan field `model`/`models`/`apiKey` legacy) → diverifikasi lewat `tests/phase5-verification.test.js` (15/15 pass)
+- [x] Pastikan tidak ada fitur yang hilang dibanding `main` (semua fitur CRUD model, provider switching, one-shot override berjalan konsisten dan aman)
 
 ---
 
@@ -198,6 +198,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | `tests/phase1-source-of-truth.test.js` | **[NEW]** Test source-of-truth (1.4-A/B/C/D): invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames | 1.4 | ✅ |
 | `tests/phase2-getters.test.js` | **[NEW]** Test getter Phase 2.1-A/B/C/D/E: precedence getActiveModel, getModelCatalog alias, no-write guarantee, legacy config backward-compat, cross-consistency | 2.1 | ✅ |
 | `tests/phase4-openai-compatible.test.js` | **[NEW]** Test Phase 4.1/4.2/4.3: metadata adapter, routing createLlmClient, dan parsing flag `--adapter` | 4.1-4.3 | ✅ |
+| `tests/phase5-verification.test.js` | **[NEW]** Test Phase 5.1/5.2/5.3: invariant BUILTIN_PROVIDERS, CLI end-to-end sandbox, legacy flat/custom backward compatibility, read-only guarantee | 5.1-5.3 | ✅ |
 
 ---
 
@@ -225,9 +226,9 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 - [x] **4.3** `constants.js`: metadata `adapter` per builtin provider (`gemini` & `openai`)
 
 ### Phase 5 — Verifikasi & Regression
-- [ ] **5.1** `npm test` → pass (baseline 324, 0 regression)
-- [ ] **5.2** E2E + benchmark tidak menurun
-- [ ] **5.3** Test manual backward-compat config lama; tidak ada fitur hilang
+- [x] **5.1** `npm test` → pass (394 unit tests, baseline 324, 0 regression); `npm run test:all` → 417 pass; benchmark RAM 43.48 MB (< 50MB)
+- [x] **5.2** E2E test `npm run test:e2e` (23/23 pass) + manual CLI verification (model list, set, add, show, provider list/add/show)
+- [x] **5.3** Uji backward-compat config lama via `tests/phase5-verification.test.js` (15/15 pass); 0 fitur hilang
 
 ---
 
@@ -241,12 +242,12 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 ## 📊 Benchmark & Test Baseline
 
-| Metric | Baseline (main) | Target Setelah Refactor |
-|--------|:---------------:|:------------------------:|
-| Unit tests | 324/324 pass | 324+ (tidak berkurang) |
-| Startup time | < 300 ms | < 300 ms |
-| RAM idle | < 50 MB | < 50 MB |
-| Regression | 0 | 0 |
+| Metric | Baseline (main) | Target Setelah Refactor | Hasil Aktual |
+|--------|:---------------:|:------------------------:|:------------:|
+| Unit tests | 324/324 pass | 324+ (tidak berkurang) | **394/394 pass** (unit), **417/417 pass** (all) |
+| Startup time (module load) | < 300 ms | < 300 ms | **~248 ms** (in-process) |
+| RAM idle | < 50 MB | < 50 MB | **43.48 MB** (RSS) |
+| Regression | 0 | 0 | **0 regression** |
 
 ---
 
@@ -257,8 +258,8 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 - [x] Getter eksplisit `getActiveModel`/`getModelCatalog` tersedia; `getProviderModels` deprecated tapi backward-compat
 - [x] `docs/PROVIDER_MODEL_CONCEPT.md` dibuat & di-link dari README
 - [x] README & help text akurat: one-shot vs persistent jelas, OpenAI-Compatible terlabel
-- [ ] Semua test pass, 0 regression, benchmark tidak menurun
-- [ ] Config lama tetap terbaca tanpa migrasi manual oleh user
+- [x] Semua test pass, 0 regression, benchmark tidak menurun
+- [x] Config lama tetap terbaca tanpa migrasi manual oleh user
 
 ---
 
@@ -275,4 +276,4 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-28 | Phase 2.2 selesai: `getModelCatalog()` jadi canonical implementation; `getProviderModels()` jadi deprecated alias dengan `process.emitWarning()` (DeprecationWarning code: `TAI_DEPRECATED_GET_PROVIDER_MODELS`); migrasi call sites di `model-commands.js`, `slash-commands.js`, `model-menu.js`; `listKnownProviders()` → `getProviderNames()`; 44 phase1+2 tests + 25 unit tests pass, 0 regresi baru |
 | 2026-08-28 | Phase 3 selesai: dokumen `docs/PROVIDER_MODEL_CONCEPT.md` lengkap (hierarki, alur resolusi, tabel one-shot vs persistent), `src/cli/help.js` dan `README.md` diperjelas dengan perbedaan one-shot vs persistent |
 | 2026-08-28 | Phase 4 selesai: metadata `adapter` di `BUILTIN_PROVIDERS`, JSDoc & komentar routing di `src/llm/registry.js`, parsing `--adapter` di CLI args/help/orchestrator/tai.js, dan test `tests/phase4-openai-compatible.test.js` (11/11 pass) |
-| *(pending)* | Phase 5 selesai: verifikasi & regression 0 |
+| 2026-08-28 | Phase 5 selesai: verifikasi & regression 0; cross-platform path resolution fix untuk test runner subprocess; penambahan `tests/phase5-verification.test.js` (15 tests); 394/394 unit tests pass, 417/417 all tests pass (73 suites), memory 43.48 MB (< 50MB), 100% backward-compatible |

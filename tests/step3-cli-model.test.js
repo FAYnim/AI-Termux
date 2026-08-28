@@ -19,6 +19,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { parseArgs } from '../src/cli/args.js';
@@ -29,7 +30,7 @@ import {
 } from '../src/cli/model-commands.js';
 import { ConfigManager } from '../src/config/manager.js';
 
-const REPO_ROOT = path.resolve(new URL('..', import.meta.url).pathname);
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
 
 // ---------------------------------------------------------------------------
