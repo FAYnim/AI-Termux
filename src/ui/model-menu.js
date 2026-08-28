@@ -258,7 +258,8 @@ export function showModelMenu(items, options = {}) {
 export async function showModelMenuFromConfig(ctx = {}) {
   const { configMgr, orchestrator, input, output } = ctx;
 
-  if (!configMgr || typeof configMgr.getProviderModels !== 'function') {
+  // Phase 2.2: prefer getModelCatalog() (canonical getter); fall back to provCfg for unknown providers
+  if (!configMgr || typeof configMgr.getModelCatalog !== 'function') {
     return { cancelled: true };
   }
 
@@ -269,8 +270,8 @@ export async function showModelMenuFromConfig(ctx = {}) {
     activeModel = client.getModel();
   } else {
     try {
-      const provCfg = configMgr.getProviderConfig(activeProvider);
-      activeModel = provCfg.model || provCfg.defaultModel || activeModel;
+      // Phase 2.2: use getActiveModel() instead of getProviderConfig().model
+      activeModel = configMgr.getActiveModel?.(activeProvider) || activeModel;
     } catch (_) {}
   }
 
@@ -286,7 +287,8 @@ export async function showModelMenuFromConfig(ctx = {}) {
 
   const providerModels = {};
   for (const pid of providerIds) {
-    const models = configMgr.getProviderModels(pid);
+    // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+    const models = configMgr.getModelCatalog(pid);
     if (models && models.length > 0) {
       providerModels[pid] = models;
     }

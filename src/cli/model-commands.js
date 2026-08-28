@@ -19,15 +19,19 @@ import { ansi } from '../utils/ansi.js';
 
 /**
  * Get the list of providers that have a stored or builtin entry.
+ *
+ * Delegates to `configMgr.getProviderNames()` (Phase 1.3 single source of
+ * truth) when available, so custom providers are always included.
+ *
  * @param {object} configMgr
  * @returns {string[]}
  */
 function listKnownProviders(configMgr) {
-  if (!configMgr) return Object.keys(BUILTIN_PROVIDERS);
-  const cfg = configMgr.loadConfig();
-  const stored = Object.keys(cfg.providers || {});
-  const merged = new Set([...Object.keys(BUILTIN_PROVIDERS), ...stored]);
-  return Array.from(merged);
+  if (configMgr && typeof configMgr.getProviderNames === 'function') {
+    return configMgr.getProviderNames();
+  }
+  // Fallback when configMgr is unavailable (e.g. tests that don't pass one)
+  return Object.keys(BUILTIN_PROVIDERS);
 }
 
 /**
@@ -43,8 +47,9 @@ function listKnownProviders(configMgr) {
  */
 function formatProviderModels({ providerId, isActiveProvider = false, currentModel = null, configMgr = null }) {
   const builtin = BUILTIN_PROVIDERS[providerId];
-  const models = configMgr?.getProviderModels
-    ? configMgr.getProviderModels(providerId)
+  // Phase 2.2: prefer getModelCatalog() (canonical getter) over deprecated getProviderModels()
+  const models = configMgr?.getModelCatalog
+    ? configMgr.getModelCatalog(providerId)
     : (builtin?.models || [builtin?.defaultModel].filter(Boolean));
 
   if (!Array.isArray(models) || models.length === 0) {
@@ -77,11 +82,11 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
   const targetProvider = providerOverride || activeProvider;
   let currentModel = '';
   try {
-    currentModel = configMgr.getProviderConfig?.(targetProvider)?.model
+    // Phase 2.2: use getActiveModel() instead of getProviderConfig().model
+    currentModel = configMgr.getActiveModel?.(targetProvider)
       || BUILTIN_PROVIDERS[targetProvider]?.defaultModel
       || '';
   } catch (_) {
-    // getProviderConfig throws on unknown providers; we validate below.
     currentModel = '';
   }
 
@@ -119,7 +124,8 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
   }
 
   // Single-provider view (default)
-  const models = configMgr.getProviderModels?.(targetProvider)
+  // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+  const models = configMgr.getModelCatalog?.(targetProvider)
     || BUILTIN_PROVIDERS[targetProvider]?.models
     || [];
 
@@ -136,7 +142,8 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
     lines.push('');
     lines.push(ansi.dim('  Other providers:'));
     for (const pid of otherProviders) {
-      const ms = configMgr.getProviderModels?.(pid) || BUILTIN_PROVIDERS[pid]?.models || [];
+      // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+      const ms = configMgr.getModelCatalog?.(pid) || BUILTIN_PROVIDERS[pid]?.models || [];
       const sample = ms.slice(0, 4).join(', ');
       const more = ms.length > 4 ? ansi.dim(`, +${ms.length - 4} more`) : '';
       lines.push(`  ${ansi.dim('•')} ${ansi.cyan(pid)}: ${ansi.white(sample)}${more}`);
@@ -184,7 +191,8 @@ export function setModelCli({ configMgr, model, providerOverride = null } = {}) 
   }
 
   const isBuiltin = Boolean(builtin);
-  const knownModels = configMgr.getProviderModels?.(target) || [];
+  // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+  const knownModels = configMgr.getModelCatalog?.(target) || [];
   const inCatalog = knownModels.includes(model.trim());
   const note = !isBuiltin
     ? ` ${ansi.dim('(custom provider)')}`

@@ -630,56 +630,38 @@ export class ConfigManager {
   }
 
   /**
-   * Get available models for a provider
-   * Merges builtin defaults with any user-customized list, and ALSO
-   * guarantees that the currently stored active `model` (if any) is
-   * included so it never disappears from listings after the user sets
-   * it via `tai model --set <name>`.
+   * Get available models for a provider.
    *
-   * ⭐ Ideal solution: auto-include stored model even if `models[]`
-   *    is missing or empty (e.g. legacy configs, custom providers,
-   *    or configs where the user wiped the `models` array).
-   *
-   * Precedence (all deduplicated, first occurrence wins):
-   *   1. builtin.defaultModel
-   *   2. stored `model`           ← the user's active/selected model
-   *   3. stored `models[]`        ← user-customized catalog
-   *   4. builtin `models[]`       ← builtin catalog
+   * @deprecated Since Phase 2.2 of the provider-model clarity refactor.
+   *   Use `getModelCatalog(providerId)` instead — it is the explicit,
+   *   intent-revealing alias. `getProviderModels()` remains 100%
+   *   backward-compatible and delegates to `getModelCatalog()`, so
+   *   existing call sites continue to work without any changes.
+   *   See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md §2.2.
    *
    * @param {string} providerId
    * @returns {string[]}
    */
   getProviderModels(providerId) {
-    const builtin = BUILTIN_PROVIDERS[providerId];
-    const config = this.loadConfig();
-    const stored = config.providers?.[providerId] || {};
-
-    const builtinModels = builtin?.models || [];
-    const storedModels = Array.isArray(stored.models) ? stored.models : [];
-    // The currently-active model the user picked (may be a custom finetune
-    // or a model not present in the catalog). We always surface it.
-    const activeModel = typeof stored.model === 'string' && stored.model.trim()
-      ? stored.model.trim()
-      : null;
-
-    // Combine: builtin default model first, then active model, then
-    // stored catalog, then builtin catalog. Deduplicate while preserving
-    // first-occurrence order so `(active)` markers stay consistent.
-    const merged = [];
-    const seen = new Set();
-    const push = (m) => {
-      if (typeof m !== 'string') return;
-      const v = m.trim();
-      if (!v || seen.has(v)) return;
-      seen.add(v);
-      merged.push(v);
-    };
-
-    push(builtin?.defaultModel);
-    push(activeModel);
-    for (const m of storedModels) push(m);
-    for (const m of builtinModels) push(m);
-    return merged;
+    // Emit a deprecation warning once per unique providerId so that
+    // developer-mode tooling (Node --no-deprecation, test harnesses) can
+    // suppress it, while still alerting the developer that they should
+    // migrate to getModelCatalog().
+    // Uses a static Set on ConfigManager to track which provider IDs
+    // have already been warned (avoids repeated log spam).
+    if (!ConfigManager._getProviderModelsWarned) {
+      ConfigManager._getProviderModelsWarned = new Set();
+    }
+    if (!ConfigManager._getProviderModelsWarned.has(providerId)) {
+      ConfigManager._getProviderModelsWarned.add(providerId);
+      process.emitWarning(
+        `ConfigManager.getProviderModels("${providerId}") is deprecated. ` +
+          'Use getModelCatalog() instead. ' +
+          'See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md §2.2.',
+        { type: 'DeprecationWarning', code: 'TAI_DEPRECATED_GET_PROVIDER_MODELS' }
+      );
+    }
+    return this.getModelCatalog(providerId);
   }
 
   /**
@@ -730,22 +712,55 @@ export class ConfigManager {
   /**
    * Get the MODEL CATALOG for a provider (the list of available models).
    *
-   * This is the **read-side alias** introduced in Phase 2.1 to disambiguate
-   * `model` (active, single value) from `models[]` (catalog, many values).
-   * It is a thin wrapper around the existing `getProviderModels()` so that
-   * call sites can read the *intent* ("give me the catalog") rather than
-   * the *storage shape* ("give me the `models[]` array").
+   * This is the **canonical** read-side getter introduced in Phase 2.1 to
+   * disambiguate `model` (active, single value) from `models[]` (catalog,
+   * many values). `getProviderModels()` is now a deprecated alias that
+   * delegates here — all new call sites should use `getModelCatalog()`.
+   *
+   * Precedence (all deduplicated, first occurrence wins):
+   *   1. builtin.defaultModel
+   *   2. stored `model`           ← the user's active/selected model
+   *   3. stored `models[]`        ← user-customized catalog
+   *   4. builtin `models[]`       ← builtin catalog
    *
    * The returned list always includes the currently active model (if any),
-   * even when it is a custom finetune outside the builtin catalog — see
-   * `getProviderModels()` for the exact precedence rules.
+   * even when it is a custom finetune outside the builtin catalog.
    *
    * @param {string} providerId
    * @returns {string[]} deduplicated list of model names (may be empty for
    *   unknown providers with no stored catalog)
    */
   getModelCatalog(providerId) {
-    return this.getProviderModels(providerId);
+    const builtin = BUILTIN_PROVIDERS[providerId];
+    const config = this.loadConfig();
+    const stored = config.providers?.[providerId] || {};
+
+    const builtinModels = builtin?.models || [];
+    const storedModels = Array.isArray(stored.models) ? stored.models : [];
+    // The currently-active model the user picked (may be a custom finetune
+    // or a model not present in the catalog). We always surface it.
+    const activeModel = typeof stored.model === 'string' && stored.model.trim()
+      ? stored.model.trim()
+      : null;
+
+    // Combine: builtin default model first, then active model, then
+    // stored catalog, then builtin catalog. Deduplicate while preserving
+    // first-occurrence order so `(active)` markers stay consistent.
+    const merged = [];
+    const seen = new Set();
+    const push = (m) => {
+      if (typeof m !== 'string') return;
+      const v = m.trim();
+      if (!v || seen.has(v)) return;
+      seen.add(v);
+      merged.push(v);
+    };
+
+    push(builtin?.defaultModel);
+    push(activeModel);
+    for (const m of storedModels) push(m);
+    for (const m of builtinModels) push(m);
+    return merged;
   }
 
   /**

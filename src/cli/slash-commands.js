@@ -127,7 +127,8 @@ export async function executeSlashCommand(input, context = {}) {
         } else if (configMgr) {
           const act = configMgr.get('activeProvider') || 'gemini';
           try {
-            currentModel = configMgr.getProviderConfig(act).model || 'gemini-2.5-flash';
+            // Phase 2.2: use getActiveModel() instead of getProviderConfig().model
+            currentModel = configMgr.getActiveModel?.(act) || 'gemini-2.5-flash';
           } catch {
             currentModel = 'gemini-2.5-flash';
           }
@@ -142,7 +143,8 @@ export async function executeSlashCommand(input, context = {}) {
           inputStream && inputStream.isTTY
         );
 
-        if (isInteractiveTty && configMgr && typeof configMgr.getProviderModels === 'function') {
+        // Phase 2.2: prefer getModelCatalog() (canonical getter) — guard updated accordingly
+        if (isInteractiveTty && configMgr && typeof configMgr.getModelCatalog === 'function') {
           const menuResult = await showModelMenuFromConfig({
             configMgr,
             orchestrator,
@@ -188,9 +190,10 @@ export async function executeSlashCommand(input, context = {}) {
 
         // Phase 1.3: Render box with available models for active provider
         let modelLines = [];
-        if (configMgr && typeof configMgr.getProviderModels === 'function') {
+        // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+        if (configMgr && typeof configMgr.getModelCatalog === 'function') {
           const act = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
-          const allModels = configMgr.getProviderModels(act);
+          const allModels = configMgr.getModelCatalog(act);
           if (allModels.length > 0) {
             modelLines = allModels.map((m) =>
               m === currentModel
@@ -204,7 +207,8 @@ export async function executeSlashCommand(input, context = {}) {
             if (otherIds.length > 0) {
               const otherLines = [];
               for (const pid of otherIds) {
-                const pm = configMgr.getProviderModels(pid);
+                // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
+                const pm = configMgr.getModelCatalog(pid);
                 if (pm.length > 0) {
                   otherLines.push(`  ${ansi.cyan(pid + ':')} ${pm.join(', ')}`);
                 }
@@ -227,7 +231,7 @@ export async function executeSlashCommand(input, context = {}) {
           }
         }
 
-        // Fallback: original single-line output (no getProviderModels or empty list)
+        // Fallback: original single-line output (no getModelCatalog or empty list)
         stream.write(`\n${ansi.cyan('ℹ')} Active model: ${ansi.bold(ansi.yellow(currentModel))}\n\n`);
         return { handled: true, action: 'model_info', message: currentModel };
       }

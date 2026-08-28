@@ -65,10 +65,10 @@ README mengklaim "Multi-Provider: Gemini, OpenAI, **OpenRouter, Groq, DeepSeek, 
 Hapus duplikasi dan jadikan `BUILTIN_PROVIDERS[*].models[]` sebagai satu-satunya daftar resmi model per provider.
 
 #### 1.1 `src/config/constants.js`
-- [ ] Hapus konstanta `SUPPORTED_MODELS` (duplikat dari `BUILTIN_PROVIDERS.gemini.models`)
-- [ ] Pertahankan `DEFAULT_MODEL` sebagai alias/jembatan ke `BUILTIN_PROVIDERS.gemini.defaultModel` (atau jadikan satu-satunya via getter) — putuskan: *pertahankan `DEFAULT_MODEL` sebagai constant untuk backward-compat import*.
-- [ ] Pastikan `DEFAULT_CONFIG` tidak lagi bergantung pada `SUPPORTED_MODELS`
-- [ ] Tambahkan komentar JSDoc yang menjelaskan peran tiap field provider: `defaultModel` (aktif) vs `models[]` (katalog)
+- [x] Hapus konstanta `SUPPORTED_MODELS` (duplikat dari `BUILTIN_PROVIDERS.gemini.models`)
+- [x] Pertahankan `DEFAULT_MODEL` sebagai alias/jembatan ke `BUILTIN_PROVIDERS.gemini.defaultModel` (atau jadikan satu-satunya via getter) — putuskan: *pertahankan `DEFAULT_MODEL` sebagai constant untuk backward-compat import*.
+- [x] Pastikan `DEFAULT_CONFIG` tidak lagi bergantung pada `SUPPORTED_MODELS`
+- [x] Tambahkan komentar JSDoc yang menjelaskan peran tiap field provider: `defaultModel` (aktif) vs `models[]` (katalog)
 
 **Check:** Tidak ada lagi dua daftar model yang redundan untuk provider yang sama.
 
@@ -108,14 +108,16 @@ Tujuannya: `model` (aktif) vs `models[]` (katalog) tidak lagi ambigu. Karena men
 > ✅ **Status (2026-08-27):** Keputusan akhir = **getter pembaca saja, format tersimpan tidak berubah**. Stub `getActiveModel(providerId)` dan `getModelCatalog(providerId)` ditambahkan di `src/config/manager.js` (read-side alias non-breaking). Lihat JSDoc di method untuk kontrak lengkap.
 
 #### 2.2 `src/config/manager.js` — getter pembaca (reader alias)
-- [ ] Tambahkan `getActiveModel(providerId)` sebagai eksplisit getter untuk model aktif (membungkus logika `stored.model || builtin.defaultModel || envModelVars`)
-- [ ] Tambahkan `getModelCatalog(providerId)` sebagai eksplisit getter untuk daftar katalog (membungkus `getProviderModels`)
-- [ ] Pertahankan `getProviderModels()` sebagai deprecated alias yang memanggil `getModelCatalog()` (backward-compat untuk panggilan existing)
+- [x] Tambahkan `getActiveModel(providerId)` sebagai eksplisit getter untuk model aktif (membungkus logika `stored.model || builtin.defaultModel || envModelVars`)
+- [x] Tambahkan `getModelCatalog(providerId)` sebagai eksplisit getter untuk daftar katalog (sekarang menjadi **canonical implementation** — logic dipindah dari `getProviderModels` ke sini)
+- [x] Pertahankan `getProviderModels()` sebagai deprecated alias yang memanggil `getModelCatalog()` (backward-compat untuk panggilan existing)
 
-#### 2.3 Migrasi config lama (jika memilih ubah format)
-- [ ] Di `loadConfig()`: deteksi config lama ber-field `model`/`models` → map ke `activeModel`/`catalog`
-- [ ] Tulis migrasi sekali, idempotent (tetap aman jika dijalankan berulang)
-- [ ] Uji dengan config fixture lama
+#### 2.3 Migrasi call sites ke getter baru
+- [x] `src/cli/model-commands.js` — semua `getProviderModels()` → `getModelCatalog()`; `getProviderConfig().model` → `getActiveModel()`; `listKnownProviders()` → `getProviderNames()`
+- [x] `src/cli/slash-commands.js` — semua `getProviderModels()` → `getModelCatalog()`; guard `typeof` diperbarui; `getProviderConfig().model` → `getActiveModel()`
+- [x] `src/ui/model-menu.js` — `getProviderModels()` → `getModelCatalog()`; guard `typeof` diperbarui; `provCfg.model` → `getActiveModel()`
+- [x] `getProviderModels()` di `manager.js` mengeluarkan `DeprecationWarning` (code: `TAI_DEPRECATED_GET_PROVIDER_MODELS`) via `process.emitWarning()` sekali per providerId (dapat disuppress dengan `--no-deprecation`)
+- [x] `npm test` (unit, phase1+2): 44+25 pass, 0 regresi baru; E2E pre-existing failures tidak berubah
 
 ---
 
@@ -124,23 +126,23 @@ Tujuannya: `model` (aktif) vs `models[]` (katalog) tidak lagi ambigu. Karena men
 Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --set` (persisten) agar tidak ambigu.
 
 #### 3.1 `docs/` — dokumen konsep provider & model
-- [ ] Buat `docs/PROVIDER_MODEL_CONCEPT.md` berisi:
+- [x] Buat `docs/PROVIDER_MODEL_CONCEPT.md` berisi:
   - Hierarki Provider → Model (definisi formal)
   - Tabel "one-shot vs persistent" (CLI flag vs persisted config)
   - Diagram alur resolusi model `CLI flag → env → config → builtin default`
   - Aturan: kapan pakai `--model`, kapan `model --set`, kapan `config set model`
-- [ ] Tambahkan link ke dokumen ini dari `README.md`
+- [x] Tambahkan link ke dokumen ini dari `README.md`
 
 #### 3.2 `src/cli/help.js` — perjelas help text
-- [ ] Update deskripsi `-m/--model` → tandai "(one-shot, tidak persisten)"
-- [ ] Update deskripsi `-p/--provider` → tandai "(one-shot override)"
-- [ ] Tambahkan contoh kalimat pembeda di MODEL COMMANDS: `model --set` (persisten) vs `--model` (sekali pakai)
+- [x] Update deskripsi `-m/--model` → tandai "(one-shot, tidak persisten)"
+- [x] Update deskripsi `-p/--provider` → tandai "(one-shot override)"
+- [x] Tambahkan contoh kalimat pembeda di MODEL COMMANDS: `model --set` (persisten) vs `--model` (sekali pakai)
 
 #### 3.3 `README.md` — rapi ulang bagian provider/model
-- [ ] Pisahkan section "Multi-Provider" dengan "One-shot override" dan "Persisted config" secara blok terpisah
-- [ ] Tambahkan ringkasan 3 konsep `model` / `models[]` / `--model` (tabel kecil)
-- [ ] Update tabel "Supported Models" → pindahkan dari `SUPPORTED_MODELS` ke per-provider catalog
-- [ ] Hapus/mark legacy `SUPPORTED_MODELS` yang sudah tidak berlaku
+- [x] Pisahkan section "Multi-Provider" dengan "One-shot override" dan "Persisted config" secara blok terpisah
+- [x] Tambahkan ringkasan 3 konsep `model` / `models[]` / `--model` (tabel kecil)
+- [x] Update tabel "Supported Models" → pindahkan dari `SUPPORTED_MODELS` ke per-provider catalog
+- [x] Hapus/mark legacy `SUPPORTED_MODELS` yang sudah tidak berlaku
 
 ---
 
@@ -183,17 +185,16 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | File | Perubahan | Phase | Status |
 |------|-----------|:-----:|:------:|
 | `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ✅ |
-| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.1, 2.2 | 🟡 (1.3 ✅, 2.1 ✅, 2.2 ⬜) |
-| `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ⬜ |
-| `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ⬜ |
-| `src/cli/model-commands.js` | (ops.) gunakan getter baru bila renaming field diterapkan | 2.2 | ⬜ |
+| `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.1, 2.2 | ✅ |
+| `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ✅ |
+| `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ✅ |
+| `src/cli/model-commands.js` | Migrasi ke getter baru (`getModelCatalog`, `getActiveModel`, `getProviderNames`) | 2.2 | ✅ |
 | `src/llm/registry.js` | Komentar adapter OpenAI-compatible yang jelas | 4.2 | ⬜ |
-| `docs/PROVIDER_MODEL_CONCEPT.md` | **[NEW]** Dokumen konsep provider & model | 3.1 | ⬜ |
-| `docs/REFACTOR_PROVIDER_MODEL_CLARITY.md` | **[THIS]** Update checklist & history | semua | ⬜ |
-| `README.md` | Rapi ulang section provider/model, hapus/mark legacy | 3.3, 4.1 | ⬜ |
+| `docs/PROVIDER_MODEL_CONCEPT.md` | **[NEW]** Dokumen konsep provider & model | 3.1 | ✅ |
+| `docs/REFACTOR_PROVIDER_MODEL_CLARITY.md` | **[THIS]** Update checklist & history | semua | ✅ |
+| `README.md` | Rapi ulang section provider/model, hapus/mark legacy | 3.3, 4.1 | ✅ |
 | `tests/phase1-source-of-truth.test.js` | **[NEW]** Test source-of-truth (1.4-A/B/C/D): invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames | 1.4 | ✅ |
 | `tests/phase2-getters.test.js` | **[NEW]** Test getter Phase 2.1-A/B/C/D/E: precedence getActiveModel, getModelCatalog alias, no-write guarantee, legacy config backward-compat, cross-consistency | 2.1 | ✅ |
-| `tests/*.test.js` | Migrasi call sites ke getter baru (Phase 2.2) + deprecation warnings (Phase 2.3) | 2.2, 2.3 | ⬜ |
 
 ---
 
@@ -207,13 +208,13 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 ### Phase 2 — Penamaan Eksplisit (getter, non-breaking)
 - [x] **2.1** Tetapkan desain: getter pembaca, JANGAN ubah format tersimpan (default recommendation) — **ADR dicatat + stub getter `getActiveModel()` & `getModelCatalog()` ditambahkan di `manager.js` (read-side alias non-breaking)**
-- [ ] **2.2** Migrasikan call sites (`model-commands.js`, `slash-commands.js`, `bin/tai.js`, `ui/model-menu.js`) agar prefer `getActiveModel()`/`getModelCatalog()`; `getProviderModels()` jadi alias deprecated (tetap jalan untuk backward-compat)
-- [ ] **2.3** Test getter baru (`phase2-getters.test.js`) + backward-compat config lama (config dengan `model`/`models` legacy)
+- [x] **2.2** `getModelCatalog()` jadi **canonical implementation** (logic dipindah dari `getProviderModels`); `getProviderModels()` jadi deprecated alias dengan `process.emitWarning()` (DeprecationWarning, dapat disuppress).
+- [x] **2.3** Migrasikan call sites (`model-commands.js`, `slash-commands.js`, `ui/model-menu.js`) — semua `getProviderModels()` → `getModelCatalog()`; `getProviderConfig().model` → `getActiveModel()`; `listKnownProviders()` → `getProviderNames()`. 44+25 unit tests pass, 0 regresi baru.
 
 ### Phase 3 — Dokumentasi Urgensi Resolusi
-- [ ] **3.1** Buat `docs/PROVIDER_MODEL_CONCEPT.md` (hirarki, tabel one-shot vs persistent, alur resolusi)
-- [ ] **3.2** Perjelas help text `--model`/`--provider` di `src/cli/help.js`
-- [ ] **3.3** Rapi ulang `README.md`: blok one-shot vs persisted, tabel 3 konsep model, update "Supported Models"
+- [x] **3.1** Buat `docs/PROVIDER_MODEL_CONCEPT.md` (hirarki, tabel one-shot vs persistent, alur resolusi)
+- [x] **3.2** Perjelas help text `--model`/`--provider` di `src/cli/help.js`
+- [x] **3.3** Rapi ulang `README.md`: blok one-shot vs persisted, tabel 3 konsep model, update "Supported Models"
 
 ### Phase 4 — Label OpenAI-Compatible
 - [ ] **4.1** `README.md`: tandai OpenRouter/Groq/DeepSeek/Ollama sebagai OpenAI-Compatible
@@ -248,11 +249,11 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 ## 📈 Kriteria Selesai (Definition of Done)
 
-- [ ] Tidak ada lagi referensi `SUPPORTED_MODELS` di codebase
-- [ ] `BUILTIN_PROVIDERS[*].models[]` adalah satu-satunya daftar resmi model per provider
-- [ ] Getter eksplisit `getActiveModel`/`getModelCatalog` tersedia; `getProviderModels` deprecated tapi backward-compat
-- [ ] `docs/PROVIDER_MODEL_CONCEPT.md` dibuat & di-link dari README
-- [ ] README & help text akurat: one-shot vs persistent jelas, OpenAI-Compatible terlabel
+- [x] Tidak ada lagi referensi `SUPPORTED_MODELS` di codebase
+- [x] `BUILTIN_PROVIDERS[*].models[]` adalah satu-satunya daftar resmi model per provider
+- [x] Getter eksplisit `getActiveModel`/`getModelCatalog` tersedia; `getProviderModels` deprecated tapi backward-compat
+- [x] `docs/PROVIDER_MODEL_CONCEPT.md` dibuat & di-link dari README
+- [x] README & help text akurat: one-shot vs persistent jelas, OpenAI-Compatible terlabel
 - [ ] Semua test pass, 0 regression, benchmark tidak menurun
 - [ ] Config lama tetap terbaca tanpa migrasi manual oleh user
 
@@ -268,7 +269,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-27 | Phase 1.3 selesai: IIFE `validateBuiltinProviderInvariants()` di `manager.js` (fail-fast module-load) + method `getProviderNames()` (builtin ∪ sorted custom) |
 | 2026-08-27 | Phase 1.4 selesai: tambah `tests/phase1-source-of-truth.test.js` — 22 test pass (4 grup: invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames SoT) |
 | 2026-08-27 | Phase 2.1 selesai: ADR getter-only (NON-breaking), stub `getActiveModel()` + `getModelCatalog()` ditambahkan di `manager.js`; `npm test` 346/346 pass, 0 regression |
-| *(pending)* | Phase 2.2 selesai: migrasi call sites ke getter baru + deprecate `getProviderModels()` |
-| *(pending)* | Phase 3 selesai: dokumentasi konsep + help + README |
+| 2026-08-28 | Phase 2.2 selesai: `getModelCatalog()` jadi canonical implementation; `getProviderModels()` jadi deprecated alias dengan `process.emitWarning()` (DeprecationWarning code: `TAI_DEPRECATED_GET_PROVIDER_MODELS`); migrasi call sites di `model-commands.js`, `slash-commands.js`, `model-menu.js`; `listKnownProviders()` → `getProviderNames()`; 44 phase1+2 tests + 25 unit tests pass, 0 regresi baru |
+| 2026-08-28 | Phase 3 selesai: dokumen `docs/PROVIDER_MODEL_CONCEPT.md` lengkap (hierarki, alur resolusi, tabel one-shot vs persistent), `src/cli/help.js` dan `README.md` diperjelas dengan perbedaan one-shot vs persistent |
 | *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |
 | *(pending)* | Phase 5 selesai: verifikasi & regression 0 |

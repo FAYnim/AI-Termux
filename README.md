@@ -21,7 +21,7 @@
 - 📱 **Termux-Native** — no `node-gyp`, no binary compilation, pure ESM Node.js
 - 🔧 **5 Local Tools** — `read_file`, `write_file`, `patch_file`, `list_dir`, `execute_command`
 - 🎨 **Rich Terminal UI** — ANSI Markdown renderer, live spinner, syntax highlighting
-- 🌐 **Multi-Provider** — Gemini, OpenAI, OpenRouter, Groq, DeepSeek, Ollama, custom endpoints
+- 🌐 **Multi-Provider** — 2 native adapters (Gemini, OpenAI) + unlimited OpenAI-compatible endpoints (Groq, OpenRouter, DeepSeek, Ollama, custom)
 - 🧩 **Multi-Model Catalog** — per-provider model lists with interactive TUI picker & CLI CRUD (`tai model`)
 
 > **Latest on `feat/multi-model-phase1`:** Phase 1–4 of the multi-model plan landed — per-provider
@@ -87,7 +87,16 @@ export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
 
 ## 🌐 Multi-Provider Support
 
-`termuxai` supports multiple LLM providers. Each provider owns its own API key, model, and base URL.
+`termuxai` has **2 native LLM adapters** and supports unlimited **OpenAI-compatible** endpoints:
+
+| Adapter | Provider(s) | Notes |
+|---------|-------------|-------|
+| `GeminiClient` | `gemini` | Native Google Generative Language API |
+| `OpenAIClient` | `openai` + any OpenAI-compatible URL | Default adapter for custom providers |
+
+> **Groq, OpenRouter, DeepSeek, Ollama** are **not** separate adapters — they reuse
+> `OpenAIClient` with a different `--base-url`. This means `termuxai` can speak to any
+> OpenAI-compatible endpoint out of the box.
 
 ```bash
 termuxai provider list                         # Show configured providers
@@ -96,9 +105,28 @@ termuxai provider add openai --api-key "$KEY"  # Configure OpenAI
 termuxai provider show gemini                  # Dump provider configuration as JSON
 ```
 
-### Popular Provider Setup Examples
+### Persistent vs One-Shot — Know the Difference
 
-All OpenAI-compatible providers can be added easily using `--base-url`:
+> 📖 Full concept guide: [docs/PROVIDER_MODEL_CONCEPT.md](./docs/PROVIDER_MODEL_CONCEPT.md)
+
+| Cara | Perintah | Simpan ke config? | Berlaku untuk |
+|------|----------|:-----------------:|---------------|
+| **One-shot CLI flag** | `tai --model gpt-4o "prompt"` | ❌ Tidak | Hanya run ini |
+| **One-shot provider** | `tai --provider openai "prompt"` | ❌ Tidak | Hanya run ini |
+| **Persistent model** | `tai model --set gpt-4o` | ✅ Ya | Semua run berikutnya |
+| **Persistent provider** | `tai provider use openai` | ✅ Ya | Semua run berikutnya |
+
+### Three "Model" Concepts (Don't Mix Them Up)
+
+| Concept | Where | Meaning | Lifetime |
+|---------|-------|---------|----------|
+| `providers[id].model` | `config.json` | **Active model** used when sending requests | Persistent |
+| `providers[id].models[]` | `config.json` | **Model catalog** — list of available models | Persistent |
+| `--model <name>` CLI flag | CLI only | **One-shot override** — not saved anywhere | Transient |
+
+### Popular Provider Setup Examples — OpenAI-Compatible
+
+All of these reuse the `OpenAIClient` adapter with a custom `--base-url`:
 
 #### 1. Groq (Ultra-Fast Inference)
 ```bash
@@ -139,11 +167,12 @@ termuxai provider add ollama \
 termuxai provider use ollama
 ```
 
-### One-Shot Provider Override
+### One-Shot Provider/Model Override
 
-Run a command with a different provider without altering your default configuration:
+Run a command with a different provider **without** altering your default configuration:
 
 ```bash
+# One-shot: uses openai for this run only, your default stays unchanged
 termuxai --provider openai --model gpt-4o "translate this sentence"
 termuxai --provider groq "analisis file package.json"
 ```
@@ -301,15 +330,32 @@ termuxai config reset
 | `autoConfirm` | `false` | Auto-approve all security prompts |
 | `verbose` | `false` | Enable verbose debug logging |
 
-### Supported Models
+### Supported Models — Per Provider Catalog
+
+> Source of truth: `BUILTIN_PROVIDERS` in [`src/config/constants.js`](./src/config/constants.js).
+> These models ship by default; use `tai model --add` to extend any provider's catalog.
+
+#### Gemini (native `GeminiClient`)
 
 | Model | Description |
-|---|---|
-| `gemini-2.5-flash` | Default — fast, efficient, high capability |
+|-------|-------------|
+| `gemini-2.5-flash` | **Default** — fast, efficient, high capability |
 | `gemini-2.5-pro` | Most powerful, best for complex reasoning |
 | `gemini-1.5-flash` | Lightweight, very fast |
 | `gemini-1.5-pro` | High-capability v1.5 |
 | `gemini-2.0-flash` | Latest v2.0 flash variant |
+
+#### OpenAI (native `OpenAIClient` — also used by OpenAI-compatible providers)
+
+| Model | Description |
+|-------|-------------|
+| `gpt-4o-mini` | **Default** — fast and cost-effective |
+| `gpt-4o` | Most powerful GPT-4o |
+| `gpt-4` | Classic GPT-4 |
+| `gpt-3.5-turbo` | Legacy, fast and affordable |
+
+> **OpenAI-compatible providers** (Groq, OpenRouter, DeepSeek, Ollama) use `OpenAIClient`
+> but their models are **not** pre-loaded — manage them with `tai model --add / --set`.
 
 ### Model Management (`tai model`)
 
@@ -674,8 +720,8 @@ CONFIG COMMANDS:
   termuxai session clear            Delete all sessions
 
 OPTIONS:
-  -p, --provider ID                 One-shot provider override (e.g. gemini, openai)
-  -m, --model MODEL                 Use specified model
+  -p, --provider ID                 One-shot provider override (does NOT persist — use `provider use` to persist)
+  -m, --model MODEL                 One-shot model override (does NOT persist — use `model --set` to persist)
   -k, --api-key KEY                 Override API key for this run
   -s, --session SESSION_ID          Resume or attach session
   -y, --yes                         Auto-approve all security prompts
