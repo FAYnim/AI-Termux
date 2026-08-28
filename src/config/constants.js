@@ -1,5 +1,6 @@
 /**
  * @typedef {Object} BuiltinProviderDef
+ * @property {'gemini'|'openai'} adapter  - LLM client adapter type ('gemini' | 'openai').
  * @property {string} defaultBaseUrl  - Default base URL adapter.
  * @property {string} defaultModel    - Model AKTIF default (satu nilai, persisten).
  * @property {string[]} models        - KATALOG model yang tersedia (banyak nilai, persisten).
@@ -42,6 +43,8 @@ export const DEFAULT_TEMPERATURE = 0.7;
 // Single Source of Truth untuk model per provider.
 //
 // Setiap entry di BUILTIN_PROVIDERS[id] adalah blueprint dari sebuah provider:
+//   - adapter        : jenis adapter LLM ('gemini' | 'openai'). Provider custom
+//                      secara default menggunakan adapter OpenAI-compatible ('openai').
 //   - defaultBaseUrl : base URL default adapter (dipakai bila user tidak override)
 //   - defaultModel   : **model AKTIF default** — dipakai saat request, satu nilai
 //   - models[]       : **katalog model** yang tersedia — daftar resmi, banyak nilai
@@ -58,6 +61,7 @@ export const DEFAULT_TEMPERATURE = 0.7;
 /** @type {Record<string, import('./constants.js').BuiltinProviderDef>} */
 export const BUILTIN_PROVIDERS = {
   gemini: {
+    adapter: 'gemini',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
     defaultModel: 'gemini-2.5-flash',
     models: [
@@ -72,6 +76,7 @@ export const BUILTIN_PROVIDERS = {
     envModelVars: [],
   },
   openai: {
+    adapter: 'openai',
     defaultBaseUrl: 'https://api.openai.com/v1',
     defaultModel: 'gpt-4o-mini',
     models: [

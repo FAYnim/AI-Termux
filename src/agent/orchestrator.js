@@ -56,11 +56,13 @@ export class AgentOrchestrator {
     // LLM client: prefer explicit llmClient, then geminiClient (legacy), then create from provider
     this.provider = options.provider || 'gemini';
     this.baseUrl = options.baseUrl;
+    this.adapter = options.adapter;
     this.llmClient =
       options.llmClient ||
       options.geminiClient ||
       createLlmClient({
         provider: this.provider,
+        adapter: this.adapter,
         model: options.model,
         apiKey: options.apiKey,
         baseUrl: this.baseUrl,
@@ -328,8 +330,10 @@ export class AgentOrchestrator {
       throw new TypeError('providerId must be a non-empty string');
     }
     this.provider = providerId;
+    this.adapter = overrides.adapter;
     this.llmClient = createLlmClient({
       provider: providerId,
+      adapter: overrides.adapter,
       model: overrides.model || (this.llmClient ? this.llmClient.getModel() : undefined),
       apiKey: overrides.apiKey || (this.llmClient ? this.llmClient.getApiKey() : undefined),
       baseUrl: overrides.baseUrl,

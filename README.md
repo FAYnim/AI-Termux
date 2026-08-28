@@ -126,11 +126,12 @@ termuxai provider show gemini                  # Dump provider configuration as 
 
 ### Popular Provider Setup Examples — OpenAI-Compatible
 
-All of these reuse the `OpenAIClient` adapter with a custom `--base-url`:
+All of these reuse the `OpenAIClient` adapter with a custom `--base-url` (`--adapter openai` is applied by default):
 
 #### 1. Groq (Ultra-Fast Inference)
 ```bash
 termuxai provider add groq \
+  --adapter openai \
   --api-key "gsk_..." \
   --base-url "https://api.groq.com/openai/v1" \
   --model "llama-3.3-70b-versatile"
@@ -141,6 +142,7 @@ termuxai provider use groq
 #### 2. OpenRouter (Access Claude 3.5 Sonnet, GPT-4o, DeepSeek, etc.)
 ```bash
 termuxai provider add openrouter \
+  --adapter openai \
   --api-key "sk-or-..." \
   --base-url "https://openrouter.ai/api/v1" \
   --model "anthropic/claude-3.5-sonnet"
@@ -151,6 +153,7 @@ termuxai provider use openrouter
 #### 3. DeepSeek
 ```bash
 termuxai provider add deepseek \
+  --adapter openai \
   --api-key "sk-..." \
   --base-url "https://api.deepseek.com/v1" \
   --model "deepseek-chat"
@@ -161,6 +164,7 @@ termuxai provider use deepseek
 #### 4. Ollama (Local / Offline in Termux or PC)
 ```bash
 termuxai provider add ollama \
+  --adapter openai \
   --base-url "http://localhost:11434/v1" \
   --model "llama3.2"
 

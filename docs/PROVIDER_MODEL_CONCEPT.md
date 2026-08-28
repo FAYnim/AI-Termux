@@ -112,15 +112,15 @@ Provider seperti **Groq, OpenRouter, DeepSeek, Ollama** bukan adapter baru —
 mereka adalah **konfigurasi `OpenAIClient`** dengan `--base-url` berbeda:
 
 ```bash
-# Groq: OpenAI-compatible adapter + base URL Groq
-tai provider add groq --base-url "https://api.groq.com/openai/v1" --api-key "gsk_..."
+# Groq: OpenAI-compatible adapter + base URL Groq (--adapter openai is optional/default)
+tai provider add groq --adapter openai --base-url "https://api.groq.com/openai/v1" --api-key "gsk_..."
 
 # OpenRouter: OpenAI-compatible adapter + base URL OpenRouter
-tai provider add openrouter --base-url "https://openrouter.ai/api/v1" --api-key "sk-or-..."
+tai provider add openrouter --adapter openai --base-url "https://openrouter.ai/api/v1" --api-key "sk-or-..."
 ```
 
-Jadi daftar di README yang menyebut "6 provider" lebih tepat dibaca sebagai
-**"2 adapter native + banyak endpoint OpenAI-compatible"**.
+Jadi daftar di README yang menyebut "multi-provider" lebih tepat dibaca sebagai
+**"2 adapter native (Gemini & OpenAI) + banyak endpoint OpenAI-compatible"**.
 
 ---
 

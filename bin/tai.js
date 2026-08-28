@@ -184,6 +184,9 @@ async function main() {
       if (parsed.flags.baseUrl) {
         upsert.baseUrl = parsed.flags.baseUrl;
       }
+      if (parsed.flags.adapter) {
+        upsert.adapter = parsed.flags.adapter;
+      }
       // Clear empty strings
       for (const k of Object.keys(upsert)) {
         if (upsert[k] === '') delete upsert[k];
@@ -321,6 +324,7 @@ ${ansi.yellow('Or export as environment variable:')}
 
   const orchestrator = createAgentOrchestrator({
     provider: sessionProvider,
+    adapter: parsed.flags.adapter || sessionProviderConfig.adapter,
     model: parsed.flags.model || activeSession?.model || model,
     apiKey: sessionApiKey,
     baseUrl: sessionBaseUrl,

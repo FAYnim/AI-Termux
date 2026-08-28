@@ -149,18 +149,18 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 ### Phase 4 — Label OpenAI-Compatible yang Jelas (Persepsi = Realita)
 
 #### 4.1 `README.md` — provider section
-- [ ] Tandai OpenRouter/Groq/DeepSeek/Ollama sebagai **"OpenAI-Compatible"** (memakai adapter OpenAI dengan `--base-url`)
-- [ ] Update "Multi-Provider" → jelaskan: 2 adapter native (Gemini, OpenAI) + N endpoint OpenAI-compatible
-- [ ] Update contoh `provider add` agar menyebut `--adapter openai` (default) untuk provider custom
+- [x] Tandai OpenRouter/Groq/DeepSeek/Ollama sebagai **"OpenAI-Compatible"** (memakai adapter OpenAI dengan `--base-url`)
+- [x] Update "Multi-Provider" → jelaskan: 2 adapter native (Gemini, OpenAI) + N endpoint OpenAI-compatible
+- [x] Update contoh `provider add` agar menyebut `--adapter openai` (default) untuk provider custom
 
 #### 4.2 `src/llm/registry.js` — dokumentasi & routing eksplisit
-- [ ] Tambahkan komentar jelas bahwa `default` fallback adalah adapter OpenAI-compatible
-- [ ] (Opsional) Ubah fallback agar memerlukan `options.adapter === 'openai'` ATAU provider di whitelist — putuskan; saat ini sudah memeriksa `baseUrl || adapter`, cukup dokumentasikan
-- [ ] Pastikan unknown provider TANPA baseUrl/adapter tetap melempar error yang helpful (sudah terjadi)
+- [x] Tambahkan komentar jelas bahwa `default` fallback adalah adapter OpenAI-compatible
+- [x] (Opsional) Ubah fallback agar memerlukan `options.adapter === 'openai'` ATAU provider di whitelist — didokumentasikan & didukung via `baseUrl || options.adapter === 'openai'`
+- [x] Pastikan unknown provider TANPA baseUrl/adapter tetap melempar error yang helpful (sudah diuji & diverifikasi)
 
 #### 4.3 `src/config/constants.js` — tambahkan metadata adapter
-- [ ] (Opsional) Tambahkan field `adapter: 'gemini' | 'openai'` ke `BUILTIN_PROVIDERS` untuk kejelasan kode
-- [ ] Dokumentasikan bahwa provider custom default ke `adapter: 'openai'`
+- [x] Tambahkan field `adapter: 'gemini' | 'openai'` ke `BUILTIN_PROVIDERS` untuk kejelasan kode
+- [x] Dokumentasikan bahwa provider custom default ke `adapter: 'openai'`
 
 ---
 
@@ -184,17 +184,20 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 | File | Perubahan | Phase | Status |
 |------|-----------|:-----:|:------:|
-| `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, (ops) field `adapter` | 1.1, 4.3 | ✅ |
+| `src/config/constants.js` | Hapus `SUPPORTED_MODELS`, JSDoc field provider, metadata field `adapter` | 1.1, 4.3 | ✅ |
 | `src/config/manager.js` | Getter `getActiveModel`/`getModelCatalog`, alias deprecated, validasi invariant | 1.3, 2.1, 2.2 | ✅ |
-| `src/cli/args.js` | (ops.) sesuaikan alias/deskripsi bila perlu | 3.2 | ✅ |
-| `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent | 3.2 | ✅ |
+| `src/cli/args.js` | Parsing flag `--adapter` & opsi model CLI | 3.2, 4.1 | ✅ |
+| `src/cli/help.js` | Perjelas `--model`/`--provider` one-shot vs persistent, opsi `--adapter` | 3.2, 4.1 | ✅ |
 | `src/cli/model-commands.js` | Migrasi ke getter baru (`getModelCatalog`, `getActiveModel`, `getProviderNames`) | 2.2 | ✅ |
-| `src/llm/registry.js` | Komentar adapter OpenAI-compatible yang jelas | 4.2 | ⬜ |
+| `src/llm/registry.js` | Komentar adapter OpenAI-compatible yang jelas & routing | 4.2 | ✅ |
+| `src/agent/orchestrator.js` | Dukungan passing `adapter` ke `createLlmClient` | 4.2 | ✅ |
+| `bin/tai.js` | Dukungan `--adapter` pada `provider add` dan `createAgentOrchestrator` | 4.1, 4.2 | ✅ |
 | `docs/PROVIDER_MODEL_CONCEPT.md` | **[NEW]** Dokumen konsep provider & model | 3.1 | ✅ |
 | `docs/REFACTOR_PROVIDER_MODEL_CLARITY.md` | **[THIS]** Update checklist & history | semua | ✅ |
-| `README.md` | Rapi ulang section provider/model, hapus/mark legacy | 3.3, 4.1 | ✅ |
+| `README.md` | Rapi ulang section provider/model, label OpenAI-Compatible | 3.3, 4.1 | ✅ |
 | `tests/phase1-source-of-truth.test.js` | **[NEW]** Test source-of-truth (1.4-A/B/C/D): invariant BUILTIN_PROVIDERS, hapus SUPPORTED_MODELS, getProviderModels backward-compat, getProviderNames | 1.4 | ✅ |
 | `tests/phase2-getters.test.js` | **[NEW]** Test getter Phase 2.1-A/B/C/D/E: precedence getActiveModel, getModelCatalog alias, no-write guarantee, legacy config backward-compat, cross-consistency | 2.1 | ✅ |
+| `tests/phase4-openai-compatible.test.js` | **[NEW]** Test Phase 4.1/4.2/4.3: metadata adapter, routing createLlmClient, dan parsing flag `--adapter` | 4.1-4.3 | ✅ |
 
 ---
 
@@ -217,9 +220,9 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 - [x] **3.3** Rapi ulang `README.md`: blok one-shot vs persisted, tabel 3 konsep model, update "Supported Models"
 
 ### Phase 4 — Label OpenAI-Compatible
-- [ ] **4.1** `README.md`: tandai OpenRouter/Groq/DeepSeek/Ollama sebagai OpenAI-Compatible
-- [ ] **4.2** `src/llm/registry.js`: komentar jelas adapter OpenAI-compatible untuk fallback
-- [ ] **4.3** (ops.) `constants.js`: metadata `adapter` per provider
+- [x] **4.1** `README.md`: tandai OpenRouter/Groq/DeepSeek/Ollama sebagai OpenAI-Compatible, perbarui contoh `provider add --adapter openai`
+- [x] **4.2** `src/llm/registry.js`: komentar jelas adapter OpenAI-compatible untuk fallback & dukungan `adapter` di orchestrator/tai.js
+- [x] **4.3** `constants.js`: metadata `adapter` per builtin provider (`gemini` & `openai`)
 
 ### Phase 5 — Verifikasi & Regression
 - [ ] **5.1** `npm test` → pass (baseline 324, 0 regression)
@@ -232,7 +235,7 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 
 1. **Renaming field vs getter biasa** — Apakah `manager.js` cukup menyediakan getter pembaca (`getActiveModel`/`getModelCatalog`) **tanpa** mengubah format yang tersimpan di `config.json`? *(Rekomendasi: Ya, getter saja — paling aman & non-breaking.)*
 2. **Nasib `DEFAULT_MODEL`** — Pertahankan sebagai constant jembatan (backward-compat import) atau hapus lalu selalu pakai `BUILTIN_PROVIDERS.gemini.defaultModel`?
-3. **Metadata `adapter`** — Apakah perlu menambahkan field `adapter` ke `BUILTIN_PROVIDERS` untuk kejelasan kode, atau cukup dokumentasi saja?
+3. **Metadata `adapter`** — Apakah perlu menambahkan field `adapter` ke `BUILTIN_PROVIDERS` untuk kejelasan kode, atau cukup dokumentasi saja? *(Status: Selesai di Phase 4.3 — field `adapter: 'gemini' | 'openai'` ditambahkan)*
 
 ---
 
@@ -271,5 +274,5 @@ Jelaskan cara kerja `--model`/`--provider` (one-shot) vs `config set`/`model --s
 | 2026-08-27 | Phase 2.1 selesai: ADR getter-only (NON-breaking), stub `getActiveModel()` + `getModelCatalog()` ditambahkan di `manager.js`; `npm test` 346/346 pass, 0 regression |
 | 2026-08-28 | Phase 2.2 selesai: `getModelCatalog()` jadi canonical implementation; `getProviderModels()` jadi deprecated alias dengan `process.emitWarning()` (DeprecationWarning code: `TAI_DEPRECATED_GET_PROVIDER_MODELS`); migrasi call sites di `model-commands.js`, `slash-commands.js`, `model-menu.js`; `listKnownProviders()` → `getProviderNames()`; 44 phase1+2 tests + 25 unit tests pass, 0 regresi baru |
 | 2026-08-28 | Phase 3 selesai: dokumen `docs/PROVIDER_MODEL_CONCEPT.md` lengkap (hierarki, alur resolusi, tabel one-shot vs persistent), `src/cli/help.js` dan `README.md` diperjelas dengan perbedaan one-shot vs persistent |
-| *(pending)* | Phase 4 selesai: label OpenAI-Compatible akurat |
+| 2026-08-28 | Phase 4 selesai: metadata `adapter` di `BUILTIN_PROVIDERS`, JSDoc & komentar routing di `src/llm/registry.js`, parsing `--adapter` di CLI args/help/orchestrator/tai.js, dan test `tests/phase4-openai-compatible.test.js` (11/11 pass) |
 | *(pending)* | Phase 5 selesai: verifikasi & regression 0 |

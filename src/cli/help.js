@@ -25,6 +25,7 @@ ${ansi.bold('OPTIONS:')}
   ${ansi.green('-p, --provider <id>')}     ${ansi.yellow('One-shot')} provider override ${ansi.dim('(does NOT persist — use `provider use` to persist)')}
   ${ansi.green('-m, --model <name>')}       ${ansi.yellow('One-shot')} model override ${ansi.dim(`(does NOT persist — use \`model --set\` to persist; default: ${DEFAULT_MODEL})`)}
   ${ansi.green('-k, --api-key <key>')}      Override API key for this run ${ansi.dim('(one-shot, not saved)')}
+  ${ansi.green('--adapter <type>')}         Adapter type for custom provider ${ansi.dim('(openai, gemini; default: openai)')}
   ${ansi.green('-s, --session <id>')}       Attach to or continue a specific session ID
   ${ansi.green('-y, --yes')}                Auto-approve tool execution (skip [y/N] prompts)
   ${ansi.green('-v, --version')}            Show version number
@@ -36,7 +37,7 @@ ${ansi.bold('OPTIONS:')}
 ${ansi.bold('PROVIDER COMMANDS:')}
   ${ansi.green(APP_NAME + ' provider list')}               List configured providers
   ${ansi.green(APP_NAME + ' provider use <id>')}           ${ansi.cyan('Persist')} active provider (saves to config)
-  ${ansi.green(APP_NAME + ' provider add <id>')}           Interactively add a provider
+  ${ansi.green(APP_NAME + ' provider add <id>')}           Add/update provider ${ansi.dim('(--api-key, --base-url, --model, --adapter)')}
   ${ansi.green(APP_NAME + ' provider remove <id>')}        Remove a custom provider
   ${ansi.green(APP_NAME + ' provider show [id]')}          Show provider config as JSON
 

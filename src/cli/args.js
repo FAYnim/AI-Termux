@@ -11,6 +11,7 @@
 export function parseArgs(rawArgs = []) {
   const flags = {
     provider: null,
+    adapter: null,
     model: null,
     apiKey: null,
     baseUrl: null,
@@ -50,6 +51,12 @@ export function parseArgs(rawArgs = []) {
     } else if (arg === '--provider' || arg === '-p') {
       if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
         flags.provider = args[++i].trim();
+      }
+    } else if (arg.startsWith('--adapter=')) {
+      flags.adapter = arg.slice(10).trim();
+    } else if (arg === '--adapter') {
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        flags.adapter = args[++i].trim();
       }
     } else if (arg.startsWith('--base-url=')) {
       flags.baseUrl = arg.slice(11).trim();
