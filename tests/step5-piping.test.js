@@ -114,6 +114,8 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.ok(plain.includes('/model'));
     assert.ok(plain.includes('/session'));
     assert.ok(plain.includes('/exit'));
+    assert.ok(plain.includes('/provider add'), 'help should list /provider add');
+    assert.ok(plain.includes('/model add'), 'help should list /model add');
   });
 
   test('executeSlashCommand /model should view and switch active model', async () => {
@@ -510,6 +512,177 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const plain = stripAnsi(written);
     assert.ok(plain.includes('Unknown slash command: "/foobar"'));
     assert.ok(plain.includes('/help'));
+  });
+
+  // ─── /provider add (wizard integration) ─────────────────────────────────
+  test('/provider add cancel returns handled:true, nothing saved', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-pa-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+
+    // Input stream that immediately closes (simulates Ctrl+C / EOF)
+    const input = new PassThrough();
+    input.isTTY = false;
+    setImmediate(() => input.push(null)); // EOF right away
+
+    const output = new PassThrough();
+    const res = await executeSlashCommand('/provider add', {
+      configMgr,
+      stream: output,
+      input
+    });
+
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.action, 'provider_add_cancelled');
+    const cfg = configMgr.loadConfig();
+    // No new providers should be in config
+    assert.deepStrictEqual(Object.keys(cfg.providers || {}), []);
+  });
+
+  // ─── /provider remove ────────────────────────────────────────────────────
+  test('/provider remove non-active custom provider — removes it', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-pr-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+    const cfg = configMgr.loadConfig();
+    cfg.providers.myprov = { adapter: 'openai' };
+    cfg.activeProvider = 'gemini'; // different from myprov
+    configMgr.saveConfig(cfg);
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', c => { written += c.toString(); });
+
+    const res = await executeSlashCommand('/provider remove myprov', {
+      configMgr,
+      stream: output
+    });
+
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.action, 'provider_removed');
+    const updated = configMgr.loadConfig();
+    assert.ok(!updated.providers?.myprov, 'provider should be gone');
+  });
+
+  test('/provider remove active provider prompts confirmation, aborts on N', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-pra-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+    const cfg = configMgr.loadConfig();
+    cfg.providers.myprov = { adapter: 'openai' };
+    cfg.activeProvider = 'myprov';
+    configMgr.saveConfig(cfg);
+
+    // Input stream answers 'n' to confirmation
+    const input = new PassThrough();
+    input.isTTY = false;
+    setImmediate(() => { input.push('n\n'); input.push(null); });
+
+    const output = new PassThrough();
+    const res = await executeSlashCommand('/provider remove myprov', {
+      configMgr,
+      stream: output,
+      input
+    });
+
+    assert.strictEqual(res.handled, true);
+    // Provider should still exist
+    const updated = configMgr.loadConfig();
+    assert.ok(updated.providers?.myprov, 'provider should NOT be removed on N');
+  });
+
+  test('/provider remove missing id shows error', async () => {
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', c => { written += c.toString(); });
+
+    const res = await executeSlashCommand('/provider remove', {
+      stream: output
+    });
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.error, true);
+  });
+
+  test('/provider remove builtin provider shows error', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-prb-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', c => { written += c.toString(); });
+
+    const res = await executeSlashCommand('/provider remove gemini', {
+      configMgr,
+      stream: output
+    });
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.error, true);
+    assert.ok(stripAnsi(written).toLowerCase().includes('builtin') || stripAnsi(written).toLowerCase().includes('cannot'), 'should explain why removal failed');
+  });
+
+  // ─── /provider show ──────────────────────────────────────────────────────
+  test('/provider show renders config box for given provider', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-ps-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', c => { written += c.toString(); });
+
+    const res = await executeSlashCommand('/provider show gemini', {
+      configMgr,
+      stream: output
+    });
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.action, 'provider_show');
+    const plain = stripAnsi(written);
+    assert.ok(plain.includes('gemini'), 'output should contain provider id');
+  });
+
+  test('/provider show (no arg) shows active provider config', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs');
+    const { ConfigManager: CM } = await import('../src/config/manager.js');
+    const tmpDir = path.join(os.tmpdir(), `tai-psa-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const configMgr = new CM(tmpDir);
+    const mockOrchestrator = { provider: 'gemini' };
+
+    const output = new PassThrough();
+    let written = '';
+    output.on('data', c => { written += c.toString(); });
+
+    const res = await executeSlashCommand('/provider show', {
+      configMgr,
+      orchestrator: mockOrchestrator,
+      stream: output
+    });
+    assert.strictEqual(res.handled, true);
+    assert.strictEqual(res.action, 'provider_show');
+    assert.ok(stripAnsi(written).includes('gemini'));
   });
 });
 
