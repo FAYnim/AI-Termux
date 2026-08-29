@@ -83,6 +83,13 @@ export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
+> **Security tip (SEC-01):** by default the Gemini key is sent as a `key=` query
+> parameter (which can leak into proxy/DevTools logs). Send it via the
+> `Authorization: Bearer` header instead:
+> ```bash
+> termuxai config set gemini.useHeaderAuth true
+> ```
+
 ---
 
 ## 🌐 Multi-Provider Support
@@ -333,6 +340,7 @@ termuxai config reset
 | `maxContextTokens` | `1000000` | Max tokens before context pruning |
 | `autoConfirm` | `false` | Auto-approve all security prompts |
 | `verbose` | `false` | Enable verbose debug logging |
+| `gemini.useHeaderAuth` | `false` | Send Gemini API key via `Authorization: Bearer` header instead of `key=` query (SEC-01) |
 
 ### Supported Models — Per Provider Catalog
 
