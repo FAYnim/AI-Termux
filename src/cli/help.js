@@ -70,7 +70,7 @@ ${ansi.bold('CONCEPTS — One-Shot vs Persistent:')}
   ${ansi.yellow('--provider <id>')}        ${ansi.dim('←')} ${ansi.red('One-shot')} — overrides for this run only, NOT saved
   ${ansi.cyan('provider use <id>')}      ${ansi.dim('←')} ${ansi.green('Persistent')} — writes activeProvider to config.json
 
-  ${ansi.dim('Full guide: docs/PROVIDER_MODEL_CONCEPT.md')}
+  ${ansi.dim('Full guide: see the "Persistent vs One-Shot" section in README.')}
 
 ${ansi.bold('EXAMPLES:')}
   ${ansi.gray('# Start interactive REPL mode:')}

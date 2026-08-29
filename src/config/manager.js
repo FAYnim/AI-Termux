@@ -49,7 +49,7 @@ import {
         `[config] Invariant violation: BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel ` +
           `(${JSON.stringify(def.defaultModel)}) must be a member of ` +
           `BUILTIN_PROVIDERS[${JSON.stringify(id)}].models ${JSON.stringify(def.models)}. ` +
-          `See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md Phase 1.3.`
+          'See the provider-model clarity refactor (Phase 1.3).'
       );
     }
     // Catalog entries must be non-empty strings (no blanks, no nulls).
@@ -637,7 +637,7 @@ export class ConfigManager {
    *   intent-revealing alias. `getProviderModels()` remains 100%
    *   backward-compatible and delegates to `getModelCatalog()`, so
    *   existing call sites continue to work without any changes.
-   *   See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md §2.2.
+   *   See the provider-model clarity refactor §2.2.
    *
    * @param {string} providerId
    * @returns {string[]}
@@ -657,7 +657,7 @@ export class ConfigManager {
       process.emitWarning(
         `ConfigManager.getProviderModels("${providerId}") is deprecated. ` +
           'Use getModelCatalog() instead. ' +
-          'See docs/REFACTOR_PROVIDER_MODEL_CLARITY.md §2.2.',
+          'See the provider-model clarity refactor §2.2.',
         { type: 'DeprecationWarning', code: 'TAI_DEPRECATED_GET_PROVIDER_MODELS' }
       );
     }
