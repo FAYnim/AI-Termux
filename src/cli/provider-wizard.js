@@ -66,17 +66,16 @@ export async function runProviderAddWizard(ctx = {}) {
     });
   }
 
-  // Explicit SIGINT handler — ensures wizard cancels on Ctrl+C.
-  // ESC key cancels wizard. Listen on raw input stream (non‑terminal mode)
+  // ESC key cancels wizard. Listen on raw input stream (non‑terminal mode).
+  // We close the wizard's readline interface when ESC arrives; the ask()
+  // promise rejects via the 'close' listener registered above. The REPL
+  // also pauses its own readline on the same input stream around this
+  // call, so the ESC byte does not flow back to the REPL and is not
+  // misread as SIGINT.
   rl.input.on('data', (chunk) => {
-    const code = typeof chunk === 'string' ? chunk.charCodeAt(0) : chunk[0];
-    if (code === 0x1b) { // ESC
-      // Drain the ESC byte so REPL doesn't interpret it as SIGINT later.
-      if (typeof rl.input.read === 'function') rl.input.read();
-      // Close wizard readline and stop forwarding this ESC to the outer REPL.
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    if (buf.length > 0 && buf[0] === 0x1b) {
       rl.close();
-      rl.input.removeAllListeners('data');
-      rl.input.pause();
     }
   });
 

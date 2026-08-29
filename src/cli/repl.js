@@ -130,6 +130,10 @@ export async function startRepl(options = {}) {
 
     // Intercept Slash Commands
     if (isSlashCommand(line)) {
+      // Pause the outer REPL readline so the wizard (a child readline on
+      // the same input stream) can read raw ESC bytes without them leaking
+      // back to the REPL and being interpreted as SIGINT/exit.
+      if (typeof rl.pause === 'function') rl.pause();
       const slashResult = await executeSlashCommand(line, {
         orchestrator,
         configMgr,
@@ -138,6 +142,9 @@ export async function startRepl(options = {}) {
         input,
         onWizardActive: (active) => { wizardActive = active; }
       });
+      // Resume the REPL readline and force a fresh prompt so any stale
+      // buffer is cleared before the user types the next line.
+      if (typeof rl.resume === 'function') rl.resume();
 
       if (slashResult.action === 'exit') {
         isClosing = true;
