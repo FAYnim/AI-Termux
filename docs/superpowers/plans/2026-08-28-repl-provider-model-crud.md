@@ -57,7 +57,7 @@ Before writing any code, read these files to understand the existing APIs:
 
 The wizard is a pure async function that uses a `readline.Interface` passed in from the caller (so it can be mocked in tests). It contains two pure helper functions (`isLocalUrl` and `isApiKeyRequired`) that are easy to test without any I/O.
 
-- [ ] **Step 1.1: Create the file with helpers and the exported stub**
+- [x] **Step 1.1: Create the file with helpers and the exported stub**
 
 ```js
 /**
@@ -114,7 +114,7 @@ export async function runProviderAddWizard(ctx = {}) {
 }
 ```
 
-- [ ] **Step 1.2: Write failing tests for `isLocalUrl` and `isApiKeyRequired`**
+- [x] **Step 1.2: Write failing tests for `isLocalUrl` and `isApiKeyRequired`**
 
 Create `tests/step5-provider-wizard.test.js`:
 
@@ -162,7 +162,7 @@ describe('provider-wizard: isApiKeyRequired', () => {
 });
 ```
 
-- [ ] **Step 1.3: Run tests — expect PASS for helpers (stub returns cancelled:true)**
+- [x] **Step 1.3: Run tests — expect PASS for helpers (stub returns cancelled:true)**
 
 ```
 node --test tests/step5-provider-wizard.test.js
@@ -170,7 +170,7 @@ node --test tests/step5-provider-wizard.test.js
 
 Expected: all `isLocalUrl` and `isApiKeyRequired` tests PASS. The wizard happy-path tests added in Task 3 will fail until Task 2 is done — that's fine, only the helper tests exist now.
 
-- [ ] **Step 1.4: Commit**
+- [x] **Step 1.4: Commit**
 
 ```bash
 git add src/cli/provider-wizard.js tests/step5-provider-wizard.test.js
@@ -186,7 +186,7 @@ git commit -m "feat: add provider-wizard skeleton + isLocalUrl/isApiKeyRequired 
 
 The wizard creates its own `readline.Interface` internally using the `input` and `output` streams from `ctx`. It catches `SIGINT` on the interface to handle Ctrl+C cancellation.
 
-- [ ] **Step 2.1: Write failing tests for wizard happy paths and cancellation**
+- [x] **Step 2.1: Write failing tests for wizard happy paths and cancellation**
 
 Add these test cases to `tests/step5-provider-wizard.test.js` (after the existing helper tests):
 
@@ -383,7 +383,7 @@ describe('runProviderAddWizard: validation and error paths', () => {
 });
 ```
 
-- [ ] **Step 2.2: Run tests — expect FAIL**
+- [x] **Step 2.2: Run tests — expect FAIL**
 
 ```
 node --test tests/step5-provider-wizard.test.js
@@ -391,7 +391,7 @@ node --test tests/step5-provider-wizard.test.js
 
 Expected: helper tests PASS, wizard tests FAIL (stub always returns `{ cancelled: true }`).
 
-- [ ] **Step 2.3: Implement `runProviderAddWizard` in `src/cli/provider-wizard.js`**
+- [x] **Step 2.3: Implement `runProviderAddWizard` in `src/cli/provider-wizard.js`**
 
 Replace the stub body with the full implementation:
 
@@ -510,7 +510,7 @@ export async function runProviderAddWizard(ctx = {}) {
 }
 ```
 
-- [ ] **Step 2.4: Run wizard tests — expect PASS**
+- [x] **Step 2.4: Run wizard tests — expect PASS**
 
 ```
 node --test tests/step5-provider-wizard.test.js
@@ -518,7 +518,7 @@ node --test tests/step5-provider-wizard.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 2.5: Run full test suite — expect no regressions**
+- [x] **Step 2.5: Run full test suite — expect no regressions**
 
 ```
 node --test tests/*.test.js
@@ -526,7 +526,7 @@ node --test tests/*.test.js
 
 Expected: all previously passing tests still PASS.
 
-- [ ] **Step 2.6: Commit**
+- [x] **Step 2.6: Commit**
 
 ```bash
 git add src/cli/provider-wizard.js tests/step5-provider-wizard.test.js
@@ -545,7 +545,7 @@ The `case 'model'` in `executeSlashCommand` currently treats `args[0]` as a mode
 
 Parse rule for `--provider` flag from the raw `args` array: scan for `--provider` and take the next element as the provider id.
 
-- [ ] **Step 3.1: Write failing tests**
+- [x] **Step 3.1: Write failing tests**
 
 Create `tests/step5-slash-model-crud.test.js`:
 
@@ -720,7 +720,7 @@ describe('/model backward compatibility', () => {
 });
 ```
 
-- [ ] **Step 3.2: Run tests — expect FAIL**
+- [x] **Step 3.2: Run tests — expect FAIL**
 
 ```
 node --test tests/step5-slash-model-crud.test.js
@@ -728,7 +728,7 @@ node --test tests/step5-slash-model-crud.test.js
 
 Expected: most tests FAIL because `args[0] = 'add'` is currently treated as a model name by the `/model` case.
 
-- [ ] **Step 3.3: Add imports to `slash-commands.js`**
+- [x] **Step 3.3: Add imports to `slash-commands.js`**
 
 At the top of `src/cli/slash-commands.js`, add after the existing imports:
 
@@ -736,7 +736,7 @@ At the top of `src/cli/slash-commands.js`, add after the existing imports:
 import { addModelsCli, removeModelCli, clearModelsCli } from './model-commands.js';
 ```
 
-- [ ] **Step 3.4: Add sub-command parser helper inside `slash-commands.js` (before `executeSlashCommand`)**
+- [x] **Step 3.4: Add sub-command parser helper inside `slash-commands.js` (before `executeSlashCommand`)**
 
 ```js
 /**
@@ -752,7 +752,7 @@ function parseProviderFlag(args) {
 }
 ```
 
-- [ ] **Step 3.5: Modify `case 'model'` in `executeSlashCommand`**
+- [x] **Step 3.5: Modify `case 'model'` in `executeSlashCommand`**
 
 At the very start of the `case 'model':` block, BEFORE `const newModel = args[0]`, insert sub-command routing. Find this existing line:
 
@@ -798,7 +798,7 @@ Replace with:
 
 Important: close the fallthrough correctly. The existing code after `const newModel = args[0]` remains unchanged. Just make sure the entire `case 'model'` block still closes with `}`.
 
-- [ ] **Step 3.6: Run model CRUD tests — expect PASS**
+- [x] **Step 3.6: Run model CRUD tests — expect PASS**
 
 ```
 node --test tests/step5-slash-model-crud.test.js
@@ -806,7 +806,7 @@ node --test tests/step5-slash-model-crud.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 3.7: Run full test suite — no regressions**
+- [x] **Step 3.7: Run full test suite — no regressions**
 
 ```
 node --test tests/*.test.js
@@ -814,7 +814,7 @@ node --test tests/*.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 3.8: Commit**
+- [x] **Step 3.8: Commit**
 
 ```bash
 git add src/cli/slash-commands.js tests/step5-slash-model-crud.test.js
@@ -830,7 +830,7 @@ git commit -m "feat: add /model add, /model remove, /model clear slash commands"
 
 The `case 'provider'` block already handles `list`, an explicit provider id (switch), and shows active provider on no args. We extend it with `add`, `remove`, `show`.
 
-- [ ] **Step 4.1: Write failing tests**
+- [x] **Step 4.1: Write failing tests**
 
 Add to `tests/step5-piping.test.js` (in the `Step 5: REPL Slash Commands Handler` describe block, after existing cases):
 
@@ -1014,7 +1014,7 @@ Add to `tests/step5-piping.test.js` (in the `Step 5: REPL Slash Commands Handler
   });
 ```
 
-- [ ] **Step 4.2: Run failing tests**
+- [x] **Step 4.2: Run failing tests**
 
 ```
 node --test tests/step5-piping.test.js 2>&1 | tail -30
@@ -1022,7 +1022,7 @@ node --test tests/step5-piping.test.js 2>&1 | tail -30
 
 Expected: new `/provider add/remove/show` tests FAIL, existing tests still PASS.
 
-- [ ] **Step 4.3: Add import for `runProviderAddWizard` to `slash-commands.js`**
+- [x] **Step 4.3: Add import for `runProviderAddWizard` to `slash-commands.js`**
 
 At the top of `src/cli/slash-commands.js`, add:
 
@@ -1030,7 +1030,7 @@ At the top of `src/cli/slash-commands.js`, add:
 import { runProviderAddWizard } from './provider-wizard.js';
 ```
 
-- [ ] **Step 4.4: Extend `case 'provider'` in `executeSlashCommand`**
+- [x] **Step 4.4: Extend `case 'provider'` in `executeSlashCommand`**
 
 In `src/cli/slash-commands.js`, find the `case 'provider':` block. After the existing `if (action === 'list')` and before the `const providerId = action` line, insert these three new action handlers:
 
@@ -1150,7 +1150,7 @@ In `src/cli/slash-commands.js`, find the `case 'provider':` block. After the exi
       }
 ```
 
-- [ ] **Step 4.5: Run new tests — expect PASS**
+- [x] **Step 4.5: Run new tests — expect PASS**
 
 ```
 node --test tests/step5-piping.test.js
@@ -1158,7 +1158,7 @@ node --test tests/step5-piping.test.js
 
 Expected: all tests (existing + new) PASS.
 
-- [ ] **Step 4.6: Run full test suite — no regressions**
+- [x] **Step 4.6: Run full test suite — no regressions**
 
 ```
 node --test tests/*.test.js
@@ -1166,7 +1166,7 @@ node --test tests/*.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 4.7: Commit**
+- [x] **Step 4.7: Commit**
 
 ```bash
 git add src/cli/slash-commands.js tests/step5-piping.test.js
@@ -1182,7 +1182,7 @@ git commit -m "feat: add /provider add wizard, /provider remove, /provider show 
 
 `SLASH_COMMANDS_HELP` is the array at the top of `slash-commands.js` that `/help` renders. Six new entries need to be added.
 
-- [ ] **Step 5.1: Update `SLASH_COMMANDS_HELP` in `src/cli/slash-commands.js`**
+- [x] **Step 5.1: Update `SLASH_COMMANDS_HELP` in `src/cli/slash-commands.js`**
 
 Find the existing `SLASH_COMMANDS_HELP` array:
 
@@ -1217,7 +1217,7 @@ export const SLASH_COMMANDS_HELP = [
 ];
 ```
 
-- [ ] **Step 5.2: Verify /help output includes new entries**
+- [x] **Step 5.2: Verify /help output includes new entries**
 
 ```
 node --test tests/step5-piping.test.js 2>&1 | grep -i "help"
@@ -1230,7 +1230,7 @@ assert.ok(plain.includes('/provider add'), 'help should list /provider add');
 assert.ok(plain.includes('/model add'), 'help should list /model add');
 ```
 
-- [ ] **Step 5.3: Run full test suite**
+- [x] **Step 5.3: Run full test suite**
 
 ```
 node --test tests/*.test.js
@@ -1238,7 +1238,7 @@ node --test tests/*.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 5.4: Commit**
+- [x] **Step 5.4: Commit**
 
 ```bash
 git add src/cli/slash-commands.js tests/step5-piping.test.js
@@ -1254,7 +1254,7 @@ git commit -m "feat: update /help to list new provider and model CRUD slash comm
 
 The `provider-wizard.js` file needs to be re-exported from `cli/index.js` so it's accessible via `src/index.js` (the library entrypoint used in tests via `'../src/index.js'`).
 
-- [ ] **Step 6.1: Add export to `src/cli/index.js`**
+- [x] **Step 6.1: Add export to `src/cli/index.js`**
 
 Open `src/cli/index.js`. It currently ends with:
 
@@ -1269,7 +1269,7 @@ export * from './model-commands.js';
 export * from './provider-wizard.js';
 ```
 
-- [ ] **Step 6.2: Verify `isLocalUrl` and `isApiKeyRequired` are accessible from `src/index.js`**
+- [x] **Step 6.2: Verify `isLocalUrl` and `isApiKeyRequired` are accessible from `src/index.js`**
 
 ```js
 // Quick smoke test — add temporarily to any test, then remove
@@ -1285,7 +1285,7 @@ node --test tests/*.test.js
 
 Expected: all tests PASS.
 
-- [ ] **Step 6.3: Commit**
+- [x] **Step 6.3: Commit**
 
 ```bash
 git add src/cli/index.js
@@ -1296,7 +1296,7 @@ git commit -m "chore: export provider-wizard from cli/index.js"
 
 ## Task 7: Final verification
 
-- [ ] **Step 7.1: Run complete test suite**
+- [x] **Step 7.1: Run complete test suite**
 
 ```
 node --test tests/*.test.js
@@ -1307,7 +1307,7 @@ Expected output includes:
 - New test files `step5-provider-wizard.test.js` and `step5-slash-model-crud.test.js` fully PASS
 - New cases in `step5-piping.test.js` PASS
 
-- [ ] **Step 7.2: Manual smoke test (optional but recommended on Termux)**
+- [x] **Step 7.2: Manual smoke test (optional but recommended on Termux)**
 
 ```bash
 termuxai
@@ -1321,7 +1321,7 @@ termuxai
 /provider add       # launch wizard, fill in groq, cancel with Ctrl+C → nothing saved
 ```
 
-- [ ] **Step 7.3: Final commit (if any cleanup needed)**
+- [x] **Step 7.3: Final commit (if any cleanup needed)**
 
 ```bash
 git add .
