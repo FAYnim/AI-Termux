@@ -3,7 +3,14 @@
  */
 
 import readline from 'node:readline';
-import { BLACKLIST_PATTERNS, RISKY_COMMAND_PATTERNS, DEFAULT_SECURITY_CONFIG } from './rules.js';
+import {
+  BLACKLIST_PATTERNS,
+  RISKY_COMMAND_PATTERNS,
+  OBFUSCATION_PATTERNS,
+  PROTECTED_PATH_PATTERNS,
+  HARD_LIMITS,
+  DEFAULT_SECURITY_CONFIG
+} from './rules.js';
 import { validateSafePath } from './path-validator.js';
 import { ansi } from '../utils/ansi.js';
 
@@ -28,7 +35,7 @@ export class SecurityGuard {
    * Evaluates command safety against blacklist and risky rules
    *
    * @param {string} command
-   * @returns {{ isBlacklisted: boolean, isRisky: boolean, matchedPattern?: string }}
+   * @returns {{ isBlacklisted: boolean, isRisky: boolean, matchedPattern?: string, rejectReason?: string }}
    */
   inspectCommand(command) {
     if (!command || typeof command !== 'string') {
@@ -36,6 +43,47 @@ export class SecurityGuard {
     }
 
     const trimmed = command.trim();
+
+    // SEC-03: hard limits — length cap and null-byte guard.
+    if (trimmed.length > HARD_LIMITS.maxCommandLength) {
+      return {
+        isBlacklisted: true,
+        isRisky: true,
+        rejectReason: `Command exceeds maximum length (${HARD_LIMITS.maxCommandLength} chars)`
+      };
+    }
+    if (trimmed.includes('\0')) {
+      return {
+        isBlacklisted: true,
+        isRisky: true,
+        rejectReason: 'Command contains null byte (possible truncation attack)'
+      };
+    }
+
+    // SEC-03: obfuscation detection (hex escapes, base64-to-shell, eval).
+    for (const pattern of OBFUSCATION_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        return {
+          isBlacklisted: true,
+          isRisky: true,
+          matchedPattern: pattern.toString(),
+          rejectReason: 'Command uses obfuscation (hex escapes / base64 / eval)'
+        };
+      }
+    }
+
+    // SEC-03: protected paths — any command targeting `/`, `~`, `/etc`,
+    // `/boot`, `/var/lib` is rejected regardless of verb.
+    for (const pattern of PROTECTED_PATH_PATTERNS) {
+      if (pattern.test(trimmed)) {
+        return {
+          isBlacklisted: true,
+          isRisky: true,
+          matchedPattern: pattern.toString(),
+          rejectReason: 'Command targets a protected system path'
+        };
+      }
+    }
 
     // Check absolute blacklist
     for (const pattern of BLACKLIST_PATTERNS) {

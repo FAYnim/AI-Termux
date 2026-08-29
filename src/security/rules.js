@@ -3,6 +3,49 @@
  */
 
 /**
+ * SEC-03: Hard limits applied to every command before pattern checks.
+ * Length cap blocks obfuscation-via-padding; null-byte check blocks
+ * truncation attacks where `\0` makes the shell see a different command
+ * than what the security guard inspected.
+ */
+export const HARD_LIMITS = {
+  maxCommandLength: 2000,
+  maxTokenLength: 256
+};
+
+/**
+ * SEC-03: Obfuscation patterns. Matched commands are rejected even if
+ * they slip past the blacklist. Covers hex escapes, base64-piped-to-shell,
+ * reversed-string tricks, and eval.
+ */
+export const OBFUSCATION_PATTERNS = [
+  // ANSI-C hex/octal escapes: $'\x72m' or $'\101'
+  /\$\\['"][xX][0-9a-fA-F]{2}/,
+  /\$\\['"][0-7]{1,3}['"]/,
+  // printf with hex/octal escapes piped to a shell
+  /\bprintf\s+.*\\x[0-9a-fA-F]{2}.*\|/i,
+  // Base64 decoded to shell
+  /\bbase64\s+(?:-d|--decode)\b.*\|\s*(bash|sh|zsh|dash|ksh)\b/i,
+  // Eval of any string
+  /\beval\s+/i
+];
+
+/**
+ * SEC-03: Path-based destructive guards. Broader than the existing
+ * rm -rf patterns. Any command that targets these paths is rejected
+ * regardless of verb (covers `find / -delete`, `rsync --delete /`, etc.).
+ */
+export const PROTECTED_PATH_PATTERNS = [
+  /(^|\s)\/(?:\s|$|[;&|><])/i,                       // bare `/`
+  /(^|\s)\/\*(?:\s|$|[;&|><])/i,                     // `/*`
+  /(^|\s)~(?:\s|$|[;&|><])/i,                        // bare `~`
+  /(^|\s)\$\{?HOME\}?\/(?:\*)?(?:\s|$|[;&|><])/i,    // $HOME
+  /(^|\s)\/etc(?:\s|$|[;&|><])/i,                    // /etc
+  /(^|\s)\/boot(?:\s|$|[;&|><])/i,                   // /boot
+  /(^|\s)\/var\/lib(?:\s|$|[;&|><])/i                // /var/lib
+];
+
+/**
  * Commands that are strictly forbidden under any circumstances.
  * Attempting to execute any matching command will result in an immediate security error.
  */
