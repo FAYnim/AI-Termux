@@ -45,8 +45,11 @@ export async function executeCommandTool(args, context = {}) {
   const maxLines = context.maxOutputLines || DEFAULT_SECURITY_CONFIG.maxOutputLines;
 
   const isWindows = process.platform === 'win32';
+  // SEC-02: never fall back to `shell: true` (which lets Node default to
+  // %SystemRoot%\system32\cmd.exe and interpret metacharacters). Require an
+  // explicit ComSpec on Windows; default to cmd.exe when missing.
   const shellOption = isWindows
-    ? (process.env.ComSpec || true)
+    ? (process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe')
     : (process.env.SHELL || '/bin/sh');
 
   return new Promise((resolve) => {
