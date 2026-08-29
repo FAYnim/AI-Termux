@@ -88,11 +88,7 @@ export async function startRepl(options = {}) {
       return;
     }
 
-    // A wizard (e.g. /provider add) is mid-prompt. Don't re-prompt REPL or
-    // print the double-Ctrl+C hint — the wizard handles cancellation itself
-    // by closing its own readline interface, which routes the typed line
-    // back to the main REPL on the next askQuestion().
-    if (wizardActive) return;
+    // Remove early return for wizardActive – Ctrl+C should always trigger REPL exit flow.
 
     const now = Date.now();
     if (now - lastSigintTime < 1000) {
