@@ -27,7 +27,7 @@
 > **Latest on `feat/multi-model-phase1`:** Phase 1–4 of the multi-model plan landed — per-provider
 > `models[]` catalog, zero-dependency interactive `/model` picker, non-interactive `tai model
 > --list/--set` flags, and catalog CRUD (`--add` / `--remove` / `--clear`).
-> **324/324 tests pass, 0 regression.** See [docs/MULTI_MODEL_PLAN.md](./docs/MULTI_MODEL_PLAN.md).
+> **324/324 tests pass, 0 regression.**
 
 ---
 
@@ -107,7 +107,7 @@ termuxai provider show gemini                  # Dump provider configuration as 
 
 ### Persistent vs One-Shot — Know the Difference
 
-> 📖 Full concept guide: [docs/PROVIDER_MODEL_CONCEPT.md](./docs/PROVIDER_MODEL_CONCEPT.md)
+> 📖 Full concept guide below.
 
 | Cara | Perintah | Simpan ke config? | Berlaku untuk |
 |------|----------|:-----------------:|---------------|
