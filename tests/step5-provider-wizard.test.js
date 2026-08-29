@@ -221,14 +221,14 @@ describe('runProviderAddWizard: validation and error paths', () => {
     assert.strictEqual(result.providerId, 'newprov');
   });
 
-  test('EOF/stream close mid-wizard → returns cancelled:true', async () => {
-    // Only one answer (id) then EOF — subsequent steps get no input
-    const answers = ['myproveof'];
-    const input = makeAnswerStream(answers); // EOF after id
+  test('ESC key cancels wizard', async () => {
+    const input = new PassThrough();
+    input.isTTY = false;
+    // Send ESC (0x1b) then EOF
+    input.push(Buffer.from([0x1b]));
+    input.push(null);
     const output = new PassThrough();
     const configMgr = makeTmpConfigMgr();
-
-    // Should not throw, should return cancelled
     const result = await runProviderAddWizard({ configMgr, input, output });
     assert.strictEqual(result.cancelled, true);
   });

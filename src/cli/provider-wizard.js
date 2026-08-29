@@ -71,7 +71,12 @@ export async function runProviderAddWizard(ctx = {}) {
   rl.input.on('data', (chunk) => {
     const code = typeof chunk === 'string' ? chunk.charCodeAt(0) : chunk[0];
     if (code === 0x1b) { // ESC
+      // Drain the ESC byte so REPL doesn't interpret it as SIGINT later.
+      if (typeof rl.input.read === 'function') rl.input.read();
+      // Close wizard readline and stop forwarding this ESC to the outer REPL.
       rl.close();
+      rl.input.removeAllListeners('data');
+      rl.input.pause();
     }
   });
 
