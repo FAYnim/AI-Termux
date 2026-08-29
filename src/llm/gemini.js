@@ -34,6 +34,9 @@ export class GeminiClient {
     this.apiVersion = options.apiVersion || 'v1beta';
     this.baseUrl = (options.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
     this.timeoutMs = options.timeoutMs ?? configManager.get('timeoutMs') ?? DEFAULT_TIMEOUT_MS;
+    this.useHeaderAuth = options.useHeaderAuth !== undefined
+      ? options.useHeaderAuth
+      : (configManager.get('gemini.useHeaderAuth') ?? false);
     this.generationConfig = options.generationConfig || {
       temperature: DEFAULT_TEMPERATURE,
       maxOutputTokens: 8192
@@ -88,7 +91,23 @@ export class GeminiClient {
    */
   getEndpoint(action = 'generateContent', isStream = false) {
     const streamParam = isStream ? 'alt=sse&' : '';
-    return `${this.baseUrl}/${this.apiVersion}/models/${this.model}:${action}?${streamParam}key=${this.apiKey}`;
+    // SEC-01: when header auth is enabled, omit API key from URL to prevent
+    // leakage via proxy logs, browser DevTools, and server access logs.
+    const keyPart = this.useHeaderAuth ? '' : `key=${this.apiKey}`;
+    return `${this.baseUrl}/${this.apiVersion}/models/${this.model}:${action}?${streamParam}${keyPart}`;
+  }
+
+  /**
+   * Builds request headers, including Authorization header when header auth
+   * is enabled (SEC-01).
+   * @private
+   */
+  _buildHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.useHeaderAuth) {
+      headers.Authorization = `Bearer ${this.apiKey}`;
+    }
+    return headers;
   }
 
   /**
@@ -193,9 +212,7 @@ export class GeminiClient {
       try {
         const response = await this.fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._buildHeaders(),
           body: JSON.stringify(payload),
           signal
         });
@@ -261,9 +278,7 @@ export class GeminiClient {
       try {
         const response = await this.fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: this._buildHeaders(),
           body: JSON.stringify(payload),
           signal
         });
