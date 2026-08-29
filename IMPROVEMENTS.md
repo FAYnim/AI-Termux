@@ -42,9 +42,10 @@
 
 ### BUG-01 — Flaky test: step5-provider-wizard fails in full suite, passes alone
 - **File**: `tests/step5-provider-wizard.test.js`
-- **Symptom**: `not ok 26` appears only when all unit tests run together (428 pass, 1 fail). Passes in isolation.
-- **Likely cause**: Shared `defaultSessionManager` or `configManager` singleton state mutates across test files. The wizard touches the filesystem at `~/.termuxai/` which persists between tests.
-- **Fix**: Wrap each test in its own isolated `ConfigManager(customDir)` and `SessionManager(customDir)`, or clean up temp dirs between tests. Add `--test-reporter=spec` to reproduce locally.
+- **Symptom**: 10 `runProviderAddWizard` tests cancelled when the full unit suite runs together (421 pass, 0 fail, 10 cancelled). Deterministic, not actually flaky — same outcome in isolation once the answer-stream timing is correct.
+- **Likely cause**: The old `makeAnswerStream(answers, output)` helper pushed one answer line for every `output.on('data')` event. The wizard writes the prompt banner, prompt, error notices, and cancel banners all to the same `output` stream — every one of those writes drained one slot from the answer queue and pushed EOF early. Result: readline `'close'` fired mid-wizard → wizard reported `cancelled: true`. The "fix" of feeding on every `output.on('data')` was the bug; per-suite the extra writes from sibling tests changed the chunk count enough to expose it.
+- **Fix**: Replaced `makeAnswerStream` with a `Readable` subclass `AnswerStream` that emits exactly one answer line per `_read()` call. Readline pulls bytes only after `rl.question()` registers its `'line'` listener, so per-pull feeding is race-free. All test inputs now use `new AnswerStream(answers)`; output is a `PassThrough` via `makeOutput()`. Each test still uses its own tempdir-backed `ConfigManager`.
+- **Status**: ✅ **FIXED** (2026-08-30) — Per-pull `AnswerStream` Readable replaces the timing-coupled `output.on('data')` feeder. 10 previously cancelled tests now pass deterministically in isolation and under full-suite load.
 
 ### BUG-02 — Deprecation warnings emitted during normal test runs
 - **File**: `src/config/manager.js:652-664`

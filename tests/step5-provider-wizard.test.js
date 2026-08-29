@@ -4,7 +4,7 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { PassThrough } from 'node:stream';
+import { Readable, PassThrough } from 'node:stream';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -49,24 +49,39 @@ describe('provider-wizard: isApiKeyRequired', () => {
   });
 });
 
-// Helper: build a fake readable input stream from a sequence of answers.
-// Each answer maps to one readline.question() call in order.
-function makeAnswerStream(answers) {
-  const pt = new PassThrough();
-  pt.isTTY = false;
-  // Feed answers one-by-one on the next tick so readline can read them
-  let i = 0;
-  const feedNext = () => {
-    if (i < answers.length) {
-      pt.push(answers[i] + '\n');
-      i++;
-      setImmediate(feedNext);
+// Helper: build an input stream that hands out exactly one answer line each
+// time Node readline asks for more data via _read(). Readline pulls bytes
+// only after it has registered its 'line' listener for the current
+// rl.question() call, so feeding per-pull is race-free across full-suite
+// load. The earlier `output.on('data')` based approach was timing-coupled:
+// every prompt write fired one answer push, but the same `output` stream
+// is written to for cancel banners, error notices, and prompt re-asks,
+// which exhausted the answer queue and pushed EOF mid-wizard → the wizard
+// reported 'cancelled' (BUG-01). Per-pull feeding is deterministic.
+class AnswerStream extends Readable {
+  constructor(answers) {
+    super({ encoding: 'utf8' });
+    this._answers = answers;
+    this._i = 0;
+    this._closed = false;
+  }
+  _read() {
+    if (this._closed) { this.push(null); return; }
+    if (this._i < this._answers.length) {
+      this.push(this._answers[this._i++] + '\n');
     } else {
-      pt.push(null); // EOF
+      this._closed = true;
+      this.push(null);
     }
-  };
-  setImmediate(feedNext);
-  return pt;
+  }
+}
+
+// Helper: build an output stream that swallows wizard prompts without
+// exercising a real TTY. PassThrough discards writes after buffering them.
+function makeOutput() {
+  const out = new PassThrough();
+  out.isTTY = false;
+  return out;
 }
 
 function makeTmpConfigMgr() {
@@ -79,8 +94,8 @@ describe('runProviderAddWizard: happy paths', () => {
   test('openai cloud provider (wajib API key + base URL)', async () => {
     // Answers: id, adapter, baseUrl, apiKey, model, switchNow
     const answers = ['groq', 'openai', 'https://api.groq.com/openai/v1', 'gsk_test123', 'llama-3.3-70b', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -97,8 +112,8 @@ describe('runProviderAddWizard: happy paths', () => {
   test('gemini provider (base URL step skipped, API key required)', async () => {
     // Answers: id, adapter, [no baseUrl step], apiKey, model, switchNow
     const answers = ['my-gemini', 'gemini', 'AIzaSy_test', '', 'Y'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -114,8 +129,8 @@ describe('runProviderAddWizard: happy paths', () => {
   test('ollama provider (localhost → API key optional, Enter skips it)', async () => {
     // Answers: id, adapter, baseUrl, apiKey (empty = skip), model (empty = skip), switchNow
     const answers = ['ollama', 'openai', 'http://localhost:11434/v1', '', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -131,8 +146,8 @@ describe('runProviderAddWizard: happy paths', () => {
 
   test('switchNow = Y (Enter) returns switchNow: true', async () => {
     const answers = ['deepseek', 'openai', 'https://api.deepseek.com/v1', 'sk_test', '', ''];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -144,8 +159,8 @@ describe('runProviderAddWizard: happy paths', () => {
   test('prefilledId skips Step 1 prompt', async () => {
     // No ID answer needed — already provided
     const answers = ['openai', 'https://openrouter.ai/api/v1', 'sk-or-test', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output, prefilledId: 'openrouter' });
@@ -160,8 +175,8 @@ describe('runProviderAddWizard: validation and error paths', () => {
     // First adapter answer is invalid, second is valid
     // Wizard should retry and ultimately succeed with valid adapter
     const answers = ['myprov', 'badadapter', 'openai', 'https://example.com/v1', 'key123', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -175,8 +190,8 @@ describe('runProviderAddWizard: validation and error paths', () => {
   test('empty API key on required field → retry, then valid', async () => {
     // First apiKey answer is empty (should be rejected for cloud), second is valid
     const answers = ['myprov2', 'openai', 'https://api.groq.com/v1', '', 'valid-key', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
     const result = await runProviderAddWizard({ configMgr, input, output });
@@ -197,8 +212,8 @@ describe('runProviderAddWizard: validation and error paths', () => {
 
     // Answers: id (existing), overwrite=y, adapter, baseUrl, apiKey, model, switchNow
     const answers = ['existingprov', 'y', 'openai', 'https://api.groq.com/v1', 'newkey', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const result = await runProviderAddWizard({ configMgr, input, output });
 
     assert.strictEqual(result.cancelled, false);
@@ -213,8 +228,8 @@ describe('runProviderAddWizard: validation and error paths', () => {
 
     // First ID = existing, overwrite = n, second ID = new one
     const answers = ['existingprov', 'n', 'newprov', 'openai', 'https://x.com/v1', 'key', '', 'n'];
-    const input = makeAnswerStream(answers);
-    const output = new PassThrough();
+    const input = new AnswerStream(answers);
+    const output = makeOutput();
     const result = await runProviderAddWizard({ configMgr, input, output });
 
     assert.strictEqual(result.cancelled, false);
@@ -227,7 +242,7 @@ describe('runProviderAddWizard: validation and error paths', () => {
     // Send ESC (0x1b) then EOF
     input.push(Buffer.from([0x1b]));
     input.push(null);
-    const output = new PassThrough();
+    const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
     const result = await runProviderAddWizard({ configMgr, input, output });
     assert.strictEqual(result.cancelled, true);
