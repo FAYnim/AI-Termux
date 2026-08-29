@@ -10,3 +10,4 @@ export * from './piping.js';
 export * from './single-shot.js';
 export * from './repl.js';
 export * from './model-commands.js';
+export * from './provider-wizard.js';
