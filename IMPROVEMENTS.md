@@ -22,6 +22,7 @@
 - **Pattern**: `const shellOption = isWindows ? (process.env.ComSpec || true) : ...`
 - **Why**: When `ComSpec` is unset, `shell: true` falls back to `%SystemRoot%\system32\cmd.exe /c`. Any shell metacharacters in `command` get interpreted. The blacklist in `rules.js` is regex-only and trivially bypassable (encoded chars, alternate forms, comment injection `; #`).
 - **Fix**: Never default to `true`; require explicit `ComSpec`. Validate command starts with an allowed word char sequence before spawning. Consider whitelisting instead of blacklisting.
+- **Status**: ✅ **FIXED** (2026-08-29) — Replaced `shell: true` fallback with explicit `C:\Windows\System32\cmd.exe` when `ComSpec` is unset. Eliminates the silent `cmd.exe /c` path so the shell used is always explicit and inspectable.
 
 ### SEC-03 — No sandbox beyond regex blacklist
 - **File**: `src/security/rules.js:9-55`
