@@ -12,6 +12,7 @@ import {
   DEFAULT_SECURITY_CONFIG
 } from './rules.js';
 import { validateSafePath } from './path-validator.js';
+import { configManager } from '../config/manager.js';
 import { ansi } from '../utils/ansi.js';
 
 export class SecurityGuard {
@@ -111,6 +112,23 @@ export class SecurityGuard {
   }
 
   /**
+   * SEC-04: build path validation options, threading the opt-in flag
+   * from config (`security.allowTermuxStorage`).
+   */
+  _pathOptions() {
+    let allowTermuxStorage = false;
+    try {
+      allowTermuxStorage = configManager.get('security.allowTermuxStorage') === true;
+    } catch {
+      // config unavailable (tests) — keep default false
+    }
+    return {
+      allowedDirs: this.allowedDirs,
+      allowTermuxStorage
+    };
+  }
+
+  /**
    * Interactively prompts user for confirmation [y/N]
    *
    * @param {string} message
@@ -167,7 +185,7 @@ export class SecurityGuard {
         }
 
         if (workingDir) {
-          const pathValidation = validateSafePath(workingDir, this.baseDir, { allowedDirs: this.allowedDirs });
+          const pathValidation = validateSafePath(workingDir, this.baseDir, this._pathOptions());
           if (!pathValidation.isAllowed) {
             const confirmed = await this.promptConfirmation(
               `AI wants to execute command in directory outside workspace: "${pathValidation.resolvedPath}"`
@@ -198,7 +216,7 @@ export class SecurityGuard {
           return { allowed: false, reason: 'File path must be a non-empty string.' };
         }
 
-        const pathValidation = validateSafePath(filePath, this.baseDir, { allowedDirs: this.allowedDirs });
+        const pathValidation = validateSafePath(filePath, this.baseDir, this._pathOptions());
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const actionVerb = toolName === 'read_file' ? 'read' : 'modify';
@@ -215,7 +233,7 @@ export class SecurityGuard {
 
       case 'list_dir': {
         const dirPath = args.dirPath || '.';
-        const pathValidation = validateSafePath(dirPath, this.baseDir, { allowedDirs: this.allowedDirs });
+        const pathValidation = validateSafePath(dirPath, this.baseDir, this._pathOptions());
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const confirmed = await this.promptConfirmation(
