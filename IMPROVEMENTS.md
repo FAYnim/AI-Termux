@@ -34,6 +34,7 @@
 - **File**: `src/security/path-validator.js:53-63`
 - **Why**: `isTermuxStoragePath` auto-approves any path inside Android external storage. On a shared device or compromised Termux instance, this expands the safe workspace to the entire SD card.
 - **Fix**: Require explicit opt-in via config flag `allowTermuxStorage=true` rather than default-true.
+- **Status**: ✅ **FIXED** (2026-08-29) — Flipped `allowTermuxStorage` default to `false`. Guard now reads `security.allowTermuxStorage` from config via `_pathOptions()` and threads it into all `validateSafePath()` calls. Enable with `termuxai config set security.allowTermuxStorage true`.
 
 ---
 

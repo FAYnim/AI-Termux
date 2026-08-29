@@ -30,7 +30,7 @@ export function isPathInside(parentDir, targetPath) {
  * @param {object} [options={}]
  * @param {string[]} [options.allowedDirs=[]] - Additional allowed directories
  * @param {boolean} [options.mustExist=false] - Whether file must exist
- * @param {boolean} [options.allowTermuxStorage=true] - Auto-allow Termux storage paths
+ * @param {boolean} [options.allowTermuxStorage=false] - Auto-allow Termux storage paths (SEC-04: opt-in via config `security.allowTermuxStorage=true`)
  * @returns {{ resolvedPath: string, isInsideBase: boolean, isAllowed: boolean, exists: boolean }}
  */
 export function validateSafePath(targetPath, baseDir = process.cwd(), options = {}) {
@@ -50,9 +50,10 @@ export function validateSafePath(targetPath, baseDir = process.cwd(), options = 
     isAllowed = options.allowedDirs.some(dir => isPathInside(dir, resolvedTarget));
   }
 
-  // On Termux: automatically permit access to Android storage paths
-  // (requires termux-setup-storage to have been run on the device)
-  if (!isAllowed && options.allowTermuxStorage !== false) {
+  // SEC-04: Termux storage paths are now opt-in. Default `false` so the
+  // agent's safe workspace is the project dir, not the entire SD card.
+  // Enable explicitly via `termuxai config set security.allowTermuxStorage true`.
+  if (!isAllowed && options.allowTermuxStorage === true) {
     if (isTermuxStoragePath(resolvedTarget)) {
       isAllowed = true;
     } else {
