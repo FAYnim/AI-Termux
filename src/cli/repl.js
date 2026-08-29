@@ -78,6 +78,7 @@ export async function startRepl(options = {}) {
   let activeAbortController = null;
   let lastSigintTime = 0;
   let isClosing = false;
+  let wizardActive = false; // true while a sub-readline wizard owns stdin
 
   // Handle SIGINT (Ctrl+C)
   rl.on('SIGINT', () => {
@@ -86,6 +87,12 @@ export async function startRepl(options = {}) {
       activeAbortController.abort();
       return;
     }
+
+    // A wizard (e.g. /provider add) is mid-prompt. Don't re-prompt REPL or
+    // print the double-Ctrl+C hint — the wizard handles cancellation itself
+    // by closing its own readline interface, which routes the typed line
+    // back to the main REPL on the next askQuestion().
+    if (wizardActive) return;
 
     const now = Date.now();
     if (now - lastSigintTime < 1000) {
@@ -132,7 +139,8 @@ export async function startRepl(options = {}) {
         configMgr,
         logger,
         stream: output,
-        input
+        input,
+        onWizardActive: (active) => { wizardActive = active; }
       });
 
       if (slashResult.action === 'exit') {

@@ -66,6 +66,15 @@ export async function runProviderAddWizard(ctx = {}) {
     });
   }
 
+  // Explicit SIGINT handler — without this, SIGINT can race with the REPL's
+  // own SIGINT handler (which calls rl.prompt() on the outer readline) and
+  // the next typed line gets delivered to the wizard's still-open rl.question
+  // instead of cancelling. Closing the wizard rl deterministically here makes
+  // the ask() promise reject immediately and prevents the input race.
+  rl.on('SIGINT', () => {
+    rl.close();
+  });
+
   function write(msg) {
     stream.write(msg);
   }

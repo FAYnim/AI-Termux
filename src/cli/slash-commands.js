@@ -111,12 +111,17 @@ export async function executeSlashCommand(input, context = {}) {
       // ── /provider add ──────────────────────────────────────────────
       if (action === 'add') {
         const prefilledId = args[1] || null; // /provider add <id> pre-fills step 1
+        // Tell REPL a wizard is running so its SIGINT handler doesn't print
+        // the "press Ctrl+C again to exit" hint or re-prompt while the wizard
+        // owns stdin. See repl.js rl.on('SIGINT').
+        if (typeof context.onWizardActive === 'function') context.onWizardActive(true);
         const wizardResult = await runProviderAddWizard({
           configMgr,
           stream,
           input: inputStream,
           prefilledId
         });
+        if (typeof context.onWizardActive === 'function') context.onWizardActive(false);
 
         if (wizardResult.cancelled) {
           return { handled: true, action: 'provider_add_cancelled' };
