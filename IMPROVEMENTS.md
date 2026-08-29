@@ -15,6 +15,7 @@
 - **Pattern**: `...?${streamParam}key=${this.apiKey}`
 - **Why**: Keys appear in proxy logs, browser DevTools Network tab, server access logs. OpenAI adapter correctly uses `Authorization: Bearer` header; Gemini does not.
 - **Fix**: Use query param only if the provider mandates it (Gemini does), but document the tradeoff. Better: add a config option to route through a proxy that strips keys, or at minimum add a security advisory in README.
+- **Status**: ✅ **FIXED** (2026-08-29) — Added `gemini.useHeaderAuth` config flag (default `false`). When enabled, API key is sent via `Authorization: Bearer` header instead of `key=` query param. New `_buildHeaders()` helper centralizes header construction in `src/llm/gemini.js`.
 
 ### SEC-02 — Windows `spawn` defaults to `shell: true` silently
 - **File**: `src/tools/execute_command.js:48-50`
