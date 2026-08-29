@@ -28,6 +28,7 @@
 - **File**: `src/security/rules.js:9-55`
 - **Why**: Regex-based command filtering is inherently leaky. An LLM can rephrase `rm -rf /` into equivalent forms that bypass each pattern. Same class of bug exists in many "safe shell" wrappers.
 - **Fix**: At minimum, drop privileges (run child under a restricted user), use `--no-preserve-root` check, chroot/jail when possible. Document the limitation clearly in README security section.
+- **Status**: 🟡 **PARTIAL FIX** (2026-08-29) — Added defense-in-depth layers in `src/security/rules.js` and `src/security/guard.js`: `HARD_LIMITS` (2000 char cap, null-byte guard), `OBFUSCATION_PATTERNS` (hex escapes, base64-to-shell, eval), `PROTECTED_PATH_PATTERNS` (blocks `/`, `~`, `/etc`, `/boot`, `/var/lib` regardless of verb). Regex blacklist kept as last line. OS-level sandboxing (privilege drop, chroot) still not implemented.
 
 ### SEC-04 — Full path traversal allowed for Termux storage
 - **File**: `src/security/path-validator.js:53-63`
