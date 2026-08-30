@@ -3,7 +3,7 @@
  * Reads text content from a file with line-range slicing, size limit, and binary detection.
  */
 
-import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { isBinaryFile } from '../security/path-validator.js';
 import { DEFAULT_SECURITY_CONFIG } from '../security/rules.js';
@@ -28,17 +28,31 @@ export async function readFileTool(args, context = {}) {
 
   const resolvedPath = path.resolve(context.baseDir || process.cwd(), filePath);
 
-  if (!fs.existsSync(resolvedPath)) {
+  // BUG-04: async I/O — never blocks the event loop on large files/dirs
+  let stats;
+  try {
+    stats = await fsp.stat(resolvedPath);
+  } catch {
     throw new Error(`File not found: "${filePath}"`);
   }
-
-  const stats = fs.statSync(resolvedPath);
   if (stats.isDirectory()) {
     throw new Error(`Path is a directory, not a file: "${filePath}". Use "list_dir" instead.`);
   }
 
+  // Sample first 512 bytes for binary detection without sync I/O
+  const sample = Buffer.alloc(Math.min(512, stats.size));
+  let sampleLen = 0;
+  if (sample.length > 0) {
+    const fh = await fsp.open(resolvedPath, 'r');
+    try {
+      ({ bytesRead: sampleLen } = await fh.read(sample, 0, sample.length, 0));
+    } finally {
+      await fh.close();
+    }
+  }
+
   // Detect binary file
-  if (isBinaryFile(resolvedPath)) {
+  if (isBinaryFile(resolvedPath, sample.subarray(0, sampleLen))) {
     return {
       filePath,
       isBinary: true,
@@ -50,7 +64,7 @@ export async function readFileTool(args, context = {}) {
   const maxBytes = context.maxReadSizeBytes || DEFAULT_SECURITY_CONFIG.maxReadSizeBytes;
   const maxLines = context.maxReadLines || DEFAULT_SECURITY_CONFIG.maxReadLines;
 
-  const rawContent = fs.readFileSync(resolvedPath, { encoding: encoding || 'utf-8' });
+  const rawContent = await fsp.readFile(resolvedPath, { encoding: encoding || 'utf-8' });
   const allLines = rawContent.split(/\r?\n/);
   const totalLines = allLines.length;
 

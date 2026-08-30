@@ -3,7 +3,7 @@
  * Performs token-efficient exact search-and-replace / diff patching on an existing file.
  */
 
-import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { writeFileTool } from './write_file.js';
 
@@ -34,11 +34,13 @@ export async function patchFileTool(args, context = {}) {
 
   const resolvedPath = path.resolve(context.baseDir || process.cwd(), filePath);
 
-  if (!fs.existsSync(resolvedPath)) {
+  // BUG-04: async I/O — never blocks the event loop on large files
+  let originalContent;
+  try {
+    originalContent = await fsp.readFile(resolvedPath, 'utf-8');
+  } catch {
     throw new Error(`File not found for patching: "${filePath}"`);
   }
-
-  const originalContent = fs.readFileSync(resolvedPath, 'utf-8');
 
   // Count occurrences
   let count = 0;

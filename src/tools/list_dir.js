@@ -3,7 +3,7 @@
  * Recursive directory tree walker with depth control and automatic ignore filtering.
  */
 
-import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { DEFAULT_IGNORE_PATTERNS } from '../security/rules.js';
 
@@ -33,11 +33,13 @@ export async function listDirTool(args = {}, context = {}) {
 
   const resolvedBase = path.resolve(context.baseDir || process.cwd(), dirPath);
 
-  if (!fs.existsSync(resolvedBase)) {
+  // BUG-04: async I/O — never blocks the event loop
+  let stat;
+  try {
+    stat = await fsp.stat(resolvedBase);
+  } catch {
     throw new Error(`Directory not found: "${dirPath}"`);
   }
-
-  const stat = fs.statSync(resolvedBase);
   if (!stat.isDirectory()) {
     throw new Error(`Path is a file, not a directory: "${dirPath}". Use "read_file" instead.`);
   }
@@ -55,14 +57,15 @@ export async function listDirTool(args = {}, context = {}) {
   /**
    * Helper to build tree string and collect entries
    */
-  function walk(currentDir, currentDepth, prefix = '') {
+  async function walk(currentDir, currentDepth, prefix = '') {
     if (currentDepth > maxDepth) {
       return [];
     }
 
     let items;
     try {
-      items = fs.readdirSync(currentDir, { withFileTypes: true });
+      // BUG-04: async I/O — never blocks the event loop on large dirs
+      items = await fsp.readdir(currentDir, { withFileTypes: true });
     } catch (err) {
       return [`${prefix}└── [Permission Denied / Read Error]`];
     }
@@ -78,7 +81,8 @@ export async function listDirTool(args = {}, context = {}) {
 
     const lines = [];
 
-    filteredItems.forEach((item, index) => {
+    for (let index = 0; index < filteredItems.length; index++) {
+      const item = filteredItems[index];
       const isLast = index === filteredItems.length - 1;
       const pointer = isLast ? '└── ' : '├── ';
       const nextPrefix = prefix + (isLast ? '    ' : '│   ');
@@ -94,13 +98,13 @@ export async function listDirTool(args = {}, context = {}) {
         });
         lines.push(`${prefix}${pointer}${item.name}/`);
 
-        const subLines = walk(itemPath, currentDepth + 1, nextPrefix);
+        const subLines = await walk(itemPath, currentDepth + 1, nextPrefix);
         lines.push(...subLines);
       } else {
         totalFiles++;
         let size = 0;
         try {
-          size = fs.statSync(itemPath).size;
+          size = (await fsp.stat(itemPath)).size;
         } catch {
           // ignore stat error
         }
@@ -114,13 +118,13 @@ export async function listDirTool(args = {}, context = {}) {
 
         lines.push(`${prefix}${pointer}${item.name} (${formatSize(size)})`);
       }
-    });
+    }
 
     return lines;
   }
 
   const rootName = path.basename(resolvedBase) || dirPath;
-  const treeLines = [`${rootName}/`, ...walk(resolvedBase, 1, '')];
+  const treeLines = [`${rootName}/`, ...(await walk(resolvedBase, 1, ''))];
   const tree = treeLines.join('\n');
 
   return {
