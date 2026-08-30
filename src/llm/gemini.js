@@ -45,6 +45,7 @@ export class GeminiClient {
     this.retryOptions = options.retryOptions || {};
     this.fetch = options.fetch || globalThis.fetch;
     this.logger = options.logger;
+    this.locale = options.locale;
   }
 
   /**
@@ -203,7 +204,8 @@ export class GeminiClient {
     const retryOpts = {
       ...this.retryOptions,
       signal: parentSignal,
-      logger: this.logger
+      logger: this.logger,
+      locale: this.locale
     };
 
     return await withRetry(async () => {
@@ -269,7 +271,8 @@ export class GeminiClient {
     const retryOpts = {
       ...this.retryOptions,
       signal: parentSignal,
-      logger: this.logger
+      logger: this.logger,
+      locale: this.locale
     };
 
     return await withRetry(async () => {
