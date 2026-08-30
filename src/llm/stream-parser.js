@@ -166,6 +166,11 @@ export class SSEStreamParser {
                 name: part.functionCall.name,
                 args: part.functionCall.args || {},
               };
+              // Gemini 3+ signs function call parts with thoughtSignature and
+              // rejects the follow-up request with 400 if it is not echoed back.
+              if (part.thoughtSignature) {
+                call.thoughtSignature = part.thoughtSignature;
+              }
               this.functionCalls.push(call);
 
               if (typeof this.callbacks.onFunctionCall === 'function') {
@@ -199,7 +204,7 @@ export class SSEStreamParser {
    *
    * @returns {{
    *   text: string,
-   *   functionCalls: Array<{ name: string, args: object }>,
+   *   functionCalls: Array<{ name: string, args: object, thoughtSignature?: string }>,
    *   finishReason: string|null,
    *   usage: { promptTokenCount: number, candidatesTokenCount: number, totalTokenCount: number }|null,
    *   rawCandidates: Array<object>
@@ -242,7 +247,7 @@ export class SSEStreamParser {
  * @param {AbortSignal} [options.signal]
  * @returns {Promise<{
  *   text: string,
- *   functionCalls: Array<{ name: string, args: object }>,
+ *   functionCalls: Array<{ name: string, args: object, thoughtSignature?: string }>,
  *   finishReason: string|null,
  *   usage: object|null,
  *   rawCandidates: Array<object>

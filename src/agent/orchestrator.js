@@ -224,12 +224,18 @@ export class AgentOrchestrator {
         modelParts.push({ text });
       }
       for (const fc of functionCalls) {
-        modelParts.push({
+        const part = {
           functionCall: {
             name: fc.name,
             args: fc.args || {},
           },
-        });
+        };
+        // Echo the thought signature back or Gemini 3+ rejects the next
+        // request with 400: "missing a thought_signature in functionCall parts".
+        if (fc.thoughtSignature) {
+          part.thoughtSignature = fc.thoughtSignature;
+        }
+        modelParts.push(part);
       }
       this.session.addMessage({ role: 'model', parts: modelParts });
 
