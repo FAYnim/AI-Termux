@@ -92,3 +92,32 @@ export function accumulateUsage(session, usage) {
   target.updatedAt = new Date().toISOString();
   return session;
 }
+
+/**
+ * Estimates the context size of the NEXT request: the real prompt-token
+ * count of the last request (ground truth) plus the estimated drift of
+ * messages appended since it. Falls back to the pure estimator when no
+ * real usage has been recorded. Never returns less than the real anchor.
+ * @param {object} session
+ * @returns {number}
+ */
+export function getContextTokens(session) {
+  const est = estimateSessionTokens(session);
+  const usage = getUsage(session);
+  if (!usage.lastPromptTokens) {
+    return est;
+  }
+  const delta = Math.max(0, est - usage.estTokensAtLastRequest);
+  return Math.max(usage.lastPromptTokens, usage.lastPromptTokens + delta);
+}
+
+/**
+ * Single source for the budget force-stop limit: 85% of the max context
+ * tokens, with the 800k fallback the orchestrator has always used for a
+ * falsy limit. Both the orchestrator check and the REPL display call this.
+ * @param {number|undefined} maxContextTokens
+ * @returns {number}
+ */
+export function contextBudgetLimit(maxContextTokens) {
+  return Math.floor((maxContextTokens || FALLBACK_MAX_CONTEXT_TOKENS) * BUDGET_STOP_RATIO);
+}

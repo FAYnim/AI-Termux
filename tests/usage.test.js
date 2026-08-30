@@ -6,8 +6,16 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
+import { estimateSessionTokens } from '../src/agent/pruner.js';
 import { Session } from '../src/agent/session.js';
-import { accumulateUsage, createUsage, getUsage, markRequestStart } from '../src/agent/usage.js';
+import {
+  accumulateUsage,
+  contextBudgetLimit,
+  createUsage,
+  getContextTokens,
+  getUsage,
+  markRequestStart,
+} from '../src/agent/usage.js';
 
 describe('Session Usage Accumulator', () => {
   test('createUsage returns the zeroed shape', () => {
@@ -80,5 +88,43 @@ describe('Session Usage Accumulator', () => {
     const snapshot = markRequestStart(session);
     assert.ok(snapshot > 0);
     assert.equal(session.metadata.usage.estTokensAtLastRequest, snapshot);
+  });
+});
+
+describe('Context Tokens & Budget', () => {
+  test('getContextTokens falls back to the estimator without real usage', () => {
+    const session = new Session({});
+    session.addUserMessage('Hello there, this is a test message.');
+    assert.equal(getContextTokens(session), estimateSessionTokens(session));
+  });
+
+  test('getContextTokens anchors on real usage plus drift since the request', () => {
+    const session = new Session({});
+    session.addUserMessage('First message content.');
+    markRequestStart(session);
+    // Real API reports 700k context tokens for the last request
+    accumulateUsage(session, {
+      promptTokenCount: 700000,
+      candidatesTokenCount: 10,
+      totalTokenCount: 700010,
+    });
+    // New messages arrive after that request (tool output, etc.)
+    session.addFunctionResponseMessage('read_file', { content: 'x'.repeat(400) });
+
+    const usage = session.metadata.usage;
+    const expected = 700000 + (estimateSessionTokens(session) - usage.estTokensAtLastRequest);
+    assert.equal(getContextTokens(session), expected);
+    assert.ok(getContextTokens(session) >= 700000);
+  });
+
+  test('contextBudgetLimit takes 85% of the given limit', () => {
+    assert.equal(contextBudgetLimit(1000000), 850000);
+    assert.equal(contextBudgetLimit(800000), 680000);
+  });
+
+  test('contextBudgetLimit falls back to the 800k default on falsy input', () => {
+    assert.equal(contextBudgetLimit(undefined), 680000);
+    assert.equal(contextBudgetLimit(null), 680000);
+    assert.equal(contextBudgetLimit(0), 680000);
   });
 });
