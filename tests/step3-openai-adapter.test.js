@@ -151,3 +151,112 @@ describe('Step 3: OpenAI Adapter', () => {
     assert.equal(r.finishReason, 'STOP');
   });
 });
+
+describe('Step 3: OpenAI Adapter Streaming Usage', () => {
+  function createReadableStream(items) {
+    return new ReadableStream({
+      start(controller) {
+        for (const item of items) controller.enqueue(new TextEncoder().encode(item));
+        controller.close();
+      },
+    });
+  }
+
+  test('usage parsed from the terminal empty-choices chunk', async () => {
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n',
+      'data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n',
+      'data: [DONE]\n\n',
+    ];
+    // makeFetcher is scoped inside the first describe, so this suite uses a
+    // local equivalent mock.
+    const fetchMock = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      body: createReadableStream(chunks),
+    });
+    const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: fetchMock });
+    const result = await client.generateStream({
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
+    assert.deepEqual(result.usage, {
+      promptTokenCount: 10,
+      candidatesTokenCount: 5,
+      totalTokenCount: 15,
+    });
+  });
+
+  test('request body includes stream_options.include_usage', async () => {
+    const bodies = [];
+    const fetchMock = async (_url, init) => {
+      bodies.push(JSON.parse(init?.body || '{}'));
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        body: createReadableStream(['data: [DONE]\n\n']),
+      };
+    };
+    const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: fetchMock });
+    await client.generateStream({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] });
+    assert.deepEqual(bodies[0].stream_options, { include_usage: true });
+  });
+
+  test('400 with stream_options retries once without it and succeeds', async () => {
+    const bodies = [];
+    let call = 0;
+    const fetchMock = async (_url, init) => {
+      call++;
+      bodies.push(JSON.parse(init?.body || '{}'));
+      if (call === 1) {
+        return {
+          ok: false,
+          status: 400,
+          json: async () => ({ error: { message: 'stream_options is not supported' } }),
+          body: createReadableStream([]),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        body: createReadableStream([
+          'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n',
+          'data: [DONE]\n\n',
+        ]),
+      };
+    };
+    const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: fetchMock });
+    const result = await client.generateStream({
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
+    assert.equal(call, 2);
+    assert.deepEqual(bodies[0].stream_options, { include_usage: true });
+    assert.equal(bodies[1].stream_options, undefined);
+    assert.equal(result.text, 'ok');
+  });
+
+  test('400 twice surfaces the ORIGINAL error and does not loop', async () => {
+    let call = 0;
+    const fetchMock = async () => {
+      call++;
+      // Capture the call number now: the response's json() must keep reporting
+      // the error it was created with, so the ORIGINAL response's error ("bad
+      // 1") is distinguishable from the retry's ("bad 2").
+      const n = call;
+      return {
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { message: `bad ${n}` } }),
+        body: createReadableStream([]),
+      };
+    };
+    const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: fetchMock });
+    await assert.rejects(
+      () => client.generateStream({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] }),
+      /OpenAI API Error \(400\): bad 1/,
+    );
+    assert.equal(call, 2);
+  });
+});

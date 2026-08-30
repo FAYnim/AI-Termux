@@ -174,13 +174,17 @@ export class OpenAIClient extends BaseLlmClient {
       generationConfig: options.generationConfig,
     });
     payload.stream = true;
+    // Ask compatible servers for a final usage chunk (OpenAI requires this
+    // field). Servers that reject unknown body fields get one silent retry
+    // without it — see the 400 fallback below.
+    payload.stream_options = { include_usage: true };
 
     const endpoint = this.getEndpoint('chat/completions', true);
     const parentSignal = options.signal;
 
     return await this._requestWithRetry(
       async () => {
-        const response = await this.fetch(endpoint, {
+        let response = await this.fetch(endpoint, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
@@ -189,6 +193,26 @@ export class OpenAIClient extends BaseLlmClient {
           body: JSON.stringify(payload),
           signal: parentSignal,
         });
+
+        // Some OpenAI-compatible servers reject unknown body fields with 400.
+        // Retry once without stream_options; a 400 generates nothing, so
+        // re-sending has no billing or side-effect risk.
+        if (!response.ok && response.status === 400 && payload.stream_options) {
+          const original = response;
+          delete payload.stream_options;
+          response = await this.fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            signal: parentSignal,
+          });
+          if (!response.ok) {
+            await this._handleErrorResponse(original);
+          }
+        }
 
         if (!response.ok) await this._handleErrorResponse(response);
 
@@ -202,6 +226,7 @@ export class OpenAIClient extends BaseLlmClient {
     const tokens = [];
     const functionCalls = [];
     let finishReason = null;
+    let usage = null;
     const toolCallBuffers = {}; // index -> { name, argsParts }
 
     const decoder = new TextDecoder();
@@ -239,6 +264,16 @@ export class OpenAIClient extends BaseLlmClient {
         data = JSON.parse(jsonStr);
       } catch {
         return;
+      }
+
+      // Usage arrives on the terminal empty-choices chunk (OpenAI with
+      // stream_options) or sometimes on the last regular chunk.
+      if (data.usage) {
+        usage = {
+          promptTokenCount: data.usage.prompt_tokens ?? 0,
+          candidatesTokenCount: data.usage.completion_tokens ?? 0,
+          totalTokenCount: data.usage.total_tokens ?? 0,
+        };
       }
 
       if (data.choices && data.choices.length === 0) {
@@ -313,7 +348,7 @@ export class OpenAIClient extends BaseLlmClient {
       text: tokens.join(''),
       functionCalls,
       finishReason,
-      usage: null,
+      usage,
       raw: null,
     };
   }
