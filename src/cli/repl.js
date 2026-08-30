@@ -6,6 +6,7 @@
 import readline from 'node:readline';
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
 import { ConfigManager } from '../config/manager.js';
+import { loadLocale, t } from '../i18n/index.js';
 import { renderBanner } from '../ui/box.js';
 import { createSpinner } from '../ui/spinner.js';
 import { renderMarkdown } from '../ui/markdown.js';
@@ -36,6 +37,7 @@ export async function startRepl(options = {}) {
   const output = options.output || process.stdout;
   const logger = options.logger || defaultLogger;
   const configMgr = options.configMgr || new ConfigManager();
+  await loadLocale(configMgr.get('locale'));
 
   const orchestrator =
     options.orchestrator ||
@@ -83,7 +85,7 @@ export async function startRepl(options = {}) {
   // Handle SIGINT (Ctrl+C)
   rl.on('SIGINT', () => {
     if (isBusy && activeAbortController) {
-      output.write(`\n${ansi.yellow('⚠ [Operasi dibatalkan oleh pengguna]')}\n`);
+      output.write(`\n${ansi.yellow(t('cancelled'))}\n`);
       activeAbortController.abort();
       return;
     }
@@ -92,14 +94,14 @@ export async function startRepl(options = {}) {
 
     const now = Date.now();
     if (now - lastSigintTime < 1000) {
-      output.write(`\n${ansi.cyan('👋 Sampai jumpa! Sesi tersimpan.')}\n\n`);
+      output.write(`\n${ansi.cyan(t('goodbye'))}\n\n`);
       isClosing = true;
       rl.close();
       return;
     }
 
     lastSigintTime = now;
-    output.write(`\n${ansi.dim('(Tekan Ctrl+C sekali lagi dalam 1 detik untuk keluar)')}\n`);
+    output.write(`\n${ansi.dim(t('ctrlCExitHint'))}\n`);
     rl.prompt();
   });
 
@@ -162,14 +164,14 @@ export async function startRepl(options = {}) {
 
     try {
       const providerName = orchestrator.provider ? orchestrator.provider.toUpperCase() : 'LLM';
-      spinner.start(`Menghubungi ${providerName} API...`);
+      spinner.start(t('contactingApi', { provider: providerName }));
 
       const result = await orchestrator.runTurn(line, {
         signal: activeAbortController.signal,
         onIterationStart: (iter) => {
           if (iter > 1) {
             hasStreamedToken = false;
-            spinner.start(`Berpikir (Turn ${iter})...`);
+            spinner.start(t('thinkingTurn', { turn: iter }));
           }
         },
         onToken: (token) => {
@@ -191,15 +193,15 @@ export async function startRepl(options = {}) {
           }
           const argsStr = JSON.stringify(call.args || {}).slice(0, 50);
           output.write(`\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(argsStr)}\n`);
-          spinner.start(`Menjalankan tool [${call.name}]...`);
+          spinner.start(t('runningTool', { tool: call.name }));
         },
         onToolResult: (name, toolRes) => {
           if (toolRes && toolRes.error) {
-            spinner.warn(`Tool [${name}] error: ${toolRes.message || 'Gagal'}`);
+            spinner.warn(t('toolError', { tool: name, message: toolRes.message || t('failed') }));
           } else {
-            spinner.succeed(`Tool [${name}] selesai`);
+            spinner.succeed(t('toolDone', { tool: name }));
           }
-          spinner.start('Menganalisis hasil tool...');
+          spinner.start(t('analyzingResult'));
         }
       });
 
