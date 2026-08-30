@@ -83,18 +83,21 @@
 - **Evidence**: No `eslint.config.*`, no `.prettierrc`, no `tsconfig.json`, no `oxlint`, no `biome`. The repo has 0 lint/format config files.
 - **Impact**: Style drift across contributors, silent typos, inconsistent indentation. The project claims "production-grade" but has no quality gates.
 - **Fix**: Add Biome (fastest zero-config JS formatter/linter) or ESLint + Prettier. Commit a config. Add pre-commit hook.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Added Biome 2.5.11 as devDependency with `biome.json` (recommended lint rules, 2-space, single quotes; `noControlCharactersInRegex` disabled — intentional in the ANSI renderer). New npm scripts `lint`, `lint:fix`, `format`. Pre-commit hook in `.githooks/pre-commit` (enable with `git config core.hooksPath .githooks`). Codebase formatted and lint-clean (77 files); `biome check .` exits 0; `npm test` unchanged at 422/431.
 
 ### MAINT-02 — No CI/CD
 **Difficulty**: Easy
 - **Evidence**: No `.github/workflows/` directory. No GitHub Actions, no CI badge.
 - **Impact**: Breakages can merge silently. The one existing flaky test likely went unnoticed.
 - **Fix**: Add a GitHub Actions workflow that runs `npm test` and `npm run test:e2e` on push/PR.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Added `.github/workflows/ci.yml`: lint + unit tests on Node 20 and 22, triggered on push to `main` and PRs. `test:e2e` intentionally excluded from CI — it spawns the real CLI against live provider APIs and needs credentials (see CONFIG-03); run locally instead.
 
 ### MAINT-03 — No changelog
 **Difficulty**: Easy
 - **Evidence**: No `CHANGELOG.md`. Git history is the only record.
 - **Impact**: Users upgrading can't see breaking changes. Releases are opaque.
 - **Fix**: Add `changesets` or maintain a manual `CHANGELOG.md` updated per PR.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Added `CHANGELOG.md` in Keep a Changelog format. The `[1.0.0]` section is backfilled from the SEC-01..04 and BUG-01..04 fix history; an `[Unreleased]` section records this tooling work and is to be updated per PR going forward.
 
 ### MAINT-04 — Language-mixed strings degrade UX for non-Indonesian speakers
 **Difficulty**: Medium
