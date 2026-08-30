@@ -121,3 +121,23 @@ export function getContextTokens(session) {
 export function contextBudgetLimit(maxContextTokens) {
   return Math.floor((maxContextTokens || FALLBACK_MAX_CONTEXT_TOKENS) * BUDGET_STOP_RATIO);
 }
+
+/**
+ * Formats a token count compactly: <1000 → "950"; <1M → one decimal in k
+ * with a trailing ".0" dropped ("23.4k", "1k"); ≥1M → same in M ("1.2M").
+ * Rounds half-up at the one decimal.
+ * @param {number} n
+ * @returns {string}
+ */
+export function formatCompactTokens(n) {
+  const num = Number(n) || 0;
+  if (num < 1000) {
+    return String(Math.floor(num));
+  }
+  if (num < 1000000) {
+    const k = Math.round((num / 1000) * 10) / 10;
+    return `${k % 1 === 0 ? String(k) : k.toFixed(1)}k`;
+  }
+  const m = Math.round((num / 1000000) * 10) / 10;
+  return `${m % 1 === 0 ? String(m) : m.toFixed(1)}M`;
+}

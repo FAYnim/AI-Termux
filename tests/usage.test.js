@@ -12,6 +12,7 @@ import {
   accumulateUsage,
   contextBudgetLimit,
   createUsage,
+  formatCompactTokens,
   getContextTokens,
   getUsage,
   markRequestStart,
@@ -126,5 +127,24 @@ describe('Context Tokens & Budget', () => {
     assert.equal(contextBudgetLimit(undefined), 680000);
     assert.equal(contextBudgetLimit(null), 680000);
     assert.equal(contextBudgetLimit(0), 680000);
+  });
+});
+
+describe('formatCompactTokens', () => {
+  test('below 1000 stays an integer string', () => {
+    assert.equal(formatCompactTokens(0), '0');
+    assert.equal(formatCompactTokens(950), '950');
+    assert.equal(formatCompactTokens(999), '999');
+  });
+
+  test('thousands use k with one decimal, trailing .0 dropped', () => {
+    assert.equal(formatCompactTokens(1000), '1k');
+    assert.equal(formatCompactTokens(23400), '23.4k');
+    assert.equal(formatCompactTokens(999949), '999.9k');
+  });
+
+  test('millions use M with one decimal, trailing .0 dropped', () => {
+    assert.equal(formatCompactTokens(1000000), '1M');
+    assert.equal(formatCompactTokens(1234567), '1.2M');
   });
 });
