@@ -23,7 +23,6 @@ export class AgentOrchestrator {
   /**
    * @param {object} [options={}]
    * @param {object} [options.llmClient] - Generic LLM client instance
-   * @param {object} [options.geminiClient] - Legacy alias for LLM client
    * @param {string} [options.provider='gemini'] - Active provider ID
    * @param {SecurityGuard} [options.securityGuard] - Security guard engine
    * @param {Session} [options.session] - Conversation session
@@ -54,13 +53,12 @@ export class AgentOrchestrator {
         baseDir: this.workingDir,
       });
 
-    // LLM client: prefer explicit llmClient, then geminiClient (legacy), then create from provider
+    // LLM client: prefer explicit llmClient, then create from provider
     this.provider = options.provider || 'gemini';
     this.baseUrl = options.baseUrl;
     this.adapter = options.adapter;
     this.llmClient =
       options.llmClient ||
-      options.geminiClient ||
       createLlmClient({
         provider: this.provider,
         adapter: this.adapter,
@@ -70,8 +68,6 @@ export class AgentOrchestrator {
         logger: this.logger,
         locale: this.locale,
       });
-    this.geminiClient = this.llmClient; // legacy alias
-
     // Session Management
     this.session =
       options.session ||
@@ -349,7 +345,6 @@ export class AgentOrchestrator {
       logger: this.logger,
       locale: this.locale,
     });
-    this.geminiClient = this.llmClient;
     if (this.session) {
       this.session.provider = providerId;
       this.session.model = this.llmClient.getModel();

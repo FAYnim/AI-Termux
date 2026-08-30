@@ -262,7 +262,7 @@ export async function showModelMenuFromConfig(ctx = {}) {
   }
 
   const activeProvider = orchestrator?.provider || configMgr.get('activeProvider') || 'gemini';
-  const client = orchestrator?.llmClient || orchestrator?.geminiClient;
+  const client = orchestrator?.llmClient;
   let activeModel = 'gemini-2.5-flash';
   if (client && typeof client.getModel === 'function') {
     activeModel = client.getModel();

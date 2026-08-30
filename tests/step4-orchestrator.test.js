@@ -39,7 +39,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
     });
@@ -101,7 +101,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,
@@ -168,7 +168,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,
@@ -224,7 +224,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,
@@ -263,7 +263,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
     });
@@ -289,7 +289,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       maxIterations: 3,
@@ -320,7 +320,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
     });
@@ -332,7 +332,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     }, /User interrupted|aborted/);
   });
 
-  test('should accept llmClient option and ignore geminiClient fallback', async () => {
+  test('should accept llmClient option', async () => {
     const mockClient = {
       getModel: () => 'gpt-4o',
       getApiKey: () => 'k',

@@ -55,7 +55,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     };
 
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
     });
@@ -104,7 +104,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     };
 
     const orchestrator1 = new AgentOrchestrator({
-      geminiClient: mockGemini1,
+      llmClient: mockGemini1,
       session: session1,
       workingDir: tempDir,
     });
@@ -146,7 +146,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     };
 
     const orchestrator2 = new AgentOrchestrator({
-      geminiClient: mockGemini2,
+      llmClient: mockGemini2,
       session: loadedSession, // resumed session
       workingDir: tempDir,
     });
@@ -204,7 +204,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     };
 
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,

@@ -312,7 +312,7 @@ export async function executeSlashCommand(input, context = {}) {
       const newModel = modelSubCmd;
       if (!newModel) {
         let currentModel = 'unknown';
-        const client = orchestrator?.llmClient || orchestrator?.geminiClient;
+        const client = orchestrator?.llmClient;
         if (client && typeof client.getModel === 'function') {
           currentModel = client.getModel();
         } else if (configMgr) {
@@ -350,13 +350,6 @@ export async function executeSlashCommand(input, context = {}) {
                   orchestrator.llmClient.setModel(chosen);
                 } else {
                   orchestrator.llmClient.model = chosen;
-                }
-              }
-              if (orchestrator.geminiClient) {
-                if (typeof orchestrator.geminiClient.setModel === 'function') {
-                  orchestrator.geminiClient.setModel(chosen);
-                } else {
-                  orchestrator.geminiClient.model = chosen;
                 }
               }
               if (orchestrator.session) {
@@ -438,13 +431,6 @@ export async function executeSlashCommand(input, context = {}) {
             orchestrator.llmClient.model = newModel;
           }
         }
-        if (orchestrator.geminiClient) {
-          if (typeof orchestrator.geminiClient.setModel === 'function') {
-            orchestrator.geminiClient.setModel(newModel);
-          } else {
-            orchestrator.geminiClient.model = newModel;
-          }
-        }
         if (orchestrator.session) {
           orchestrator.session.model = newModel;
         }
@@ -471,7 +457,7 @@ export async function executeSlashCommand(input, context = {}) {
 
       const card = renderStatusCard('Active Session Details', {
         'Session ID': sess.id || 'N/A',
-        Model: orchestrator.geminiClient?.getModel() || sess.model || 'N/A',
+        Model: orchestrator.llmClient?.getModel() || sess.model || 'N/A',
         'Working Dir': sess.workingDir || process.cwd(),
         'Message Turns': msgs.length,
         'Est. Tokens': `${tokenEst.toLocaleString()} tokens`,
