@@ -52,6 +52,7 @@
 - **Symptom**: `(node:15048) [TAI_DEPRECATED_GET_PROVIDER_MODELS] DeprecationWarning` printed to stderr in every full-suite run.
 - **Why**: Internal tests still call `getProviderModels()`.
 - **Fix**: Replace internal usages with `getModelCatalog()`; remove deprecation warning after transition.
+- **Status**: ✅ **FIXED** (2026-08-30) — Src-side migration to `getModelCatalog()` was already complete (all `src/` call sites migrated in Phase 2.2); only tests exercise the alias as backward-compat verification. Removed the `process.emitWarning()` block and `@deprecated` JSDoc; `getProviderModels()` is now a plain delegation to `getModelCatalog()`. Alias kept for backward-compat test coverage. Warning gone from stderr; config-related tests (137) pass.
 
 ### BUG-03 — `loadConfig()` called synchronously on every getter/setter invocation
 - **File**: `src/config/manager.js:223,243,281,309,347,401,413,435,483,552,613,689,735,783,800`
