@@ -14,20 +14,20 @@
  *  - bin/tai.js: end-to-end via subprocess
  */
 
-import { test, describe, after, before } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 
 import { parseArgs } from '../src/cli/args.js';
 import {
   addModelsCli,
-  removeModelCli,
   clearModelsCli,
-  handleModelCommand
+  handleModelCommand,
+  removeModelCli,
 } from '../src/cli/model-commands.js';
 import { ConfigManager } from '../src/config/manager.js';
 
@@ -41,7 +41,7 @@ const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
 function makeTmpDir(label) {
   const dir = path.join(
     os.tmpdir(),
-    `tai-model-crud-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `tai-model-crud-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -158,11 +158,15 @@ describe('ConfigManager.addProviderModels', () => {
     // Make sure gemini provider exists in config
     configMgr.setProviderField('gemini', 'apiKey', 'test-key');
     const res = configMgr.addProviderModels('gemini', 'gemini-2.5-pro');
-    assert.ok(res.added.includes('gemini-2.5-pro') || res.skipped.includes('gemini-2.5-pro'),
-      'gemini-2.5-pro should be added or skipped (already in builtin catalog)');
+    assert.ok(
+      res.added.includes('gemini-2.5-pro') || res.skipped.includes('gemini-2.5-pro'),
+      'gemini-2.5-pro should be added or skipped (already in builtin catalog)',
+    );
     const stored = configMgr.loadConfig();
-    assert.ok(stored.providers.gemini.models.includes('gemini-2.5-pro'),
-      'catalog should contain gemini-2.5-pro after add');
+    assert.ok(
+      stored.providers.gemini.models.includes('gemini-2.5-pro'),
+      'catalog should contain gemini-2.5-pro after add',
+    );
   });
 
   test('adds a custom (non-builtin) finetune to a builtin provider', () => {
@@ -193,8 +197,10 @@ describe('ConfigManager.addProviderModels', () => {
     const before = configMgr.getProviderModels('gemini');
     const res = configMgr.addProviderModels('gemini', 'gemini-2.5-flash');
     // gemini-2.5-flash is the default → always in catalog → must be skipped
-    assert.ok(res.skipped.includes('gemini-2.5-flash') || res.added.length === 0,
-      're-adding existing model should not add it again');
+    assert.ok(
+      res.skipped.includes('gemini-2.5-flash') || res.added.length === 0,
+      're-adding existing model should not add it again',
+    );
     const after = configMgr.getProviderModels('gemini');
     assert.equal(before.length, after.length, 'catalog length should be unchanged');
   });
@@ -204,10 +210,8 @@ describe('ConfigManager.addProviderModels', () => {
     // 'gemini-2.5-flash' is builtin default → already in catalog
     // 'totally-new-model-xyz' → not present
     const res = configMgr.addProviderModels('gemini', 'gemini-2.5-flash,totally-new-model-xyz');
-    assert.ok(res.added.includes('totally-new-model-xyz'),
-      'new model should be in `added`');
-    assert.ok(res.skipped.includes('gemini-2.5-flash'),
-      'existing model should be in `skipped`');
+    assert.ok(res.added.includes('totally-new-model-xyz'), 'new model should be in `added`');
+    assert.ok(res.skipped.includes('gemini-2.5-flash'), 'existing model should be in `skipped`');
   });
 
   test('custom (non-builtin) provider can have models added', () => {
@@ -256,8 +260,10 @@ describe('ConfigManager.removeProviderModels', () => {
     const res = configMgr.removeProviderModels('gemini', 'gemini-1.5-pro');
     assert.deepEqual(res.removed, ['gemini-1.5-pro']);
     const stored = configMgr.loadConfig();
-    assert.ok(!stored.providers.gemini.models.includes('gemini-1.5-pro'),
-      'gemini-1.5-pro should be gone from catalog');
+    assert.ok(
+      !stored.providers.gemini.models.includes('gemini-1.5-pro'),
+      'gemini-1.5-pro should be gone from catalog',
+    );
   });
 
   test('removes multiple models via comma-separated input', () => {
@@ -272,11 +278,12 @@ describe('ConfigManager.removeProviderModels', () => {
     // default active model is gemini-2.5-flash
     const res = configMgr.removeProviderModels('gemini', 'gemini-2.5-flash');
     assert.deepEqual(res.removed, [], 'active model must not be removed');
-    assert.ok(res.skipped.includes('gemini-2.5-flash'),
-      'active model should be in `skipped`');
+    assert.ok(res.skipped.includes('gemini-2.5-flash'), 'active model should be in `skipped`');
     const stored = configMgr.loadConfig();
-    assert.ok(stored.providers.gemini.models.includes('gemini-2.5-flash'),
-      'active model must still be in catalog');
+    assert.ok(
+      stored.providers.gemini.models.includes('gemini-2.5-flash'),
+      'active model must still be in catalog',
+    );
   });
 
   test('returns empty result for unknown provider', () => {
@@ -317,11 +324,16 @@ describe('ConfigManager.clearProviderModels', () => {
     assert.deepEqual(stored.providers.gemini.models, ['only-one-model']);
 
     // Now clear
-    const res = configMgr.clearProviderModels('gemini');
+    const _res = configMgr.clearProviderModels('gemini');
     stored = configMgr.loadConfig();
     // After clear, catalog should equal builtin default models
-    assert.deepEqual(stored.providers.gemini.models,
-      ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']);
+    assert.deepEqual(stored.providers.gemini.models, [
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash',
+    ]);
   });
 
   test('preserves the active model even if it is a custom finetune', () => {
@@ -331,8 +343,10 @@ describe('ConfigManager.clearProviderModels', () => {
     // Now clear
     configMgr.clearProviderModels('gemini');
     const stored = configMgr.loadConfig();
-    assert.ok(stored.providers.gemini.models.includes('my-finetune-v3'),
-      'active custom model must survive clear');
+    assert.ok(
+      stored.providers.gemini.models.includes('my-finetune-v3'),
+      'active custom model must survive clear',
+    );
   });
 
   test('sets empty catalog for custom (non-builtin) provider', () => {
@@ -386,7 +400,11 @@ describe('addModelsCli', () => {
 
   test('adds multiple models via comma string', () => {
     configMgr.setProviderField('openai', 'apiKey', 'test-key');
-    const res = addModelsCli({ configMgr, models: 'gpt-4.5,gpt-4.5-mini', providerOverride: 'openai' });
+    const res = addModelsCli({
+      configMgr,
+      models: 'gpt-4.5,gpt-4.5-mini',
+      providerOverride: 'openai',
+    });
     assert.equal(res.exitCode, 0);
     assert.equal(res.provider, 'openai');
     assert.equal(res.added.length, 2);
@@ -524,7 +542,7 @@ describe('handleModelCommand: Phase 4 dispatcher routes', () => {
     configMgr.setProviderField('gemini', 'apiKey', 'k');
     const res = handleModelCommand(
       { command: 'model', subcommand: 'add', flags: { modelAdd: 'test-add-1' } },
-      configMgr
+      configMgr,
     );
     assert.equal(res.exitCode, 0);
     assert.ok(res.added.includes('test-add-1'));
@@ -534,7 +552,7 @@ describe('handleModelCommand: Phase 4 dispatcher routes', () => {
     configMgr.setProviderField('gemini', 'apiKey', 'k');
     const res = handleModelCommand(
       { command: 'model', subcommand: 'remove', flags: { modelRemove: 'gemini-1.5-pro' } },
-      configMgr
+      configMgr,
     );
     assert.equal(res.exitCode, 0);
     assert.ok(res.removed.includes('gemini-1.5-pro'));
@@ -544,7 +562,7 @@ describe('handleModelCommand: Phase 4 dispatcher routes', () => {
     configMgr.setProviderField('gemini', 'apiKey', 'k');
     const res = handleModelCommand(
       { command: 'model', subcommand: 'clear', flags: { modelClear: true } },
-      configMgr
+      configMgr,
     );
     assert.equal(res.exitCode, 0);
     assert.equal(res.provider, 'gemini');
@@ -574,17 +592,21 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
         TERMUXAI_CONFIG_DIR: tmpDir,
         GEMINI_API_KEY: '',
         OPENAI_API_KEY: '',
-        TERMUXAI_API_KEY: ''
+        TERMUXAI_API_KEY: '',
       },
       encoding: 'utf8',
-      timeout: 15000
+      timeout: 15000,
     });
   }
 
   test('`tai model --add <name>` adds model to gemini and exits 0', () => {
     const result = runTai(['model', '--add', 'gemini-e2e-foo']);
     const clean = stripAnsi(result.stdout + result.stderr);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(
+      result.status,
+      0,
+      `expected exit 0, got ${result.status}; stderr: ${result.stderr}`,
+    );
     assert.ok(clean.includes('gemini-e2e-foo'), 'should mention the added model');
     // Verify persistence
     const configPath = path.join(tmpDir, 'config.json');
@@ -594,7 +616,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
 
   test('`tai model --add <a,b,c>` bulk-adds three models to openai', () => {
     const result = runTai(['model', '--add', 'gpt-4.1,gpt-4.1-mini,gpt-5', '--provider', 'openai']);
-    const clean = stripAnsi(result.stdout + result.stderr);
+    const _clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
     const configPath = path.join(tmpDir, 'config.json');
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -613,30 +635,38 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     assert.ok(clean.includes('gemini-removable-1'));
     const configPath = path.join(tmpDir, 'config.json');
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    assert.ok(!cfg.providers.gemini.models.includes('gemini-removable-1'),
-      'removed model should be gone from catalog');
+    assert.ok(
+      !cfg.providers.gemini.models.includes('gemini-removable-1'),
+      'removed model should be gone from catalog',
+    );
   });
 
   test('`tai model --remove <active>` exits 1 (refuses to remove active)', () => {
     const result = runTai(['model', '--remove', 'gemini-2.5-flash']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 1, 'should refuse to remove the active model');
-    assert.ok(clean.includes('active') || clean.includes('switch'),
-      'error should mention active model / switch instruction');
+    assert.ok(
+      clean.includes('active') || clean.includes('switch'),
+      'error should mention active model / switch instruction',
+    );
   });
 
   test('`tai model --clear` resets catalog to builtin defaults', () => {
     // First, wreck the catalog
     runTai(['model', '--add', 'will-be-cleared', '--provider', 'gemini']);
     const result = runTai(['model', '--clear', '--provider', 'gemini']);
-    const clean = stripAnsi(result.stdout + result.stderr);
+    const _clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
     const configPath = path.join(tmpDir, 'config.json');
     const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    assert.ok(!cfg.providers.gemini.models.includes('will-be-cleared'),
-      'cleared model should be gone');
-    assert.ok(cfg.providers.gemini.models.includes('gemini-2.5-flash'),
-      'builtin defaults should be restored');
+    assert.ok(
+      !cfg.providers.gemini.models.includes('will-be-cleared'),
+      'cleared model should be gone',
+    );
+    assert.ok(
+      cfg.providers.gemini.models.includes('gemini-2.5-flash'),
+      'builtin defaults should be restored',
+    );
   });
 
   test('`tai model --add` without value exits 1', () => {
@@ -659,7 +689,11 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
   test('top-level shortcut `tai add <name>` works (Phase 4 convenience)', () => {
     const result = runTai(['add', 'shortcut-test-1', '--provider', 'gemini']);
     const clean = stripAnsi(result.stdout + result.stderr);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(
+      result.status,
+      0,
+      `expected exit 0, got ${result.status}; stderr: ${result.stderr}`,
+    );
     assert.ok(clean.includes('shortcut-test-1'));
   });
 });

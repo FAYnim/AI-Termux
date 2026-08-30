@@ -8,11 +8,11 @@ import path from 'node:path';
 import { DEFAULT_MODEL } from '../config/constants.js';
 import { configManager } from '../config/manager.js';
 import {
-  createUserMessage,
-  createModelMessage,
-  createFunctionResponseMessage,
   createFunctionCallPart,
-  normalizeContent
+  createFunctionResponseMessage,
+  createModelMessage,
+  createUserMessage,
+  normalizeContent,
 } from '../llm/types.js';
 
 /**
@@ -110,7 +110,7 @@ export class Session {
     const part = createFunctionCallPart(name, args);
     const msg = {
       role: 'model',
-      parts: [part]
+      parts: [part],
     };
     this.messages.push(msg);
     this.touch();
@@ -175,7 +175,7 @@ export class Session {
       provider: this.provider,
       workingDir: this.workingDir,
       messages: this.messages,
-      metadata: this.metadata
+      metadata: this.metadata,
     };
   }
 
@@ -239,7 +239,7 @@ export class SessionManager {
   createSession(options = {}) {
     return new Session({
       ...options,
-      sessionsDir: this.sessionsDir
+      sessionsDir: this.sessionsDir,
     });
   }
 
@@ -249,7 +249,7 @@ export class SessionManager {
    * @returns {boolean}
    */
   saveSession(session) {
-    const dir = this.getSessionsDir();
+    const _dir = this.getSessionsDir();
     const data = typeof session.toJSON === 'function' ? session.toJSON() : session;
 
     if (!data.id) {
@@ -263,7 +263,7 @@ export class SessionManager {
     fs.writeFileSync(tmpPath, payload, { encoding: 'utf8', mode: 0o600 });
     try {
       fs.renameSync(tmpPath, targetPath);
-    } catch (err) {
+    } catch (_err) {
       fs.copyFileSync(tmpPath, targetPath);
       try {
         fs.unlinkSync(tmpPath);
@@ -304,7 +304,7 @@ export class SessionManager {
       const data = JSON.parse(raw);
       return new Session({
         ...data,
-        sessionsDir: this.sessionsDir
+        sessionsDir: this.sessionsDir,
       });
     } catch (err) {
       throw new Error(`Failed to load session "${sessionId}": ${err.message}`);
@@ -321,7 +321,7 @@ export class SessionManager {
       return [];
     }
 
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.json') && !f.includes('.tmp.'));
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json') && !f.includes('.tmp.'));
     const sessions = [];
 
     for (const file of files) {
@@ -329,7 +329,7 @@ export class SessionManager {
       try {
         const raw = fs.readFileSync(filePath, 'utf8');
         const data = JSON.parse(raw);
-        
+
         let lastMessageText = '';
         if (Array.isArray(data.messages) && data.messages.length > 0) {
           const lastMsg = data.messages[data.messages.length - 1];
@@ -349,7 +349,7 @@ export class SessionManager {
           workingDir: data.workingDir || '',
           messageCount: Array.isArray(data.messages) ? data.messages.length : 0,
           preview: lastMessageText,
-          filePath
+          filePath,
         });
       } catch {
         // Skip corrupted files
@@ -387,7 +387,7 @@ export class SessionManager {
     const dir = this.getSessionsDir();
     if (!fs.existsSync(dir)) return 0;
 
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
     let count = 0;
     for (const file of files) {
       try {
@@ -410,9 +410,8 @@ export const defaultSessionManager = new SessionManager();
  * @returns {Session}
  */
 export function createSession(options = {}) {
-  const manager = options.sessionsDir || options.configDir
-    ? new SessionManager(options)
-    : defaultSessionManager;
+  const manager =
+    options.sessionsDir || options.configDir ? new SessionManager(options) : defaultSessionManager;
   return manager.createSession(options);
 }
 
@@ -423,9 +422,8 @@ export function createSession(options = {}) {
  * @returns {boolean}
  */
 export function saveSession(session, options = {}) {
-  const manager = options.sessionsDir || options.configDir
-    ? new SessionManager(options)
-    : defaultSessionManager;
+  const manager =
+    options.sessionsDir || options.configDir ? new SessionManager(options) : defaultSessionManager;
   return manager.saveSession(session);
 }
 
@@ -436,9 +434,8 @@ export function saveSession(session, options = {}) {
  * @returns {Session}
  */
 export function loadSession(sessionId, options = {}) {
-  const manager = options.sessionsDir || options.configDir
-    ? new SessionManager(options)
-    : defaultSessionManager;
+  const manager =
+    options.sessionsDir || options.configDir ? new SessionManager(options) : defaultSessionManager;
   return manager.loadSession(sessionId);
 }
 
@@ -448,9 +445,8 @@ export function loadSession(sessionId, options = {}) {
  * @returns {Array<object>}
  */
 export function listSessions(options = {}) {
-  const manager = options.sessionsDir || options.configDir
-    ? new SessionManager(options)
-    : defaultSessionManager;
+  const manager =
+    options.sessionsDir || options.configDir ? new SessionManager(options) : defaultSessionManager;
   return manager.listSessions();
 }
 
@@ -461,8 +457,7 @@ export function listSessions(options = {}) {
  * @returns {boolean}
  */
 export function deleteSession(sessionId, options = {}) {
-  const manager = options.sessionsDir || options.configDir
-    ? new SessionManager(options)
-    : defaultSessionManager;
+  const manager =
+    options.sessionsDir || options.configDir ? new SessionManager(options) : defaultSessionManager;
   return manager.deleteSession(sessionId);
 }

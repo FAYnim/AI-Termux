@@ -51,7 +51,7 @@ export function buildModelMenuItems(providerModels, activeProvider, activeModel)
         providerId: pid,
         model: m,
         isActive: pid === activeProvider && m === activeModel,
-        isCurrentProvider: pid === activeProvider
+        isCurrentProvider: pid === activeProvider,
       });
     }
   }
@@ -86,9 +86,7 @@ function renderFrame(items, selectedIndex, activeProvider, activeModel, output) 
     const isSelected = idx === selectedIndex;
     const cursor = isSelected ? ansi.green('▸') : ' ';
     const marker = it.isActive ? ansi.green('●') : ansi.dim('○');
-    const name = isSelected
-      ? ansi.bold(ansi.whiteBright(it.model))
-      : ansi.white(it.model);
+    const name = isSelected ? ansi.bold(ansi.whiteBright(it.model)) : ansi.white(it.model);
     const tag = it.isActive ? ` ${ansi.dim('(active)')}` : '';
     lines.push(`  ${cursor} ${marker} ${name}${tag}`);
   });
@@ -100,7 +98,7 @@ function renderFrame(items, selectedIndex, activeProvider, activeModel, output) 
   // Footer status
   lines.push('');
   lines.push(
-    `  ${ansi.dim('Current:')} ${ansi.bold(ansi.yellow(activeProvider))} ${ansi.dim('/')} ${ansi.bold(ansi.yellow(activeModel))}`
+    `  ${ansi.dim('Current:')} ${ansi.bold(ansi.yellow(activeProvider))} ${ansi.dim('/')} ${ansi.bold(ansi.yellow(activeModel))}`,
   );
 
   const frame = lines.join('\n');
@@ -139,7 +137,7 @@ export function showModelMenu(items, options = {}) {
   const activeProvider = options.activeProvider || 'gemini';
   const activeModel = options.activeModel || 'gemini-2.5-flash';
 
-  const isTTY = Boolean(input && input.isTTY && output && output.isTTY);
+  const isTTY = Boolean(input?.isTTY && output?.isTTY);
   const enabled = options.enabled !== undefined ? Boolean(options.enabled) : isTTY;
 
   return new Promise((resolve) => {
@@ -163,7 +161,7 @@ export function showModelMenu(items, options = {}) {
     }
     readline.emitKeypressEvents(input);
 
-    const keypressHandler = (chunk, key) => {
+    const keypressHandler = (_chunk, key) => {
       if (!key) return;
 
       if (key.ctrl && key.name === 'c') {
@@ -263,7 +261,7 @@ export async function showModelMenuFromConfig(ctx = {}) {
     return { cancelled: true };
   }
 
-  const activeProvider = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
+  const activeProvider = orchestrator?.provider || configMgr.get('activeProvider') || 'gemini';
   const client = orchestrator?.llmClient || orchestrator?.geminiClient;
   let activeModel = 'gemini-2.5-flash';
   if (client && typeof client.getModel === 'function') {

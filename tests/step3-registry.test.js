@@ -1,8 +1,8 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { createLlmClient } from '../src/llm/registry.js';
+import { describe, test } from 'node:test';
 import { GeminiClient } from '../src/llm/gemini.js';
 import { OpenAIClient } from '../src/llm/openai.js';
+import { createLlmClient } from '../src/llm/registry.js';
 
 describe('Step 3: LLM Client Registry', () => {
   test('dispatch gemini provider returns GeminiClient', () => {
@@ -12,7 +12,12 @@ describe('Step 3: LLM Client Registry', () => {
   });
 
   test('dispatch openai provider returns OpenAIClient', () => {
-    const client = createLlmClient({ provider: 'openai', model: 'gpt-4o', apiKey: 'k', baseUrl: 'https://o.ai/v1' });
+    const client = createLlmClient({
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: 'k',
+      baseUrl: 'https://o.ai/v1',
+    });
     assert.ok(client instanceof OpenAIClient);
     assert.equal(client.getModel(), 'gpt-4o');
     assert.equal(client.baseUrl, 'https://o.ai/v1');

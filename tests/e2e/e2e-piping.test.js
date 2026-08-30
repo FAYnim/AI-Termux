@@ -12,21 +12,16 @@
  * runSingleShot, and the full CLI piping pipeline.
  */
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { Readable, PassThrough } from 'node:stream';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-
-import {
-  isPipedInput,
-  readPipedStdin,
-  mergePipedPrompt
-} from '../../src/cli/piping.js';
-import { runSingleShot } from '../../src/cli/single-shot.js';
+import path from 'node:path';
+import { PassThrough, Readable } from 'node:stream';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { AgentOrchestrator } from '../../src/agent/orchestrator.js';
 import { SessionManager } from '../../src/agent/session.js';
+import { isPipedInput, mergePipedPrompt, readPipedStdin } from '../../src/cli/piping.js';
+import { runSingleShot } from '../../src/cli/single-shot.js';
 
 // ── Sample log data ────────────────────────────────────────────────────────
 const SAMPLE_ERROR_LOG = `
@@ -78,9 +73,21 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
     const pipedStream = { isTTY: false };
     const undefinedStream = { isTTY: undefined };
 
-    assert.strictEqual(isPipedInput(ttyStream), false, 'TTY stream should not be detected as piped');
-    assert.strictEqual(isPipedInput(pipedStream), true, 'Non-TTY stream should be detected as piped');
-    assert.strictEqual(isPipedInput(undefinedStream), false, 'Undefined isTTY should not be detected as piped');
+    assert.strictEqual(
+      isPipedInput(ttyStream),
+      false,
+      'TTY stream should not be detected as piped',
+    );
+    assert.strictEqual(
+      isPipedInput(pipedStream),
+      true,
+      'Non-TTY stream should be detected as piped',
+    );
+    assert.strictEqual(
+      isPipedInput(undefinedStream),
+      false,
+      'Undefined isTTY should not be detected as piped',
+    );
     assert.strictEqual(isPipedInput(null), false, 'null stream should return false');
     assert.strictEqual(isPipedInput(undefined), false, 'undefined stream should return false');
   });
@@ -127,7 +134,11 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
 
     const result = await readPipedStdin({ stream: mockStream, timeoutMs: 2000 });
 
-    assert.equal(result, 'First chunk\nSecond chunk\nThird chunk', 'Should join all Buffer chunks correctly');
+    assert.equal(
+      result,
+      'First chunk\nSecond chunk\nThird chunk',
+      'Should join all Buffer chunks correctly',
+    );
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -150,7 +161,7 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
       (err) => {
         assert.match(err.message, /exceeded maximum size/i, 'Error should mention size limit');
         return true;
-      }
+      },
     );
   });
 
@@ -172,11 +183,14 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
   test('mergePipedPrompt generates default instruction when user prompt is empty', () => {
     const mergedNoInstruction = mergePipedPrompt(SAMPLE_GIT_DIFF, '');
 
-    assert.ok(mergedNoInstruction.includes('Piped Input Content'), 'Should contain piped content header');
+    assert.ok(
+      mergedNoInstruction.includes('Piped Input Content'),
+      'Should contain piped content header',
+    );
     assert.ok(mergedNoInstruction.includes('diff --git'), 'Should include the git diff content');
     assert.ok(
       mergedNoInstruction.includes('analyze') || mergedNoInstruction.includes('process'),
-      'Should include default analysis instruction'
+      'Should include default analysis instruction',
     );
   });
 
@@ -185,7 +199,11 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
   // ──────────────────────────────────────────────────────────────
   test('mergePipedPrompt returns bare instruction when piped content is empty', () => {
     const result = mergePipedPrompt('', 'Buat commit message yang jelas');
-    assert.equal(result, 'Buat commit message yang jelas', 'Should return raw instruction when no piped content');
+    assert.equal(
+      result,
+      'Buat commit message yang jelas',
+      'Should return raw instruction when no piped content',
+    );
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -199,27 +217,30 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
       getModel: () => 'gemini-2.5-flash',
       generateStream: async ({ contents }) => {
         // Verify the prompt was properly merged and sent
-        const lastUserMsg = contents.find(c => c.role === 'user');
+        const lastUserMsg = contents.find((c) => c.role === 'user');
         const userText = JSON.stringify(lastUserMsg);
 
         const hasLogContent = userText.includes('192.168.1.101') || userText.includes('ERROR');
         const hasInstruction = userText.includes('IP') || userText.includes('Ekstrak');
 
-        assert.ok(hasLogContent || hasInstruction, 'Prompt to LLM should contain piped log data or instruction');
+        assert.ok(
+          hasLogContent || hasInstruction,
+          'Prompt to LLM should contain piped log data or instruction',
+        );
 
         return {
           text: `## Analisis Log Error\n\n**IP Addresses yang Ditemukan:**\n- 192.168.1.101 (timeout berulang)\n- 10.0.0.55 (server error 500)\n- 172.16.0.22 (token expired)\n\n**Masalah Utama:**\n1. API timeout dari 192.168.1.101 terjadi 2x\n2. Koneksi Redis ke 127.0.0.1:6379 ditolak\n3. Connection pool database exhausted`,
           functionCalls: [],
-          finishReason: 'STOP'
+          finishReason: 'STOP',
         };
-      }
+      },
     };
 
     const orchestrator = new AgentOrchestrator({
       geminiClient: mockGemini,
       session,
       workingDir: tempDir,
-      autoApprove: true
+      autoApprove: true,
     });
 
     // Simulate piped stdin content (log) + user instruction
@@ -236,12 +257,12 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
     // Capture output without writing to real stdout
     const outputChunks = [];
     const mockOutput = new PassThrough();
-    mockOutput.on('data', chunk => outputChunks.push(chunk.toString()));
+    mockOutput.on('data', (chunk) => outputChunks.push(chunk.toString()));
 
     const result = await runSingleShot(mergedPrompt, {
       orchestrator,
       stream: mockOutput,
-      streamTokens: false
+      streamTokens: false,
     });
 
     mockOutput.end();
@@ -279,11 +300,17 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
     });
 
     const pipedContent = await readPipedStdin({ stream: mockStream, timeoutMs: 2000 });
-    const mergedPrompt = mergePipedPrompt(pipedContent, 'Buat pesan commit yang ringkas dan deskriptif');
+    const mergedPrompt = mergePipedPrompt(
+      pipedContent,
+      'Buat pesan commit yang ringkas dan deskriptif',
+    );
 
     assert.ok(pipedContent.includes('diff --git'), 'Piped content should contain git diff');
     assert.ok(pipedContent.includes('express.json'), 'Piped content should contain changed code');
-    assert.ok(mergedPrompt.includes('Buat pesan commit'), 'Merged prompt should include instruction');
+    assert.ok(
+      mergedPrompt.includes('Buat pesan commit'),
+      'Merged prompt should include instruction',
+    );
     assert.ok(mergedPrompt.includes('diff --git'), 'Merged prompt should include git diff content');
   });
 });

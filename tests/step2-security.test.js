@@ -1,11 +1,10 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { SecurityGuard } from '../src/security/guard.js';
-import { isPathInside, validateSafePath, isBinaryFile } from '../src/security/path-validator.js';
-import { BLACKLIST_PATTERNS, RISKY_COMMAND_PATTERNS } from '../src/security/rules.js';
+import { isBinaryFile, isPathInside, validateSafePath } from '../src/security/path-validator.js';
 
 describe('Security & Path Validator (src/security/)', () => {
   let tempBaseDir;
@@ -54,11 +53,9 @@ describe('Security & Path Validator (src/security/)', () => {
     test('should allow external path if present in allowedDirs', () => {
       const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-extra-'));
       try {
-        const res = validateSafePath(
-          path.join(extraDir, 'file.txt'),
-          tempBaseDir,
-          { allowedDirs: [extraDir] }
-        );
+        const res = validateSafePath(path.join(extraDir, 'file.txt'), tempBaseDir, {
+          allowedDirs: [extraDir],
+        });
         assert.equal(res.isInsideBase, false);
         assert.equal(res.isAllowed, true);
       } finally {
@@ -116,7 +113,7 @@ describe('Security & Path Validator (src/security/)', () => {
         'dd if=/dev/zero of=/dev/sda',
         ':(){ :|:& };:',
         'chmod -R 777 /',
-        'chown -R root:root /'
+        'chown -R root:root /',
       ];
 
       for (const cmd of dangerousCommands) {
@@ -140,7 +137,7 @@ describe('Security & Path Validator (src/security/)', () => {
         'kill -9 1234',
         'curl https://example.com/install.sh | bash',
         'apt remove curl',
-        'npm install -g something'
+        'npm install -g something',
       ];
 
       for (const cmd of riskyCommands) {
@@ -160,7 +157,7 @@ describe('Security & Path Validator (src/security/)', () => {
         'git status',
         'cat package.json',
         'npm test',
-        'echo "hello world"'
+        'echo "hello world"',
       ];
 
       for (const cmd of safeCommands) {
@@ -187,10 +184,10 @@ describe('Security & Path Validator (src/security/)', () => {
       let promptCalled = false;
       const guard = new SecurityGuard({
         baseDir: tempBaseDir,
-        confirmationHandler: async (msg) => {
+        confirmationHandler: async (_msg) => {
           promptCalled = true;
           return false; // User denies
-        }
+        },
       });
 
       const res = await guard.authorize('execute_command', { command: 'rm file.txt' });
@@ -206,7 +203,7 @@ describe('Security & Path Validator (src/security/)', () => {
         confirmationHandler: async () => {
           promptCalled = true;
           return true; // User approves
-        }
+        },
       });
 
       const res = await guard.authorize('execute_command', { command: 'rm file.txt' });
@@ -222,7 +219,7 @@ describe('Security & Path Validator (src/security/)', () => {
         confirmationHandler: async () => {
           promptCalled = true;
           return false;
-        }
+        },
       });
 
       const res = await guard.authorize('execute_command', { command: 'rm file.txt' });
@@ -237,7 +234,7 @@ describe('Security & Path Validator (src/security/)', () => {
         confirmationHandler: async (msg) => {
           confirmationMsg = msg;
           return false; // Reject outside access
-        }
+        },
       });
 
       // Inside workspace: Allowed directly

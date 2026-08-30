@@ -14,16 +14,25 @@ export class BaseLlmClient {
     this.fetch = options.fetch || globalThis.fetch;
   }
 
-  getModel() { return this.model; }
-  setModel(model) { this.model = model; }
-  getApiKey() { return this.apiKey; }
-  setApiKey(apiKey) { this.apiKey = apiKey || ''; }
+  getModel() {
+    return this.model;
+  }
+  setModel(model) {
+    this.model = model;
+  }
+  getApiKey() {
+    return this.apiKey;
+  }
+  setApiKey(apiKey) {
+    this.apiKey = apiKey || '';
+  }
 
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: abstract signature — destructured keys document the contract for subclasses
   buildRequestBody({ contents, tools, systemInstruction, generationConfig }) {
     throw new Error('Not implemented');
   }
 
-  getEndpoint(action = 'generateContent', isStream = false) {
+  getEndpoint(_action = 'generateContent', _isStream = false) {
     throw new Error('Not implemented');
   }
 
@@ -35,7 +44,10 @@ export class BaseLlmClient {
     const controller = new AbortController();
     let timer = null;
     if (timeoutMs && timeoutMs > 0) {
-      timer = setTimeout(() => controller.abort(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs);
+      timer = setTimeout(
+        () => controller.abort(new Error(`Request timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
     }
     const onParentAbort = () => {
       if (timer) clearTimeout(timer);
@@ -66,11 +78,11 @@ export class BaseLlmClient {
     }
   }
 
-  async generateStream(options = {}) {
+  async generateStream(_options = {}) {
     throw new Error('Not implemented');
   }
 
-  async generate(options = {}) {
+  async generate(_options = {}) {
     throw new Error('Not implemented');
   }
 }

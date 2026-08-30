@@ -1,5 +1,5 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
 import { parseArgs } from '../src/cli/args.js';
 
 describe('Step 1: CLI provider arg parsing', () => {

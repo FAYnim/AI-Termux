@@ -4,17 +4,16 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
 import {
   BUILTIN_PROVIDERS,
   DEFAULT_ACTIVE_PROVIDER,
   DEFAULT_CONFIG,
   DEFAULT_CONFIG_DIR_NAME,
   DEFAULT_CONFIG_FILE_NAME,
-  DEFAULT_MODEL,
   DEFAULT_SESSIONS_DIR_NAME,
-  TERMUX_HOME_FALLBACK
+  TERMUX_HOME_FALLBACK,
 } from './constants.js';
 
 // ---------------------------------------------------------------------------
@@ -30,18 +29,16 @@ import {
 (function validateBuiltinProviderInvariants() {
   for (const [id, def] of Object.entries(BUILTIN_PROVIDERS)) {
     if (!def || typeof def !== 'object') {
-      throw new Error(
-        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}] is not an object`
-      );
+      throw new Error(`[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}] is not an object`);
     }
     if (typeof def.defaultModel !== 'string' || !def.defaultModel.trim()) {
       throw new Error(
-        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel must be a non-empty string`
+        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel must be a non-empty string`,
       );
     }
     if (!Array.isArray(def.models) || def.models.length === 0) {
       throw new Error(
-        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models must be a non-empty array`
+        `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models must be a non-empty array`,
       );
     }
     if (!def.models.includes(def.defaultModel)) {
@@ -49,14 +46,14 @@ import {
         `[config] Invariant violation: BUILTIN_PROVIDERS[${JSON.stringify(id)}].defaultModel ` +
           `(${JSON.stringify(def.defaultModel)}) must be a member of ` +
           `BUILTIN_PROVIDERS[${JSON.stringify(id)}].models ${JSON.stringify(def.models)}. ` +
-          'See the provider-model clarity refactor (Phase 1.3).'
+          'See the provider-model clarity refactor (Phase 1.3).',
       );
     }
     // Catalog entries must be non-empty strings (no blanks, no nulls).
     for (const m of def.models) {
       if (typeof m !== 'string' || !m.trim()) {
         throw new Error(
-          `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models contains a non-string or blank entry`
+          `[config] BUILTIN_PROVIDERS[${JSON.stringify(id)}].models contains a non-string or blank entry`,
         );
       }
     }
@@ -89,7 +86,8 @@ export class ConfigManager {
       return path.resolve(process.env.T_AI_CONFIG_DIR);
     }
 
-    const homeDir = process.env.HOME || process.env.USERPROFILE || os.homedir() || TERMUX_HOME_FALLBACK;
+    const homeDir =
+      process.env.HOME || process.env.USERPROFILE || os.homedir() || TERMUX_HOME_FALLBACK;
     const primaryDir = path.join(homeDir, DEFAULT_CONFIG_DIR_NAME);
     // Legacy directory fallback: if ~/.termuxai doesn't exist but ~/.t-ai does,
     // use the legacy dir so existing users' configs and sessions still load.
@@ -162,14 +160,14 @@ export class ConfigManager {
     try {
       const raw = fs.readFileSync(configPath, 'utf8');
       parsed = JSON.parse(raw);
-    } catch (err) {
+    } catch (_err) {
       // In case of corrupt file, fallback to defaults
       return structuredClone(DEFAULT_CONFIG);
     }
     const config = {
       ...structuredClone(DEFAULT_CONFIG),
       ...parsed,
-      providers: { ...(parsed.providers || {}) }
+      providers: { ...(parsed.providers || {}) },
     };
 
     // Auto-promote legacy apiKey into providers[activeProvider] if providers missing
@@ -222,7 +220,7 @@ export class ConfigManager {
     fs.writeFileSync(tmpPath, payload, { encoding: 'utf8', mode: 0o600 });
     try {
       fs.renameSync(tmpPath, configPath);
-    } catch (err) {
+    } catch (_err) {
       // Fallback for filesystems that don't support atomic rename across mounts
       fs.copyFileSync(tmpPath, configPath);
       try {
@@ -304,7 +302,7 @@ export class ConfigManager {
   delete(key) {
     const config = this.loadConfig();
     const defaults = structuredClone(DEFAULT_CONFIG);
-    if (Object.prototype.hasOwnProperty.call(defaults, key)) {
+    if (Object.hasOwn(defaults, key)) {
       config[key] = defaults[key];
     } else {
       delete config[key];
@@ -422,7 +420,8 @@ export class ConfigManager {
     if (overrideKey && typeof overrideKey === 'string' && overrideKey.trim().length > 0) {
       return overrideKey.trim();
     }
-    const resolvedProvider = providerId || this.loadConfig().activeProvider || DEFAULT_ACTIVE_PROVIDER;
+    const resolvedProvider =
+      providerId || this.loadConfig().activeProvider || DEFAULT_ACTIVE_PROVIDER;
     const builtin = BUILTIN_PROVIDERS[resolvedProvider];
     // 1. Env vars lookup
     if (builtin?.envVars) {
@@ -435,7 +434,9 @@ export class ConfigManager {
     }
     // 2. Config lookup (providers[providerId].apiKey or legacy config.apiKey)
     const config = this.loadConfig();
-    const storedKey = config.providers?.[resolvedProvider]?.apiKey || (resolvedProvider === 'gemini' ? config.apiKey : null);
+    const storedKey =
+      config.providers?.[resolvedProvider]?.apiKey ||
+      (resolvedProvider === 'gemini' ? config.apiKey : null);
     if (storedKey && typeof storedKey === 'string' && storedKey.trim().length > 0) {
       return storedKey.trim();
     }
@@ -522,12 +523,8 @@ export class ConfigManager {
     }
 
     // Normalize input → string[]
-    const raw = Array.isArray(input)
-      ? input
-      : String(input || '').split(/[,;\n]+/g);
-    const candidates = raw
-      .map(s => (typeof s === 'string' ? s.trim() : ''))
-      .filter(Boolean);
+    const raw = Array.isArray(input) ? input : String(input || '').split(/[,;\n]+/g);
+    const candidates = raw.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
 
     // Dedupe against the live catalog (so re-adding the same name is a no-op)
     const existing = new Set(prov.models);
@@ -554,7 +551,7 @@ export class ConfigManager {
     return {
       added,
       skipped,
-      catalog: config.providers[providerId].models
+      catalog: config.providers[providerId].models,
     };
   }
 
@@ -580,20 +577,15 @@ export class ConfigManager {
     }
     if (!Array.isArray(prov.models)) prov.models = [];
 
-    const raw = Array.isArray(input)
-      ? input
-      : String(input || '').split(/[,;\n]+/g);
+    const raw = Array.isArray(input) ? input : String(input || '').split(/[,;\n]+/g);
     const candidates = new Set(
-      raw
-        .map(s => (typeof s === 'string' ? s.trim() : ''))
-        .filter(Boolean)
+      raw.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean),
     );
 
     // Effective active = stored model, falling back to builtin default
     const builtin = BUILTIN_PROVIDERS[providerId];
-    const storedActive = typeof prov.model === 'string' && prov.model.trim()
-      ? prov.model.trim()
-      : null;
+    const storedActive =
+      typeof prov.model === 'string' && prov.model.trim() ? prov.model.trim() : null;
     const effectiveActive = storedActive || builtin?.defaultModel || null;
 
     const removed = [];
@@ -618,7 +610,7 @@ export class ConfigManager {
     return {
       removed,
       skipped,
-      catalog: config.providers[providerId].models
+      catalog: config.providers[providerId].models,
     };
   }
 
@@ -644,7 +636,11 @@ export class ConfigManager {
 
     // Preserve the active model even if it was a custom finetune (per the
     // ⭐ "auto-include stored model" guarantee in getProviderModels).
-    if (typeof prov.model === 'string' && prov.model.trim() && !builtinModels.includes(prov.model.trim())) {
+    if (
+      typeof prov.model === 'string' &&
+      prov.model.trim() &&
+      !builtinModels.includes(prov.model.trim())
+    ) {
       builtinModels.push(prov.model.trim());
     }
 
@@ -707,7 +703,11 @@ export class ConfigManager {
       }
     }
     // 3. Builtin default
-    if (builtin?.defaultModel && typeof builtin.defaultModel === 'string' && builtin.defaultModel.trim()) {
+    if (
+      builtin?.defaultModel &&
+      typeof builtin.defaultModel === 'string' &&
+      builtin.defaultModel.trim()
+    ) {
       return builtin.defaultModel.trim();
     }
     return null;
@@ -743,9 +743,8 @@ export class ConfigManager {
     const storedModels = Array.isArray(stored.models) ? stored.models : [];
     // The currently-active model the user picked (may be a custom finetune
     // or a model not present in the catalog). We always surface it.
-    const activeModel = typeof stored.model === 'string' && stored.model.trim()
-      ? stored.model.trim()
-      : null;
+    const activeModel =
+      typeof stored.model === 'string' && stored.model.trim() ? stored.model.trim() : null;
 
     // Combine: builtin default model first, then active model, then
     // stored catalog, then builtin catalog. Deduplicate while preserving

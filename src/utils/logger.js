@@ -63,9 +63,9 @@ export const logger = {
     const lines = text.split('\n');
     const titleClean = stripAnsi(title);
     const maxLineLen = Math.max(
-      ...lines.map(l => stripAnsi(l).length),
+      ...lines.map((l) => stripAnsi(l).length),
       titleClean ? titleClean.length + 4 : 0,
-      30
+      30,
     );
 
     const topBorder = titleClean
@@ -80,5 +80,5 @@ export const logger = {
       console.log(`${ansi.gray('│')} ${line}${pad} ${ansi.gray('│')}`);
     }
     console.log(ansi.gray(bottomBorder));
-  }
+  },
 };

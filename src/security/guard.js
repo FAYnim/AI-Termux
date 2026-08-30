@@ -3,17 +3,17 @@
  */
 
 import readline from 'node:readline';
-import {
-  BLACKLIST_PATTERNS,
-  RISKY_COMMAND_PATTERNS,
-  OBFUSCATION_PATTERNS,
-  PROTECTED_PATH_PATTERNS,
-  HARD_LIMITS,
-  DEFAULT_SECURITY_CONFIG
-} from './rules.js';
-import { validateSafePath } from './path-validator.js';
 import { configManager } from '../config/manager.js';
 import { ansi } from '../utils/ansi.js';
+import { validateSafePath } from './path-validator.js';
+import {
+  BLACKLIST_PATTERNS,
+  DEFAULT_SECURITY_CONFIG,
+  HARD_LIMITS,
+  OBFUSCATION_PATTERNS,
+  PROTECTED_PATH_PATTERNS,
+  RISKY_COMMAND_PATTERNS,
+} from './rules.js';
 
 export class SecurityGuard {
   /**
@@ -29,7 +29,8 @@ export class SecurityGuard {
     this.baseDir = options.baseDir || process.cwd();
     this.allowedDirs = Array.isArray(options.allowedDirs) ? options.allowedDirs : [];
     this.confirmationHandler = options.confirmationHandler || null;
-    this.defaultTimeoutMs = options.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs;
+    this.defaultTimeoutMs =
+      options.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs;
   }
 
   /**
@@ -50,14 +51,14 @@ export class SecurityGuard {
       return {
         isBlacklisted: true,
         isRisky: true,
-        rejectReason: `Command exceeds maximum length (${HARD_LIMITS.maxCommandLength} chars)`
+        rejectReason: `Command exceeds maximum length (${HARD_LIMITS.maxCommandLength} chars)`,
       };
     }
     if (trimmed.includes('\0')) {
       return {
         isBlacklisted: true,
         isRisky: true,
-        rejectReason: 'Command contains null byte (possible truncation attack)'
+        rejectReason: 'Command contains null byte (possible truncation attack)',
       };
     }
 
@@ -68,7 +69,7 @@ export class SecurityGuard {
           isBlacklisted: true,
           isRisky: true,
           matchedPattern: pattern.toString(),
-          rejectReason: 'Command uses obfuscation (hex escapes / base64 / eval)'
+          rejectReason: 'Command uses obfuscation (hex escapes / base64 / eval)',
         };
       }
     }
@@ -81,7 +82,7 @@ export class SecurityGuard {
           isBlacklisted: true,
           isRisky: true,
           matchedPattern: pattern.toString(),
-          rejectReason: 'Command targets a protected system path'
+          rejectReason: 'Command targets a protected system path',
         };
       }
     }
@@ -92,7 +93,7 @@ export class SecurityGuard {
         return {
           isBlacklisted: true,
           isRisky: true,
-          matchedPattern: pattern.toString()
+          matchedPattern: pattern.toString(),
         };
       }
     }
@@ -103,7 +104,7 @@ export class SecurityGuard {
         return {
           isBlacklisted: false,
           isRisky: true,
-          matchedPattern: pattern.toString()
+          matchedPattern: pattern.toString(),
         };
       }
     }
@@ -124,7 +125,7 @@ export class SecurityGuard {
     }
     return {
       allowedDirs: this.allowedDirs,
-      allowTermuxStorage
+      allowTermuxStorage,
     };
   }
 
@@ -147,7 +148,7 @@ export class SecurityGuard {
     return new Promise((resolve) => {
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
 
       const formattedPrompt = `${ansi.bold(ansi.yellow('⚠ [SECURITY CHECK]'))} ${message} ${ansi.dim('[y/N]')}: `;
@@ -180,7 +181,7 @@ export class SecurityGuard {
         if (inspection.isBlacklisted) {
           return {
             allowed: false,
-            reason: `Forbidden command detected by security guard: "${command}" (matches blacklist pattern)`
+            reason: `Forbidden command detected by security guard: "${command}" (matches blacklist pattern)`,
           };
         }
 
@@ -188,20 +189,26 @@ export class SecurityGuard {
           const pathValidation = validateSafePath(workingDir, this.baseDir, this._pathOptions());
           if (!pathValidation.isAllowed) {
             const confirmed = await this.promptConfirmation(
-              `AI wants to execute command in directory outside workspace: "${pathValidation.resolvedPath}"`
+              `AI wants to execute command in directory outside workspace: "${pathValidation.resolvedPath}"`,
             );
             if (!confirmed) {
-              return { allowed: false, reason: `User rejected command execution in external path "${workingDir}".` };
+              return {
+                allowed: false,
+                reason: `User rejected command execution in external path "${workingDir}".`,
+              };
             }
           }
         }
 
         if (inspection.isRisky && !this.autoApprove) {
           const confirmed = await this.promptConfirmation(
-            `AI wants to execute risky shell command:\n  ${ansi.cyan(command)}\nProceed?`
+            `AI wants to execute risky shell command:\n  ${ansi.cyan(command)}\nProceed?`,
           );
           if (!confirmed) {
-            return { allowed: false, reason: `User denied execution of risky command: "${command}".` };
+            return {
+              allowed: false,
+              reason: `User denied execution of risky command: "${command}".`,
+            };
           }
         }
 
@@ -221,10 +228,13 @@ export class SecurityGuard {
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const actionVerb = toolName === 'read_file' ? 'read' : 'modify';
           const confirmed = await this.promptConfirmation(
-            `AI wants to ${actionVerb} file outside workspace: "${pathValidation.resolvedPath}"`
+            `AI wants to ${actionVerb} file outside workspace: "${pathValidation.resolvedPath}"`,
           );
           if (!confirmed) {
-            return { allowed: false, reason: `User rejected file access outside workspace for "${filePath}".` };
+            return {
+              allowed: false,
+              reason: `User rejected file access outside workspace for "${filePath}".`,
+            };
           }
         }
 
@@ -237,10 +247,13 @@ export class SecurityGuard {
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const confirmed = await this.promptConfirmation(
-            `AI wants to inspect directory outside workspace: "${pathValidation.resolvedPath}"`
+            `AI wants to inspect directory outside workspace: "${pathValidation.resolvedPath}"`,
           );
           if (!confirmed) {
-            return { allowed: false, reason: `User rejected directory scan outside workspace for "${dirPath}".` };
+            return {
+              allowed: false,
+              reason: `User rejected directory scan outside workspace for "${dirPath}".`,
+            };
           }
         }
 

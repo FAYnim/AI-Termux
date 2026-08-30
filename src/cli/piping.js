@@ -71,7 +71,11 @@ export async function readPipedStdin(options = {}) {
       if (totalBytes > maxBytes) {
         settled = true;
         cleanup();
-        reject(new Error(`Piped input exceeded maximum size limit (${Math.round(maxBytes / 1024 / 1024)}MB)`));
+        reject(
+          new Error(
+            `Piped input exceeded maximum size limit (${Math.round(maxBytes / 1024 / 1024)}MB)`,
+          ),
+        );
       }
     }
 

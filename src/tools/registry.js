@@ -2,11 +2,11 @@
  * Tool Registry & Gemini Function Declarations Generator
  */
 
+import { executeCommandTool } from './execute_command.js';
+import { listDirTool } from './list_dir.js';
+import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
 import { writeFileTool } from './write_file.js';
-import { patchFileTool } from './patch_file.js';
-import { listDirTool } from './list_dir.js';
-import { executeCommandTool } from './execute_command.js';
 
 /**
  * Mapping of all registered actuator tools
@@ -16,7 +16,7 @@ export const TOOLS_MAP = {
   write_file: writeFileTool,
   patch_file: patchFileTool,
   list_dir: listDirTool,
-  execute_command: executeCommandTool
+  execute_command: executeCommandTool,
 };
 
 /**
@@ -31,112 +31,116 @@ export const TOOL_DECLARATIONS = [
       properties: {
         filePath: {
           type: 'STRING',
-          description: 'Relative or absolute path to the file to read'
+          description: 'Relative or absolute path to the file to read',
         },
         startLine: {
           type: 'INTEGER',
-          description: '1-indexed starting line number for slicing (optional)'
+          description: '1-indexed starting line number for slicing (optional)',
         },
         endLine: {
           type: 'INTEGER',
-          description: '1-indexed ending line number for slicing (optional)'
+          description: '1-indexed ending line number for slicing (optional)',
         },
         encoding: {
           type: 'STRING',
-          description: 'File character encoding, defaults to utf-8'
-        }
+          description: 'File character encoding, defaults to utf-8',
+        },
       },
-      required: ['filePath']
-    }
+      required: ['filePath'],
+    },
   },
   {
     name: 'write_file',
-    description: 'Write text content to a destination file. Automatically creates parent directories and uses atomic write.',
+    description:
+      'Write text content to a destination file. Automatically creates parent directories and uses atomic write.',
     parameters: {
       type: 'OBJECT',
       properties: {
         filePath: {
           type: 'STRING',
-          description: 'Destination file path'
+          description: 'Destination file path',
         },
         content: {
           type: 'STRING',
-          description: 'Full text content to write into the file'
+          description: 'Full text content to write into the file',
         },
         encoding: {
           type: 'STRING',
-          description: 'File character encoding, defaults to utf-8'
-        }
+          description: 'File character encoding, defaults to utf-8',
+        },
       },
-      required: ['filePath', 'content']
-    }
+      required: ['filePath', 'content'],
+    },
   },
   {
     name: 'patch_file',
-    description: 'Perform token-efficient exact search-and-replace on an existing file. The searchString must be unique.',
+    description:
+      'Perform token-efficient exact search-and-replace on an existing file. The searchString must be unique.',
     parameters: {
       type: 'OBJECT',
       properties: {
         filePath: {
           type: 'STRING',
-          description: 'Target file path to modify'
+          description: 'Target file path to modify',
         },
         searchString: {
           type: 'STRING',
-          description: 'Exact string to be replaced (must occur exactly once in the file)'
+          description: 'Exact string to be replaced (must occur exactly once in the file)',
         },
         replaceString: {
           type: 'STRING',
-          description: 'New string to replace the searchString with'
-        }
+          description: 'New string to replace the searchString with',
+        },
       },
-      required: ['filePath', 'searchString', 'replaceString']
-    }
+      required: ['filePath', 'searchString', 'replaceString'],
+    },
   },
   {
     name: 'list_dir',
-    description: 'Inspect directory contents recursively with tree formatting, depth control, and ignore filtering (.git, node_modules).',
+    description:
+      'Inspect directory contents recursively with tree formatting, depth control, and ignore filtering (.git, node_modules).',
     parameters: {
       type: 'OBJECT',
       properties: {
         dirPath: {
           type: 'STRING',
-          description: 'Directory path to inspect (defaults to current working directory .)'
+          description: 'Directory path to inspect (defaults to current working directory .)',
         },
         depth: {
           type: 'INTEGER',
-          description: 'Maximum depth level for recursive inspection (default 2)'
+          description: 'Maximum depth level for recursive inspection (default 2)',
         },
         ignorePatterns: {
           type: 'ARRAY',
           items: { type: 'STRING' },
-          description: 'Optional custom list of directory/file names to ignore'
-        }
-      }
-    }
+          description: 'Optional custom list of directory/file names to ignore',
+        },
+      },
+    },
   },
   {
     name: 'execute_command',
-    description: 'Execute a shell command locally in Termux or host environment with timeout protection.',
+    description:
+      'Execute a shell command locally in Termux or host environment with timeout protection.',
     parameters: {
       type: 'OBJECT',
       properties: {
         command: {
           type: 'STRING',
-          description: 'Shell command line to execute'
+          description: 'Shell command line to execute',
         },
         workingDir: {
           type: 'STRING',
-          description: 'Working directory for execution (defaults to workspace base directory)'
+          description: 'Working directory for execution (defaults to workspace base directory)',
         },
         timeoutMs: {
           type: 'INTEGER',
-          description: 'Execution timeout limit in milliseconds (defaults to 30000)'
-        }
+          description: 'Execution timeout limit in milliseconds (defaults to 30000)',
+        },
       },
-      required: ['command']
-    }
-  }
+      required: ['command'],
+    },
+  },
 ];
 
 /**
@@ -169,7 +173,15 @@ export function normalizeToolArgs(name, rawArgs = {}) {
 
   if (name === 'write_file' || name === 'read_file' || name === 'patch_file') {
     if (!args.filePath) {
-      args.filePath = args.path || args.file || args.filepath || args.file_path || args.filename || args.fileName || args.target_file || args.destination;
+      args.filePath =
+        args.path ||
+        args.file ||
+        args.filepath ||
+        args.file_path ||
+        args.filename ||
+        args.fileName ||
+        args.target_file ||
+        args.destination;
     }
   }
 
@@ -193,7 +205,8 @@ export function normalizeToolArgs(name, rawArgs = {}) {
 
   if (name === 'patch_file') {
     if (!args.searchString) {
-      args.searchString = args.search || args.find || args.pattern || args.old_string || args.oldString;
+      args.searchString =
+        args.search || args.find || args.pattern || args.old_string || args.oldString;
     }
     if (!args.replaceString) {
       args.replaceString = args.replace || args.new_string || args.newString;
@@ -217,7 +230,7 @@ export async function dispatchToolCall(name, rawArgs = {}, context = {}) {
   if (!tool) {
     return {
       error: true,
-      message: `Tool "${name}" is not recognized. Available tools: ${Object.keys(TOOLS_MAP).join(', ')}`
+      message: `Tool "${name}" is not recognized. Available tools: ${Object.keys(TOOLS_MAP).join(', ')}`,
     };
   }
 
@@ -230,13 +243,13 @@ export async function dispatchToolCall(name, rawArgs = {}, context = {}) {
       if (!auth.allowed) {
         return {
           error: true,
-          message: auth.reason || `Security guard blocked execution of tool "${name}".`
+          message: auth.reason || `Security guard blocked execution of tool "${name}".`,
         };
       }
     } catch (authErr) {
       return {
         error: true,
-        message: `Security check failed: ${authErr.message || String(authErr)}`
+        message: `Security check failed: ${authErr.message || String(authErr)}`,
       };
     }
   }
@@ -245,12 +258,12 @@ export async function dispatchToolCall(name, rawArgs = {}, context = {}) {
     const result = await tool(args, context);
     return {
       success: true,
-      result
+      result,
     };
   } catch (err) {
     return {
       error: true,
-      message: err.message || String(err)
+      message: err.message || String(err),
     };
   }
 }

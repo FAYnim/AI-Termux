@@ -2,20 +2,20 @@
  * Step 5 Test Suite: UNIX Piping, Slash Commands & Single-Shot Runner
  */
 
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { Readable, PassThrough, Writable } from 'node:stream';
 import { EventEmitter } from 'node:events';
+import { PassThrough, Readable } from 'node:stream';
+import { describe, test } from 'node:test';
 import {
-  isPipedInput,
-  readPipedStdin,
-  mergePipedPrompt,
-  isSlashCommand,
-  executeSlashCommand,
-  runSingleShot,
-  createSession,
   ConfigManager,
-  stripAnsi
+  createSession,
+  executeSlashCommand,
+  isPipedInput,
+  isSlashCommand,
+  mergePipedPrompt,
+  readPipedStdin,
+  runSingleShot,
+  stripAnsi,
 } from '../src/index.js';
 
 describe('Step 5: UNIX Stdin Piping Handler', () => {
@@ -30,7 +30,7 @@ describe('Step 5: UNIX Stdin Piping Handler', () => {
 
   test('readPipedStdin should read stream content across multiple chunks', async () => {
     const mockStdin = new Readable({
-      read() {}
+      read() {},
     });
     mockStdin.isTTY = false;
 
@@ -61,12 +61,9 @@ describe('Step 5: UNIX Stdin Piping Handler', () => {
       mockStdin.push(null);
     });
 
-    await assert.rejects(
-      async () => {
-        await readPipedStdin({ stream: mockStdin, maxBytes: 100 });
-      },
-      /exceeded maximum size limit/
-    );
+    await assert.rejects(async () => {
+      await readPipedStdin({ stream: mockStdin, maxBytes: 100 });
+    }, /exceeded maximum size limit/);
   });
 
   test('mergePipedPrompt should combine piped content with user instruction', () => {
@@ -101,7 +98,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
   test('executeSlashCommand /help should render help menu', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => {
+    output.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
@@ -123,15 +120,17 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const mockOrchestrator = {
       geminiClient: {
         model: 'gemini-2.5-flash',
-        getModel() { return this.model; }
+        getModel() {
+          return this.model;
+        },
       },
-      session: { model: 'gemini-2.5-flash' }
+      session: { model: 'gemini-2.5-flash' },
     };
 
     // Query active model
     const res1 = await executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res1.action, 'model_info');
     assert.strictEqual(res1.message, 'gemini-2.5-flash');
@@ -139,7 +138,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     // Switch model
     const res2 = await executeSlashCommand('/model gemini-2.5-pro', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res2.action, 'model_changed');
     assert.strictEqual(res2.message, 'gemini-2.5-pro');
@@ -151,26 +150,33 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const path = await import('node:path');
     const os = await import('node:os');
     const { ConfigManager: CM } = await import('../src/config/manager.js');
-    const tmpDir = path.join(os.tmpdir(), `tai-model-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tmpDir = path.join(
+      os.tmpdir(),
+      `tai-model-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new CM(tmpDir);
 
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => { written += chunk.toString('utf8'); });
+    output.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const mockOrchestrator = {
       provider: 'gemini',
       geminiClient: {
         model: 'gemini-2.5-flash',
-        getModel() { return this.model; }
-      }
+        getModel() {
+          return this.model;
+        },
+      },
     };
 
     const res = await executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
       configMgr,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.action, 'model_info');
     assert.strictEqual(res.message, 'gemini-2.5-flash');
@@ -189,7 +195,9 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.ok(/[╭╮╰╯─│]/.test(plain), 'output should include round-style box border chars');
 
     // cleanup
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
   });
 
   test('executeSlashCommand /model (no args) shows other providers section when multiple configured', async () => {
@@ -197,7 +205,10 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const path = await import('node:path');
     const os = await import('node:os');
     const { ConfigManager: CM } = await import('../src/config/manager.js');
-    const tmpDir = path.join(os.tmpdir(), `tai-model-multi-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tmpDir = path.join(
+      os.tmpdir(),
+      `tai-model-multi-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new CM(tmpDir);
     // Configure openai too
@@ -205,17 +216,24 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => { written += chunk.toString('utf8'); });
+    output.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() {
+          return this.model;
+        },
+      },
     };
 
     await executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
       configMgr,
-      stream: output
+      stream: output,
     });
 
     const plain = stripAnsi(written);
@@ -225,23 +243,32 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.ok(plain.includes('gpt-4o-mini'), 'should include openai builtin models');
 
     // cleanup
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {}
   });
 
   test('executeSlashCommand /model (no args) falls back to single-line when configMgr missing', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => { written += chunk.toString('utf8'); });
+    output.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() {
+          return this.model;
+        },
+      },
     };
 
     // No configMgr -> should use single-line fallback
     const res = await executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.action, 'model_info');
     assert.strictEqual(res.message, 'gemini-2.5-flash');
@@ -258,15 +285,19 @@ describe('Step 5: REPL Slash Commands Handler', () => {
       provider: 'gemini',
       geminiClient: {
         model: 'gemini-2.5-flash',
-        getModel() { return this.model; },
-        setModel(m) { this.model = m; }
+        getModel() {
+          return this.model;
+        },
+        setModel(m) {
+          this.model = m;
+        },
       },
-      session: { model: 'gemini-2.5-flash' }
+      session: { model: 'gemini-2.5-flash' },
     };
 
     const res = await executeSlashCommand('/model gemini-2.5-pro', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.action, 'model_changed');
     assert.strictEqual(res.message, 'gemini-2.5-pro');
@@ -283,7 +314,10 @@ describe('Step 5: REPL Slash Commands Handler', () => {
       this.isTTY = true;
       this.readable = true;
     }
-    setRawMode(v) { this._rawMode = Boolean(v); return this._rawMode; }
+    setRawMode(v) {
+      this._rawMode = Boolean(v);
+      return this._rawMode;
+    }
     resume() {}
     pause() {}
   }
@@ -293,7 +327,10 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const path = await import('node:path');
     const os = await import('node:os');
     const { ConfigManager: CM } = await import('../src/config/manager.js');
-    const tmpDir = path.join(os.tmpdir(), `tai-phase2-apply-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tmpDir = path.join(
+      os.tmpdir(),
+      `tai-phase2-apply-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new CM(tmpDir);
 
@@ -307,10 +344,14 @@ describe('Step 5: REPL Slash Commands Handler', () => {
       provider: 'gemini',
       geminiClient: {
         model: 'gemini-2.5-flash',
-        getModel() { return this.model; },
-        setModel(m) { this.model = m; }
+        getModel() {
+          return this.model;
+        },
+        setModel(m) {
+          this.model = m;
+        },
       },
-      session: { model: 'gemini-2.5-flash' }
+      session: { model: 'gemini-2.5-flash' },
     };
 
     // Simulate user pressing: down (1 → 2), down (2 → 3 → wraps to 0? no, index 1 is gemini-2.5-pro)
@@ -320,7 +361,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
       orchestrator: mockOrchestrator,
       configMgr,
       stream: ttyOutput,
-      input: ttyInput
+      input: ttyInput,
     });
 
     setImmediate(() => {
@@ -334,7 +375,9 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.strictEqual(mockOrchestrator.geminiClient.getModel(), 'gemini-2.5-pro');
     assert.strictEqual(mockOrchestrator.session.model, 'gemini-2.5-pro');
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 
   test('executeSlashCommand /model (TTY) escape falls back to text box (no model change)', async () => {
@@ -342,7 +385,10 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const path = await import('node:path');
     const os = await import('node:os');
     const { ConfigManager: CM } = await import('../src/config/manager.js');
-    const tmpDir = path.join(os.tmpdir(), `tai-phase2-esc-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tmpDir = path.join(
+      os.tmpdir(),
+      `tai-phase2-esc-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new CM(tmpDir);
 
@@ -350,18 +396,25 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const ttyOutput = new PassThrough();
     ttyOutput.isTTY = true;
     let written = '';
-    ttyOutput.on('data', (chunk) => { written += chunk.toString('utf8'); });
+    ttyOutput.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() {
+          return this.model;
+        },
+      },
     };
 
     const promise = executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
       configMgr,
       stream: ttyOutput,
-      input: ttyInput
+      input: ttyInput,
     });
 
     setImmediate(() => {
@@ -377,7 +430,9 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const plain = stripAnsi(written);
     assert.ok(plain.includes('Model (gemini)'), 'fallback text box should be rendered');
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 
   test('executeSlashCommand /model (non-TTY stream) skips menu and renders text box', async () => {
@@ -385,7 +440,10 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const path = await import('node:path');
     const os = await import('node:os');
     const { ConfigManager: CM } = await import('../src/config/manager.js');
-    const tmpDir = path.join(os.tmpdir(), `tai-phase2-pipe-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const tmpDir = path.join(
+      os.tmpdir(),
+      `tai-phase2-pipe-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new CM(tmpDir);
 
@@ -393,17 +451,24 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const pipedOutput = new PassThrough();
     pipedOutput.isTTY = false;
     let written = '';
-    pipedOutput.on('data', (chunk) => { written += chunk.toString('utf8'); });
+    pipedOutput.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: { model: 'gemini-2.5-flash', getModel() { return this.model; } }
+      geminiClient: {
+        model: 'gemini-2.5-flash',
+        getModel() {
+          return this.model;
+        },
+      },
     };
 
     const res = await executeSlashCommand('/model', {
       orchestrator: mockOrchestrator,
       configMgr,
-      stream: pipedOutput
+      stream: pipedOutput,
     });
 
     assert.strictEqual(res.action, 'model_info');
@@ -411,7 +476,9 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     assert.ok(plain.includes('Model (gemini)'));
     assert.ok(plain.includes('gemini-2.5-flash'));
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 
   test('executeSlashCommand /provider should view and switch active provider', async () => {
@@ -419,25 +486,28 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     let currentProvider = 'gemini';
     const mockOrchestrator = {
       provider: 'gemini',
-      setProvider: (p) => { currentProvider = p; mockOrchestrator.provider = p; }
+      setProvider: (p) => {
+        currentProvider = p;
+        mockOrchestrator.provider = p;
+      },
     };
 
     const res1 = await executeSlashCommand('/provider', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res1.action, 'provider_info');
 
     const res2 = await executeSlashCommand('/provider openai', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res2.action, 'provider_changed');
     assert.strictEqual(currentProvider, 'openai');
 
     const res3 = await executeSlashCommand('/provider list', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res3.action, 'provider_list');
   });
@@ -445,7 +515,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
   test('executeSlashCommand /session should display session details', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => {
+    output.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
@@ -456,12 +526,12 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const mockOrchestrator = {
       session,
       geminiClient: { getModel: () => 'gemini-2.5-flash' },
-      workingDir: process.cwd()
+      workingDir: process.cwd(),
     };
 
     const res = await executeSlashCommand('/session', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
 
     assert.strictEqual(res.handled, true);
@@ -479,7 +549,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const configRes = await executeSlashCommand('/config', {
       configMgr,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(configRes.handled, true);
     assert.strictEqual(configRes.action, 'config_info');
@@ -501,7 +571,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
   test('executeSlashCommand should handle unknown commands with helpful suggestion', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => {
+    output.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
@@ -533,7 +603,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const res = await executeSlashCommand('/provider add', {
       configMgr,
       stream: output,
-      input
+      input,
     });
 
     assert.strictEqual(res.handled, true);
@@ -558,12 +628,14 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     configMgr.saveConfig(cfg);
 
     const output = new PassThrough();
-    let written = '';
-    output.on('data', c => { written += c.toString(); });
+    let _written = '';
+    output.on('data', (c) => {
+      _written += c.toString();
+    });
 
     const res = await executeSlashCommand('/provider remove myprov', {
       configMgr,
-      stream: output
+      stream: output,
     });
 
     assert.strictEqual(res.handled, true);
@@ -588,13 +660,16 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     // Input stream answers 'n' to confirmation
     const input = new PassThrough();
     input.isTTY = false;
-    setImmediate(() => { input.push('n\n'); input.push(null); });
+    setImmediate(() => {
+      input.push('n\n');
+      input.push(null);
+    });
 
     const output = new PassThrough();
     const res = await executeSlashCommand('/provider remove myprov', {
       configMgr,
       stream: output,
-      input
+      input,
     });
 
     assert.strictEqual(res.handled, true);
@@ -605,11 +680,13 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
   test('/provider remove missing id shows error', async () => {
     const output = new PassThrough();
-    let written = '';
-    output.on('data', c => { written += c.toString(); });
+    let _written = '';
+    output.on('data', (c) => {
+      _written += c.toString();
+    });
 
     const res = await executeSlashCommand('/provider remove', {
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.handled, true);
     assert.strictEqual(res.error, true);
@@ -626,15 +703,21 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const output = new PassThrough();
     let written = '';
-    output.on('data', c => { written += c.toString(); });
+    output.on('data', (c) => {
+      written += c.toString();
+    });
 
     const res = await executeSlashCommand('/provider remove gemini', {
       configMgr,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.handled, true);
     assert.strictEqual(res.error, true);
-    assert.ok(stripAnsi(written).toLowerCase().includes('builtin') || stripAnsi(written).toLowerCase().includes('cannot'), 'should explain why removal failed');
+    assert.ok(
+      stripAnsi(written).toLowerCase().includes('builtin') ||
+        stripAnsi(written).toLowerCase().includes('cannot'),
+      'should explain why removal failed',
+    );
   });
 
   // ─── /provider show ──────────────────────────────────────────────────────
@@ -649,11 +732,13 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const output = new PassThrough();
     let written = '';
-    output.on('data', c => { written += c.toString(); });
+    output.on('data', (c) => {
+      written += c.toString();
+    });
 
     const res = await executeSlashCommand('/provider show gemini', {
       configMgr,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.handled, true);
     assert.strictEqual(res.action, 'provider_show');
@@ -673,12 +758,14 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const output = new PassThrough();
     let written = '';
-    output.on('data', c => { written += c.toString(); });
+    output.on('data', (c) => {
+      written += c.toString();
+    });
 
     const res = await executeSlashCommand('/provider show', {
       configMgr,
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
     assert.strictEqual(res.handled, true);
     assert.strictEqual(res.action, 'provider_show');
@@ -690,13 +777,13 @@ describe('Step 5: Single-Shot Command Runner', () => {
   test('runSingleShot should execute prompt through orchestrator and stream output', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => {
+    output.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
     const mockOrchestrator = {
       workingDir: process.cwd(),
-      async runTurn(prompt, options) {
+      async runTurn(_prompt, options) {
         if (options.onIterationStart) options.onIterationStart(1);
         if (options.onToken) {
           options.onToken('Hasil ');
@@ -707,15 +794,15 @@ describe('Step 5: Single-Shot Command Runner', () => {
           text: 'Hasil analisis.',
           iterations: 1,
           toolCalls: [],
-          session: { id: 'sess_test_123' }
+          session: { id: 'sess_test_123' },
         };
-      }
+      },
     };
 
     const outcome = await runSingleShot('analisis file', {
       orchestrator: mockOrchestrator,
       stream: output,
-      streamTokens: true
+      streamTokens: true,
     });
 
     assert.strictEqual(outcome.success, true);
@@ -727,13 +814,13 @@ describe('Step 5: Single-Shot Command Runner', () => {
   test('runSingleShot should handle tool calls and tool responses during execution', async () => {
     const output = new PassThrough();
     let written = '';
-    output.on('data', chunk => {
+    output.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
     const mockOrchestrator = {
       workingDir: process.cwd(),
-      async runTurn(prompt, options) {
+      async runTurn(_prompt, options) {
         if (options.onIterationStart) options.onIterationStart(1);
         if (options.onToolCall) {
           options.onToolCall({ name: 'read_file', args: { filePath: 'test.js' } });
@@ -748,14 +835,14 @@ describe('Step 5: Single-Shot Command Runner', () => {
           success: true,
           text: 'Selesai membaca berkas.',
           iterations: 2,
-          toolCalls: [{ name: 'read_file' }]
+          toolCalls: [{ name: 'read_file' }],
         };
-      }
+      },
     };
 
     const outcome = await runSingleShot('baca test.js', {
       orchestrator: mockOrchestrator,
-      stream: output
+      stream: output,
     });
 
     assert.strictEqual(outcome.success, true);
@@ -775,13 +862,13 @@ describe('Step 5: Single-Shot Command Runner', () => {
         const err = new Error('Aborted');
         err.name = 'AbortError';
         throw err;
-      }
+      },
     };
 
     const outcome = await runSingleShot('tugas panjang', {
       orchestrator: mockOrchestrator,
       signal: abortCtrl.signal,
-      stream: output
+      stream: output,
     });
 
     assert.strictEqual(outcome.success, false);

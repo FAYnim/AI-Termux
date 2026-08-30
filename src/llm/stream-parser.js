@@ -123,7 +123,7 @@ export class SSEStreamParser {
       this.usage = {
         promptTokenCount: payload.usageMetadata.promptTokenCount ?? 0,
         candidatesTokenCount: payload.usageMetadata.candidatesTokenCount ?? 0,
-        totalTokenCount: payload.usageMetadata.totalTokenCount ?? 0
+        totalTokenCount: payload.usageMetadata.totalTokenCount ?? 0,
       };
     }
 
@@ -152,7 +152,10 @@ export class SSEStreamParser {
               if (typeof this.callbacks.onToken === 'function') {
                 this.callbacks.onToken(part.text);
               }
-              if (typeof this.callbacks.onChunk === 'function' && this.callbacks.onChunk !== this.callbacks.onToken) {
+              if (
+                typeof this.callbacks.onChunk === 'function' &&
+                this.callbacks.onChunk !== this.callbacks.onToken
+              ) {
                 this.callbacks.onChunk(part.text);
               }
             }
@@ -161,7 +164,7 @@ export class SSEStreamParser {
             if (part.functionCall) {
               const call = {
                 name: part.functionCall.name,
-                args: part.functionCall.args || {}
+                args: part.functionCall.args || {},
               };
               this.functionCalls.push(call);
 
@@ -208,7 +211,7 @@ export class SSEStreamParser {
       functionCalls: [...this.functionCalls],
       finishReason: this.finishReason,
       usage: this.usage,
-      rawCandidates: [...this.rawCandidates]
+      rawCandidates: [...this.rawCandidates],
     };
   }
 
@@ -250,7 +253,7 @@ export async function parseSSEStream(stream, options = {}) {
     onToken: options.onToken,
     onChunk: options.onChunk,
     onFunctionCall: options.onFunctionCall,
-    onFinish: options.onFinish
+    onFinish: options.onFinish,
   });
 
   const signal = options.signal;

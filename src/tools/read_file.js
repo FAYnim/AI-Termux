@@ -57,7 +57,7 @@ export async function readFileTool(args, context = {}) {
       filePath,
       isBinary: true,
       sizeBytes: stats.size,
-      message: `Binary file detected (${stats.size} bytes). Cannot display as text content.`
+      message: `Binary file detected (${stats.size} bytes). Cannot display as text content.`,
     };
   }
 
@@ -68,7 +68,7 @@ export async function readFileTool(args, context = {}) {
   const allLines = rawContent.split(/\r?\n/);
   const totalLines = allLines.length;
 
-  let start = typeof startLine === 'number' && startLine > 0 ? Math.floor(startLine) : 1;
+  const start = typeof startLine === 'number' && startLine > 0 ? Math.floor(startLine) : 1;
   let end = typeof endLine === 'number' && endLine > 0 ? Math.floor(endLine) : totalLines;
 
   if (start > totalLines) {
@@ -79,7 +79,7 @@ export async function readFileTool(args, context = {}) {
       startLine: start,
       endLine: end,
       truncated: false,
-      sizeBytes: stats.size
+      sizeBytes: stats.size,
     };
   }
 
@@ -98,7 +98,7 @@ export async function readFileTool(args, context = {}) {
   let content = selectedLines.join('\n');
 
   if (Buffer.byteLength(content, 'utf-8') > maxBytes) {
-    content = content.slice(0, maxBytes) + '\n... [Output truncated: maximum read size exceeded]';
+    content = `${content.slice(0, maxBytes)}\n... [Output truncated: maximum read size exceeded]`;
     truncated = true;
   }
 
@@ -109,6 +109,6 @@ export async function readFileTool(args, context = {}) {
     startLine: start,
     endLine: Math.min(end, start + selectedLines.length - 1),
     truncated,
-    sizeBytes: stats.size
+    sizeBytes: stats.size,
   };
 }

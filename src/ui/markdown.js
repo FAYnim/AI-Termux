@@ -8,38 +8,241 @@ import { ansi, stripAnsi } from '../utils/ansi.js';
 // Keywords dictionary for syntax highlighting
 const KEYWORDS = {
   javascript: new Set([
-    'const', 'let', 'var', 'function', 'class', 'import', 'export', 'from', 'default',
-    'return', 'if', 'else', 'switch', 'case', 'break', 'continue', 'for', 'while', 'do',
-    'try', 'catch', 'finally', 'throw', 'new', 'this', 'async', 'await', 'yield',
-    'typeof', 'instanceof', 'void', 'delete', 'in', 'of', 'null', 'undefined',
-    'true', 'false', 'extends', 'super', 'static', 'get', 'set'
+    'const',
+    'let',
+    'var',
+    'function',
+    'class',
+    'import',
+    'export',
+    'from',
+    'default',
+    'return',
+    'if',
+    'else',
+    'switch',
+    'case',
+    'break',
+    'continue',
+    'for',
+    'while',
+    'do',
+    'try',
+    'catch',
+    'finally',
+    'throw',
+    'new',
+    'this',
+    'async',
+    'await',
+    'yield',
+    'typeof',
+    'instanceof',
+    'void',
+    'delete',
+    'in',
+    'of',
+    'null',
+    'undefined',
+    'true',
+    'false',
+    'extends',
+    'super',
+    'static',
+    'get',
+    'set',
   ]),
   python: new Set([
-    'def', 'class', 'import', 'from', 'as', 'return', 'if', 'elif', 'else', 'for',
-    'while', 'break', 'continue', 'try', 'except', 'finally', 'raise', 'with', 'pass',
-    'lambda', 'global', 'nonlocal', 'assert', 'yield', 'self', 'cls', 'True', 'False',
-    'None', 'and', 'or', 'not', 'in', 'is', 'async', 'await'
+    'def',
+    'class',
+    'import',
+    'from',
+    'as',
+    'return',
+    'if',
+    'elif',
+    'else',
+    'for',
+    'while',
+    'break',
+    'continue',
+    'try',
+    'except',
+    'finally',
+    'raise',
+    'with',
+    'pass',
+    'lambda',
+    'global',
+    'nonlocal',
+    'assert',
+    'yield',
+    'self',
+    'cls',
+    'True',
+    'False',
+    'None',
+    'and',
+    'or',
+    'not',
+    'in',
+    'is',
+    'async',
+    'await',
   ]),
   bash: new Set([
-    'if', 'then', 'else', 'elif', 'fi', 'for', 'in', 'do', 'done', 'while', 'until',
-    'case', 'esac', 'function', 'return', 'exit', 'source', 'alias', 'export', 'unset',
-    'local', 'readonly', 'shift', 'set', 'echo', 'printf', 'read', 'cd', 'pwd', 'ls',
-    'mkdir', 'rm', 'cp', 'mv', 'cat', 'grep', 'sed', 'awk', 'chmod', 'chown', 'curl',
-    'wget', 'git', 'npm', 'node', 'pkg', 'apt', 'su', 'sudo', 'tar', 'find'
+    'if',
+    'then',
+    'else',
+    'elif',
+    'fi',
+    'for',
+    'in',
+    'do',
+    'done',
+    'while',
+    'until',
+    'case',
+    'esac',
+    'function',
+    'return',
+    'exit',
+    'source',
+    'alias',
+    'export',
+    'unset',
+    'local',
+    'readonly',
+    'shift',
+    'set',
+    'echo',
+    'printf',
+    'read',
+    'cd',
+    'pwd',
+    'ls',
+    'mkdir',
+    'rm',
+    'cp',
+    'mv',
+    'cat',
+    'grep',
+    'sed',
+    'awk',
+    'chmod',
+    'chown',
+    'curl',
+    'wget',
+    'git',
+    'npm',
+    'node',
+    'pkg',
+    'apt',
+    'su',
+    'sudo',
+    'tar',
+    'find',
   ]),
   sql: new Set([
-    'select', 'from', 'where', 'insert', 'into', 'values', 'update', 'set', 'delete',
-    'create', 'table', 'drop', 'alter', 'join', 'inner', 'left', 'right', 'full', 'outer',
-    'cross', 'on', 'group', 'by', 'order', 'having', 'limit', 'offset', 'and', 'or',
-    'not', 'in', 'is', 'null', 'like', 'as', 'distinct', 'union', 'all', 'primary',
-    'key', 'foreign', 'references', 'index', 'view', 'trigger', 'begin', 'commit',
-    'rollback', 'transaction', 'count', 'sum', 'avg', 'min', 'max', 'asc', 'desc'
-  ])
+    'select',
+    'from',
+    'where',
+    'insert',
+    'into',
+    'values',
+    'update',
+    'set',
+    'delete',
+    'create',
+    'table',
+    'drop',
+    'alter',
+    'join',
+    'inner',
+    'left',
+    'right',
+    'full',
+    'outer',
+    'cross',
+    'on',
+    'group',
+    'by',
+    'order',
+    'having',
+    'limit',
+    'offset',
+    'and',
+    'or',
+    'not',
+    'in',
+    'is',
+    'null',
+    'like',
+    'as',
+    'distinct',
+    'union',
+    'all',
+    'primary',
+    'key',
+    'foreign',
+    'references',
+    'index',
+    'view',
+    'trigger',
+    'begin',
+    'commit',
+    'rollback',
+    'transaction',
+    'count',
+    'sum',
+    'avg',
+    'min',
+    'max',
+    'asc',
+    'desc',
+  ]),
 };
 
 const BUILTINS = {
-  javascript: new Set(['console', 'process', 'Math', 'JSON', 'Promise', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Date', 'RegExp', 'Map', 'Set', 'Error', 'Buffer']),
-  python: new Set(['print', 'len', 'range', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'open', 'type', 'enumerate', 'zip', 'map', 'filter', 'sum', 'min', 'max'])
+  javascript: new Set([
+    'console',
+    'process',
+    'Math',
+    'JSON',
+    'Promise',
+    'Array',
+    'Object',
+    'String',
+    'Number',
+    'Boolean',
+    'Date',
+    'RegExp',
+    'Map',
+    'Set',
+    'Error',
+    'Buffer',
+  ]),
+  python: new Set([
+    'print',
+    'len',
+    'range',
+    'str',
+    'int',
+    'float',
+    'list',
+    'dict',
+    'set',
+    'tuple',
+    'open',
+    'type',
+    'enumerate',
+    'zip',
+    'map',
+    'filter',
+    'sum',
+    'min',
+    'max',
+  ]),
 };
 
 /**
@@ -73,7 +276,7 @@ export function highlightCode(code, language = '') {
   }
 
   const lines = code.split('\n');
-  const highlightedLines = lines.map(line => highlightLine(line, canonicalLang));
+  const highlightedLines = lines.map((line) => highlightLine(line, canonicalLang));
 
   return highlightedLines.join('\n');
 }
@@ -102,7 +305,8 @@ function highlightLine(line, lang) {
 
   // Tokenize line for programming languages (JS, Python, Bash, SQL, CSS)
   // Regex to match: comments, strings, numbers, bash variables, identifiers/words, symbols
-  const tokenRegex = /(".*?"|'.*?'|`.*?`|\/\/.*$|\/\*.*?\*\/|#.*$|--.*$|\$[a-zA-Z0-9_]+|\${[a-zA-Z0-9_]+}|0x[0-9a-fA-F]+|\b\d+(?:\.\d+)?\b|[a-zA-Z_][a-zA-Z0-9_]*|[^\s\w])/g;
+  const tokenRegex =
+    /(".*?"|'.*?'|`.*?`|\/\/.*$|\/\*.*?\*\/|#.*$|--.*$|\$[a-zA-Z0-9_]+|\${[a-zA-Z0-9_]+}|0x[0-9a-fA-F]+|\b\d+(?:\.\d+)?\b|[a-zA-Z_][a-zA-Z0-9_]*|[^\s\w])/g;
 
   return line.replace(tokenRegex, (match) => {
     // Comment
@@ -146,7 +350,7 @@ function highlightLine(line, lang) {
 
     // Builtins
     const builtins = BUILTINS[lang];
-    if (builtins && builtins.has(match)) {
+    if (builtins?.has(match)) {
       return ansi.cyan(match);
     }
 
@@ -193,7 +397,7 @@ function highlightJsonLine(line) {
         return ansi.white(punctuation);
       }
       return match;
-    }
+    },
   );
 }
 
@@ -221,12 +425,12 @@ function highlightHtmlLine(line) {
               res += ansi.white('=') + (attrVal ? ansi.green(attrVal) : '');
             }
             return res;
-          }
+          },
         );
         return `${ansi.cyan(openBracket)}${ansi.redBright(tagName)}${highlightedAttrs}${ansi.cyan(closeBracket)}`;
       }
       return match;
-    }
+    },
   );
 }
 
@@ -241,15 +445,15 @@ export function renderTable(tableMarkdown) {
 
   const lines = tableMarkdown
     .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.startsWith('|') || l.includes('|'));
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('|') || l.includes('|'));
 
   if (lines.length === 0) return '';
 
   // Extract raw rows
-  const parsedRows = lines.map(line => {
+  const parsedRows = lines.map((line) => {
     const trimmed = line.replace(/^\|/, '').replace(/\|$/, '');
-    return trimmed.split('|').map(cell => cell.trim());
+    return trimmed.split('|').map((cell) => cell.trim());
   });
 
   if (parsedRows.length === 0) return '';
@@ -258,7 +462,7 @@ export function renderTable(tableMarkdown) {
   let hasSeparator = false;
   let separatorIndex = -1;
   for (let i = 0; i < parsedRows.length; i++) {
-    const isSep = parsedRows[i].every(cell => /^:?-+:?$/.test(cell));
+    const isSep = parsedRows[i].every((cell) => /^:?-+:?$/.test(cell));
     if (isSep) {
       hasSeparator = true;
       separatorIndex = i;
@@ -270,7 +474,7 @@ export function renderTable(tableMarkdown) {
   if (contentRows.length === 0) return '';
 
   // Calculate column count and column max widths
-  const numCols = Math.max(...contentRows.map(row => row.length));
+  const numCols = Math.max(...contentRows.map((row) => row.length));
   const colWidths = new Array(numCols).fill(0);
 
   for (const row of contentRows) {
@@ -289,7 +493,7 @@ export function renderTable(tableMarkdown) {
   }
 
   const buildBorder = (left, mid, right, fill) => {
-    const parts = colWidths.map(w => fill.repeat(w + 2));
+    const parts = colWidths.map((w) => fill.repeat(w + 2));
     return `${left}${parts.join(mid)}${right}`;
   };
 
@@ -385,7 +589,7 @@ export function renderInline(text) {
  * @param {object} [options={}]
  * @returns {string} ANSI formatted string
  */
-export function renderMarkdown(markdown, options = {}) {
+export function renderMarkdown(markdown, _options = {}) {
   if (!markdown || typeof markdown !== 'string') return '';
 
   const lines = markdown.split('\n');
@@ -420,7 +624,9 @@ export function renderMarkdown(markdown, options = {}) {
         // Close code block
         inCodeBlock = false;
         const langTag = codeLang ? ` [${codeLang}] ` : '';
-        const header = ansi.gray(`───${ansi.cyan(langTag)}${'─'.repeat(Math.max(0, 40 - langTag.length))}`);
+        const header = ansi.gray(
+          `───${ansi.cyan(langTag)}${'─'.repeat(Math.max(0, 40 - langTag.length))}`,
+        );
         const footer = ansi.gray('─'.repeat(43));
         const highlighted = highlightCode(codeBuffer.join('\n'), codeLang);
 
@@ -451,7 +657,7 @@ export function renderMarkdown(markdown, options = {}) {
     if (/^#\s+(.+)$/.test(line)) {
       const title = line.replace(/^#\s+/, '');
       result.push('');
-      result.push(`${ansi.bold(ansi.cyanBright('█ ' + title))}`);
+      result.push(`${ansi.bold(ansi.cyanBright(`█ ${title}`))}`);
       result.push(ansi.cyan('━'.repeat(Math.min(60, Math.max(10, stripAnsi(title).length + 2)))));
       continue;
     }
@@ -459,20 +665,20 @@ export function renderMarkdown(markdown, options = {}) {
     if (/^##\s+(.+)$/.test(line)) {
       const title = line.replace(/^##\s+/, '');
       result.push('');
-      result.push(`${ansi.bold(ansi.yellowBright('## ' + title))}`);
+      result.push(`${ansi.bold(ansi.yellowBright(`## ${title}`))}`);
       continue;
     }
 
     if (/^###\s+(.+)$/.test(line)) {
       const title = line.replace(/^###\s+/, '');
       result.push('');
-      result.push(`${ansi.bold(ansi.whiteBright('### ' + title))}`);
+      result.push(`${ansi.bold(ansi.whiteBright(`### ${title}`))}`);
       continue;
     }
 
     if (/^####+\s+(.+)$/.test(line)) {
       const title = line.replace(/^####+\s+/, '');
-      result.push(`${ansi.bold(ansi.dim('▸ ' + title))}`);
+      result.push(`${ansi.bold(ansi.dim(`▸ ${title}`))}`);
       continue;
     }
 
@@ -505,7 +711,7 @@ export function renderMarkdown(markdown, options = {}) {
       const indent = match[1] || '';
       const num = match[2];
       const content = match[3];
-      result.push(`${indent}${ansi.yellow(num + '.')} ${renderInline(content)}`);
+      result.push(`${indent}${ansi.yellow(`${num}.`)} ${renderInline(content)}`);
       continue;
     }
 

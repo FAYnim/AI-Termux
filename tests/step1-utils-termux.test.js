@@ -1,7 +1,7 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { getConfigRoot } from '../src/utils/termux.js';
+import { describe, test } from 'node:test';
 import { DEFAULT_CONFIG_DIR_NAME } from '../src/config/constants.js';
+import { getConfigRoot } from '../src/utils/termux.js';
 
 describe('Utils: termux.getConfigRoot', () => {
   test('should join home directory with default config dir name constant', () => {

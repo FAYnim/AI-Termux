@@ -3,28 +3,31 @@
  * Handles in-session commands (/help, /model, /session, /clear, /config, /exit)
  */
 
-import { ansi } from '../utils/ansi.js';
+import { estimateSessionTokens } from '../agent/pruner.js';
 import { renderBox, renderStatusCard } from '../ui/box.js';
 import { showModelMenuFromConfig } from '../ui/model-menu.js';
-import { estimateSessionTokens } from '../agent/pruner.js';
-import { addModelsCli, removeModelCli, clearModelsCli } from './model-commands.js';
+import { ansi } from '../utils/ansi.js';
+import { addModelsCli, clearModelsCli, removeModelCli } from './model-commands.js';
 import { runProviderAddWizard } from './provider-wizard.js';
 
 export const SLASH_COMMANDS_HELP = [
-  { cmd: '/help',                    desc: 'Show this slash commands help menu' },
-  { cmd: '/provider [id]',           desc: 'Show active provider or switch provider + persist' },
-  { cmd: '/provider list',           desc: 'List configured providers' },
-  { cmd: '/provider add [id]',       desc: 'Add a new provider via interactive wizard' },
-  { cmd: '/provider remove <id>',    desc: 'Remove a configured provider' },
-  { cmd: '/provider show [id]',      desc: 'Show provider config details' },
-  { cmd: '/model [name]',            desc: 'Show available models (interactive TTY menu) or switch to a new model' },
-  { cmd: '/model add <name[,...]>',  desc: 'Add model(s) to provider catalog' },
-  { cmd: '/model remove <name>',     desc: 'Remove a model from provider catalog' },
-  { cmd: '/model clear',             desc: 'Reset provider catalog to builtin defaults' },
-  { cmd: '/session',                 desc: 'Display current session ID, token usage & stats' },
-  { cmd: '/clear',                   desc: 'Clear the terminal screen' },
-  { cmd: '/config',                  desc: 'Display active CLI configuration settings' },
-  { cmd: '/exit, /quit',             desc: 'Exit interactive REPL session' }
+  { cmd: '/help', desc: 'Show this slash commands help menu' },
+  { cmd: '/provider [id]', desc: 'Show active provider or switch provider + persist' },
+  { cmd: '/provider list', desc: 'List configured providers' },
+  { cmd: '/provider add [id]', desc: 'Add a new provider via interactive wizard' },
+  { cmd: '/provider remove <id>', desc: 'Remove a configured provider' },
+  { cmd: '/provider show [id]', desc: 'Show provider config details' },
+  {
+    cmd: '/model [name]',
+    desc: 'Show available models (interactive TTY menu) or switch to a new model',
+  },
+  { cmd: '/model add <name[,...]>', desc: 'Add model(s) to provider catalog' },
+  { cmd: '/model remove <name>', desc: 'Remove a model from provider catalog' },
+  { cmd: '/model clear', desc: 'Reset provider catalog to builtin defaults' },
+  { cmd: '/session', desc: 'Display current session ID, token usage & stats' },
+  { cmd: '/clear', desc: 'Clear the terminal screen' },
+  { cmd: '/config', desc: 'Display active CLI configuration settings' },
+  { cmd: '/exit, /quit', desc: 'Exit interactive REPL session' },
 ];
 
 /**
@@ -77,13 +80,13 @@ export async function executeSlashCommand(input, context = {}) {
   switch (command) {
     case 'help': {
       const lines = SLASH_COMMANDS_HELP.map(
-        c => `${ansi.cyanBright(c.cmd.padEnd(16))} ${ansi.dim('─')} ${ansi.white(c.desc)}`
+        (c) => `${ansi.cyanBright(c.cmd.padEnd(16))} ${ansi.dim('─')} ${ansi.white(c.desc)}`,
       );
       const box = renderBox(lines.join('\n'), {
         title: 'REPL Slash Commands',
         borderColor: 'cyan',
         borderStyle: 'round',
-        minWidth: 48
+        minWidth: 48,
       });
       stream.write(`\n${box}\n\n`);
       return { handled: true, action: 'help' };
@@ -94,15 +97,16 @@ export async function executeSlashCommand(input, context = {}) {
       if (action === 'list') {
         const config = configMgr ? configMgr.loadConfig() : {};
         const providers = config.providers || {};
-        const lines = Object.entries(providers).map(([id, cfg]) =>
-          `  ${ansi.cyan(id.padEnd(12))} ${ansi.dim('|')} ${ansi.white(cfg.model || '(default)')} ${ansi.dim('|')} ${ansi.white(cfg.baseUrl || '(default)')}`
+        const lines = Object.entries(providers).map(
+          ([id, cfg]) =>
+            `  ${ansi.cyan(id.padEnd(12))} ${ansi.dim('|')} ${ansi.white(cfg.model || '(default)')} ${ansi.dim('|')} ${ansi.white(cfg.baseUrl || '(default)')}`,
         );
         if (!lines.length) lines.push(ansi.dim('  (no providers configured)'));
         const box = renderBox(lines.join('\n'), {
           title: 'Providers',
           borderColor: 'cyan',
           borderStyle: 'round',
-          minWidth: 48
+          minWidth: 48,
         });
         stream.write(`\n${box}\n\n`);
         return { handled: true, action: 'provider_list' };
@@ -119,7 +123,7 @@ export async function executeSlashCommand(input, context = {}) {
           configMgr,
           stream,
           input: inputStream,
-          prefilledId
+          prefilledId,
         });
         if (typeof context.onWizardActive === 'function') context.onWizardActive(false);
 
@@ -141,18 +145,26 @@ export async function executeSlashCommand(input, context = {}) {
               orchestrator.setProvider(wizardResult.providerId, {
                 apiKey: wizardResult.config.apiKey,
                 model: wizardResult.config.model,
-                baseUrl: wizardResult.config.baseUrl
+                baseUrl: wizardResult.config.baseUrl,
               });
             } catch (_) {
               // setProvider may fail if adapter not loaded — config already saved
-              stream.write(`${ansi.yellow('ℹ')} Could not switch live session. Restart REPL to apply.\n\n`);
+              stream.write(
+                `${ansi.yellow('ℹ')} Could not switch live session. Restart REPL to apply.\n\n`,
+              );
             }
           } else if (!orchestrator) {
-            stream.write(`${ansi.yellow('ℹ')} No active session. Restart REPL to apply provider switch.\n\n`);
+            stream.write(
+              `${ansi.yellow('ℹ')} No active session. Restart REPL to apply provider switch.\n\n`,
+            );
           }
-          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved and activated.\n\n`);
+          stream.write(
+            `\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved and activated.\n\n`,
+          );
         } else {
-          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved.\n  To use it: ${ansi.cyan('/provider ' + wizardResult.providerId)}\n\n`);
+          stream.write(
+            `\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(wizardResult.providerId))}" saved.\n  To use it: ${ansi.cyan(`/provider ${wizardResult.providerId}`)}\n\n`,
+          );
         }
 
         return { handled: true, action: 'provider_added', providerId: wizardResult.providerId };
@@ -169,14 +181,18 @@ export async function executeSlashCommand(input, context = {}) {
         // Guard: refuse to remove builtin providers
         const { BUILTIN_PROVIDERS } = await import('../config/constants.js');
         if (BUILTIN_PROVIDERS[removeId]) {
-          stream.write(`\n${ansi.red('✖')} Cannot remove builtin provider "${ansi.bold(removeId)}". Only custom providers can be removed.\n\n`);
+          stream.write(
+            `\n${ansi.red('✖')} Cannot remove builtin provider "${ansi.bold(removeId)}". Only custom providers can be removed.\n\n`,
+          );
           return { handled: true, action: 'provider_remove_error', error: true };
         }
 
         // Confirm if removing active provider
-        const activeP = (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
+        const activeP = orchestrator?.provider || configMgr?.get('activeProvider') || 'gemini';
         if (removeId === activeP) {
-          stream.write(`\n${ansi.yellow('⚠')} "${ansi.bold(removeId)}" is the active provider. Remove anyway? [y/N]: `);
+          stream.write(
+            `\n${ansi.yellow('⚠')} "${ansi.bold(removeId)}" is the active provider. Remove anyway? [y/N]: `,
+          );
           const confirm = await new Promise((resolve) => {
             const onData = (chunk) => {
               inputStream.removeListener('data', onData);
@@ -192,7 +208,9 @@ export async function executeSlashCommand(input, context = {}) {
 
         try {
           if (configMgr) configMgr.removeProvider(removeId);
-          stream.write(`\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(removeId))}" removed.\n\n`);
+          stream.write(
+            `\n${ansi.green('✔')} Provider "${ansi.bold(ansi.yellow(removeId))}" removed.\n\n`,
+          );
           return { handled: true, action: 'provider_removed' };
         } catch (err) {
           stream.write(`\n${ansi.red('✖')} ${err.message}\n\n`);
@@ -202,7 +220,8 @@ export async function executeSlashCommand(input, context = {}) {
 
       // ── /provider show [id] ────────────────────────────────────────
       if (action === 'show') {
-        const showId = args[1] || (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
+        const showId =
+          args[1] || orchestrator?.provider || configMgr?.get('activeProvider') || 'gemini';
         try {
           const provCfg = configMgr ? configMgr.getProviderConfig(showId) : {};
           // Mask API key for display
@@ -220,7 +239,7 @@ export async function executeSlashCommand(input, context = {}) {
             title: `Provider: ${showId}`,
             borderColor: 'cyan',
             borderStyle: 'round',
-            minWidth: 48
+            minWidth: 48,
           });
           stream.write(`\n${box}\n\n`);
           return { handled: true, action: 'provider_show' };
@@ -232,7 +251,7 @@ export async function executeSlashCommand(input, context = {}) {
 
       const providerId = action;
       if (!providerId) {
-        const active = (orchestrator && orchestrator.provider) || configMgr?.get('activeProvider') || 'gemini';
+        const active = orchestrator?.provider || configMgr?.get('activeProvider') || 'gemini';
         stream.write(`\n${ansi.cyan('ℹ')} Active provider: ${ansi.bold(ansi.yellow(active))}\n\n`);
         return { handled: true, action: 'provider_info' };
       }
@@ -244,10 +263,12 @@ export async function executeSlashCommand(input, context = {}) {
           orchestrator.setProvider(providerId, {
             apiKey,
             model: providerConfig.model || providerConfig.defaultModel,
-            baseUrl: providerConfig.baseUrl || providerConfig.defaultBaseUrl
+            baseUrl: providerConfig.baseUrl || providerConfig.defaultBaseUrl,
           });
           if (configMgr) configMgr.set('activeProvider', providerId);
-          stream.write(`\n${ansi.green('✔')} Switched provider to: ${ansi.bold(ansi.yellow(providerId))}\n\n`);
+          stream.write(
+            `\n${ansi.green('✔')} Switched provider to: ${ansi.bold(ansi.yellow(providerId))}\n\n`,
+          );
           return { handled: true, action: 'provider_changed' };
         } catch (err) {
           stream.write(`\n${ansi.yellow('⚠')} ${err.message}\n\n`);
@@ -266,7 +287,7 @@ export async function executeSlashCommand(input, context = {}) {
       // Sub-command routing: add / remove / clear
       if (modelSubCmd === 'add') {
         // Collect everything between 'add' and any '--provider' flag as model names
-        const modelArgs = args.slice(1).filter(a => a !== '--provider' && a !== providerOverride);
+        const modelArgs = args.slice(1).filter((a) => a !== '--provider' && a !== providerOverride);
         const models = modelArgs.join(',') || '';
         const result = addModelsCli({ configMgr, models, providerOverride });
         if (result.output) stream.write(result.output);
@@ -274,7 +295,7 @@ export async function executeSlashCommand(input, context = {}) {
       }
 
       if (modelSubCmd === 'remove') {
-        const modelArgs = args.slice(1).filter(a => a !== '--provider' && a !== providerOverride);
+        const modelArgs = args.slice(1).filter((a) => a !== '--provider' && a !== providerOverride);
         const models = modelArgs.join(',') || '';
         const result = removeModelCli({ configMgr, models, providerOverride });
         if (result.output) stream.write(result.output);
@@ -308,9 +329,7 @@ export async function executeSlashCommand(input, context = {}) {
         // The text box (Phase 1.3) is still rendered afterwards as a reference
         // for any TTY fallbacks (e.g. menu with no items).
         const isInteractiveTty = Boolean(
-          stream && stream.isTTY &&
-          (typeof stream === 'object') &&
-          inputStream && inputStream.isTTY
+          stream?.isTTY && typeof stream === 'object' && inputStream?.isTTY,
         );
 
         // Phase 2.2: prefer getModelCatalog() (canonical getter) — guard updated accordingly
@@ -319,7 +338,7 @@ export async function executeSlashCommand(input, context = {}) {
             configMgr,
             orchestrator,
             input: inputStream,
-            output: stream
+            output: stream,
           });
 
           if (!menuResult.cancelled) {
@@ -345,13 +364,16 @@ export async function executeSlashCommand(input, context = {}) {
               }
             }
             if (configMgr) {
-              const act = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
+              const act = orchestrator?.provider || configMgr.get('activeProvider') || 'gemini';
               configMgr.setProviderField(act, 'model', chosen);
             }
-            const providerLabel = menuResult.providerId !== ((orchestrator && orchestrator.provider) || configMgr.get('activeProvider'))
-              ? ` (provider: ${ansi.bold(ansi.yellow(menuResult.providerId))})`
-              : '';
-            stream.write(`\n${ansi.green('✔')} Switched active model to: ${ansi.bold(ansi.yellow(chosen))}${providerLabel}\n\n`);
+            const providerLabel =
+              menuResult.providerId !== (orchestrator?.provider || configMgr.get('activeProvider'))
+                ? ` (provider: ${ansi.bold(ansi.yellow(menuResult.providerId))})`
+                : '';
+            stream.write(
+              `\n${ansi.green('✔')} Switched active model to: ${ansi.bold(ansi.yellow(chosen))}${providerLabel}\n\n`,
+            );
             return { handled: true, action: 'model_changed', message: chosen };
           }
 
@@ -362,13 +384,13 @@ export async function executeSlashCommand(input, context = {}) {
         let modelLines = [];
         // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
         if (configMgr && typeof configMgr.getModelCatalog === 'function') {
-          const act = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
+          const act = orchestrator?.provider || configMgr.get('activeProvider') || 'gemini';
           const allModels = configMgr.getModelCatalog(act);
           if (allModels.length > 0) {
             modelLines = allModels.map((m) =>
               m === currentModel
                 ? `  ${ansi.green('▸')} ${ansi.bold(ansi.yellow(m))} ${ansi.dim('(active)')}`
-                : `    ${ansi.white(m)}`
+                : `    ${ansi.white(m)}`,
             );
 
             // Show other providers' models in a second section
@@ -380,7 +402,7 @@ export async function executeSlashCommand(input, context = {}) {
                 // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
                 const pm = configMgr.getModelCatalog(pid);
                 if (pm.length > 0) {
-                  otherLines.push(`  ${ansi.cyan(pid + ':')} ${pm.join(', ')}`);
+                  otherLines.push(`  ${ansi.cyan(`${pid}:`)} ${pm.join(', ')}`);
                 }
               }
               if (otherLines.length > 0) {
@@ -394,7 +416,7 @@ export async function executeSlashCommand(input, context = {}) {
               title: `Model (${act})`,
               borderColor: 'cyan',
               borderStyle: 'round',
-              minWidth: 48
+              minWidth: 48,
             });
             stream.write(`\n${box}\n\n`);
             return { handled: true, action: 'model_info', message: currentModel };
@@ -402,7 +424,9 @@ export async function executeSlashCommand(input, context = {}) {
         }
 
         // Fallback: original single-line output (no getModelCatalog or empty list)
-        stream.write(`\n${ansi.cyan('ℹ')} Active model: ${ansi.bold(ansi.yellow(currentModel))}\n\n`);
+        stream.write(
+          `\n${ansi.cyan('ℹ')} Active model: ${ansi.bold(ansi.yellow(currentModel))}\n\n`,
+        );
         return { handled: true, action: 'model_info', message: currentModel };
       }
 
@@ -426,15 +450,17 @@ export async function executeSlashCommand(input, context = {}) {
         }
       }
       if (configMgr) {
-        const act = (orchestrator && orchestrator.provider) || configMgr.get('activeProvider') || 'gemini';
+        const act = orchestrator?.provider || configMgr.get('activeProvider') || 'gemini';
         configMgr.setProviderField(act, 'model', newModel);
       }
-      stream.write(`\n${ansi.green('✔')} Switched active model to: ${ansi.bold(ansi.yellow(newModel))}\n\n`);
+      stream.write(
+        `\n${ansi.green('✔')} Switched active model to: ${ansi.bold(ansi.yellow(newModel))}\n\n`,
+      );
       return { handled: true, action: 'model_changed', message: newModel };
     }
 
     case 'session': {
-      if (!orchestrator || !orchestrator.session) {
+      if (!orchestrator?.session) {
         stream.write(`\n${ansi.yellow('⚠')} No active session context found.\n\n`);
         return { handled: true, action: 'session_info', error: true };
       }
@@ -445,11 +471,11 @@ export async function executeSlashCommand(input, context = {}) {
 
       const card = renderStatusCard('Active Session Details', {
         'Session ID': sess.id || 'N/A',
-        'Model': (orchestrator.geminiClient && orchestrator.geminiClient.getModel()) || sess.model || 'N/A',
+        Model: orchestrator.geminiClient?.getModel() || sess.model || 'N/A',
         'Working Dir': sess.workingDir || process.cwd(),
         'Message Turns': msgs.length,
         'Est. Tokens': `${tokenEst.toLocaleString()} tokens`,
-        'Created At': sess.createdAt ? new Date(sess.createdAt).toLocaleString() : 'N/A'
+        'Created At': sess.createdAt ? new Date(sess.createdAt).toLocaleString() : 'N/A',
       });
 
       stream.write(`\n${card}\n\n`);

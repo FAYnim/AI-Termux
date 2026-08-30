@@ -1,17 +1,24 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
+import {
+  BUILTIN_PROVIDERS,
+  DEFAULT_ACTIVE_PROVIDER,
+  DEFAULT_CONFIG,
+} from '../src/config/constants.js';
 import { ConfigManager } from '../src/config/manager.js';
-import { BUILTIN_PROVIDERS, DEFAULT_ACTIVE_PROVIDER, DEFAULT_CONFIG } from '../src/config/constants.js';
 
 describe('Step 1: Provider config constants & manager helpers', { concurrency: 1 }, () => {
   let tmpDir;
   let manager;
 
   beforeEach(() => {
-    tmpDir = path.join(os.tmpdir(), `termuxai-prov-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tmpDir = path.join(
+      os.tmpdir(),
+      `termuxai-prov-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     manager = new ConfigManager(tmpDir);
   });
@@ -155,7 +162,9 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
   test('getProviderModels deduplicates across stored and builtin lists', () => {
     const cfg = manager.loadConfig();
     if (!cfg.providers) cfg.providers = {};
-    cfg.providers.gemini = { models: ['gemini-2.5-flash', 'gemini-extra-1', 'gemini-extra-1', '  '] };
+    cfg.providers.gemini = {
+      models: ['gemini-2.5-flash', 'gemini-extra-1', 'gemini-extra-1', '  '],
+    };
     manager.saveConfig(cfg);
 
     const models = manager.getProviderModels('gemini');
@@ -163,7 +172,10 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
     assert.ok(!models.includes(''));
     assert.ok(!models.includes('  '));
     // No duplicates
-    const counts = models.reduce((acc, m) => { acc[m] = (acc[m] || 0) + 1; return acc; }, {});
+    const counts = models.reduce((acc, m) => {
+      acc[m] = (acc[m] || 0) + 1;
+      return acc;
+    }, {});
     for (const [m, c] of Object.entries(counts)) {
       assert.equal(c, 1, `model "${m}" appears ${c} times`);
     }
@@ -209,8 +221,10 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
     manager.saveConfig(cfg);
 
     const models = manager.getProviderModels('gemini');
-    assert.ok(models.includes('gemini-2.5-pro'),
-      'active stored model must be auto-included even when models[] is missing');
+    assert.ok(
+      models.includes('gemini-2.5-pro'),
+      'active stored model must be auto-included even when models[] is missing',
+    );
     // Builtin catalog should still be present
     assert.ok(models.includes('gemini-2.5-flash'));
     // No duplicates
@@ -220,7 +234,7 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
   test('⭐ getProviderModels auto-includes stored `model` for CUSTOM (non-builtin) provider', () => {
     const cfg = manager.loadConfig();
     cfg.providers = {
-      'my-custom-llm': { apiKey: 'k', model: 'my-custom-finetune-v1' }
+      'my-custom-llm': { apiKey: 'k', model: 'my-custom-finetune-v1' },
     };
     manager.saveConfig(cfg);
 
@@ -247,7 +261,7 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
     // list must NOT contain duplicates.
     const cfg = manager.loadConfig();
     cfg.providers = {
-      gemini: { model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'extra-a'] }
+      gemini: { model: 'gemini-2.5-pro', models: ['gemini-2.5-pro', 'extra-a'] },
     };
     manager.saveConfig(cfg);
 
@@ -285,17 +299,13 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
   test('setProviderField("model", ...) does NOT duplicate when value already in models[]', () => {
     manager.setProviderField('gemini', 'model', 'gemini-2.5-pro');
     const first = manager.loadConfig();
-    const countBefore = first.providers.gemini.models.filter(
-      (m) => m === 'gemini-2.5-pro'
-    ).length;
+    const countBefore = first.providers.gemini.models.filter((m) => m === 'gemini-2.5-pro').length;
     assert.equal(countBefore, 1);
 
     // Setting the same value again must be a no-op for the models[] array
     manager.setProviderField('gemini', 'model', 'gemini-2.5-pro');
     const second = manager.loadConfig();
-    const countAfter = second.providers.gemini.models.filter(
-      (m) => m === 'gemini-2.5-pro'
-    ).length;
+    const countAfter = second.providers.gemini.models.filter((m) => m === 'gemini-2.5-pro').length;
     assert.equal(countAfter, 1, 'duplicate insertion must be prevented');
   });
 

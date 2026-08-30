@@ -23,13 +23,13 @@ export function parseArgs(rawArgs = []) {
     configDir: null,
     timeout: null,
     // Phase 3 — `tai model` non-interactive subcommand flags
-    modelList: false,  // --list    : list available models
-    modelAll: false,   // --all     : when combined with --list, include all providers
-    modelSet: null,    // --set <m> : set active model (alternative to `--model`)
+    modelList: false, // --list    : list available models
+    modelAll: false, // --all     : when combined with --list, include all providers
+    modelSet: null, // --set <m> : set active model (alternative to `--model`)
     // Phase 4 — `tai model add/remove/clear` (catalog CRUD)
-    modelAdd: null,    // --add <m[,m2,...]>  : add model(s) to a provider's catalog
+    modelAdd: null, // --add <m[,m2,...]>  : add model(s) to a provider's catalog
     modelRemove: null, // --remove <m[,m2,...]> : remove model(s) from a provider's catalog
-    modelClear: false  // --clear             : reset catalog to builtin defaults
+    modelClear: false, // --clear             : reset catalog to builtin defaults
   };
 
   const positional = [];
@@ -225,6 +225,6 @@ export function parseArgs(rawArgs = []) {
     positional,
     flags,
     prompt,
-    rawArgs
+    rawArgs,
   };
 }

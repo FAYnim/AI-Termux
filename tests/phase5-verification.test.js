@@ -8,17 +8,16 @@
  *  - 5.3 Backward-compatibility with legacy config structures (flat apiKey/model, custom providers, etc.)
  */
 
-import { test, describe, after, before } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-
-import { BUILTIN_PROVIDERS, DEFAULT_MODEL, DEFAULT_CONFIG } from '../src/config/constants.js';
-import { ConfigManager } from '../src/config/manager.js';
 import { parseArgs } from '../src/cli/args.js';
+import { BUILTIN_PROVIDERS, DEFAULT_CONFIG, DEFAULT_MODEL } from '../src/config/constants.js';
+import { ConfigManager } from '../src/config/manager.js';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
@@ -26,13 +25,14 @@ const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
 function makeTmpDir(label) {
   const dir = path.join(
     os.tmpdir(),
-    `tai-phase5-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `tai-phase5-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 function stripAnsi(str) {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences are control characters by definition
   return String(str || '').replace(/\x1B\[[0-9;]*m/g, '');
 }
 
@@ -46,10 +46,10 @@ function runTai(args, tmpDir, extraEnv = {}) {
       OPENAI_API_KEY: '',
       TERMUXAI_API_KEY: '',
       T_AI_API_KEY: '',
-      ...extraEnv
+      ...extraEnv,
     },
     encoding: 'utf8',
-    timeout: 15000
+    timeout: 15000,
   });
 }
 
@@ -70,7 +70,10 @@ describe('Phase 5.1: Invariants & Single Source of Truth', () => {
   test('all BUILTIN_PROVIDERS have valid adapter, defaultModel, and models containing defaultModel', () => {
     for (const [pid, pDef] of Object.entries(BUILTIN_PROVIDERS)) {
       assert.ok(pDef.adapter === 'gemini' || pDef.adapter === 'openai', `${pid} has valid adapter`);
-      assert.ok(typeof pDef.defaultModel === 'string' && pDef.defaultModel.length > 0, `${pid} has defaultModel`);
+      assert.ok(
+        typeof pDef.defaultModel === 'string' && pDef.defaultModel.length > 0,
+        `${pid} has defaultModel`,
+      );
       assert.ok(Array.isArray(pDef.models) && pDef.models.length > 0, `${pid} has models array`);
       assert.ok(pDef.models.includes(pDef.defaultModel), `${pid} defaultModel is in models[]`);
     }
@@ -136,13 +139,22 @@ describe('Phase 5.2: End-to-End CLI Commands Verification', () => {
   });
 
   test('tai provider add and show work with custom adapter', () => {
-    const res = runTai([
-      'provider', 'add', 'custom-groq',
-      '--api-key', 'gsk-12345',
-      '--base-url', 'https://api.groq.com/openai/v1',
-      '--model', 'llama-3.3-70b-versatile',
-      '--adapter', 'openai'
-    ], tmpDir);
+    const res = runTai(
+      [
+        'provider',
+        'add',
+        'custom-groq',
+        '--api-key',
+        'gsk-12345',
+        '--base-url',
+        'https://api.groq.com/openai/v1',
+        '--model',
+        'llama-3.3-70b-versatile',
+        '--adapter',
+        'openai',
+      ],
+      tmpDir,
+    );
     assert.equal(res.status, 0);
 
     const showRes = runTai(['provider', 'show', 'custom-groq'], tmpDir);
@@ -159,7 +171,7 @@ describe('Phase 5.2: End-to-End CLI Commands Verification', () => {
     assert.equal(res.status, 0);
     const list = JSON.parse(res.stdout.trim());
     assert.ok(Array.isArray(list));
-    assert.ok(list.some(p => p.id === 'custom-groq'));
+    assert.ok(list.some((p) => p.id === 'custom-groq'));
   });
 
   test('one-shot CLI flags parse correctly and do not mutate persistent config', () => {
@@ -196,7 +208,7 @@ describe('Phase 5.3: Backward Compatibility with Legacy Configs', () => {
       model: 'gemini-1.5-flash',
       autoApprove: true,
       logLevel: 'debug',
-      maxRetries: 5
+      maxRetries: 5,
     };
 
     const configFile = path.join(tmpDir, 'config.json');
@@ -234,10 +246,10 @@ describe('Phase 5.3: Backward Compatibility with Legacy Configs', () => {
         'custom-legacy': {
           apiKey: 'legacy-custom-key',
           baseUrl: 'https://legacy.example.com/v1',
-          model: 'legacy-special-v1'
+          model: 'legacy-special-v1',
           // note: no models[] array
-        }
-      }
+        },
+      },
     };
 
     const configFile = path.join(tmpDir, 'config.json');

@@ -23,9 +23,7 @@ export class Spinner {
     this.interval = options.interval || DEFAULT_INTERVAL;
     this.stream = options.stream || process.stdout;
     this.enabled =
-      options.enabled !== undefined
-        ? Boolean(options.enabled)
-        : Boolean(this.stream && this.stream.isTTY);
+      options.enabled !== undefined ? Boolean(options.enabled) : Boolean(this.stream?.isTTY);
 
     this.frameIndex = 0;
     this.timer = null;

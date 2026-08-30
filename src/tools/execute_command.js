@@ -35,11 +35,12 @@ export async function executeCommandTool(args, context = {}) {
 
   const cwd = workingDir
     ? path.resolve(context.baseDir || process.cwd(), workingDir)
-    : (context.baseDir || process.cwd());
+    : context.baseDir || process.cwd();
 
-  const timeout = typeof timeoutMs === 'number' && timeoutMs > 0
-    ? timeoutMs
-    : (context.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs);
+  const timeout =
+    typeof timeoutMs === 'number' && timeoutMs > 0
+      ? timeoutMs
+      : context.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs;
 
   const maxBytes = context.maxOutputSizeBytes || DEFAULT_SECURITY_CONFIG.maxOutputSizeBytes;
   const maxLines = context.maxOutputLines || DEFAULT_SECURITY_CONFIG.maxOutputLines;
@@ -49,8 +50,8 @@ export async function executeCommandTool(args, context = {}) {
   // %SystemRoot%\system32\cmd.exe and interpret metacharacters). Require an
   // explicit ComSpec on Windows; default to cmd.exe when missing.
   const shellOption = isWindows
-    ? (process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe')
-    : (process.env.SHELL || '/bin/sh');
+    ? process.env.ComSpec || 'C:\\Windows\\System32\\cmd.exe'
+    : process.env.SHELL || '/bin/sh';
 
   return new Promise((resolve) => {
     const startTime = Date.now();
@@ -65,9 +66,9 @@ export async function executeCommandTool(args, context = {}) {
       shell: shellOption,
       env: {
         ...process.env,
-        ...env
+        ...env,
       },
-      windowsHide: true
+      windowsHide: true,
     });
 
     let timeoutTimer = null;
@@ -116,31 +117,35 @@ export async function executeCommandTool(args, context = {}) {
       cleanup();
 
       const durationMs = Date.now() - startTime;
-      let exitCode = timedOut ? 124 : (code ?? 0);
+      const exitCode = timedOut ? 124 : (code ?? 0);
 
       let truncated = false;
 
       // Handle output truncation if exceeds max bytes
       if (Buffer.byteLength(stdoutBuffer, 'utf-8') > maxBytes) {
-        stdoutBuffer = stdoutBuffer.slice(0, maxBytes) + '\n... [Output truncated: maximum size limit reached]';
+        stdoutBuffer = `${stdoutBuffer.slice(0, maxBytes)}\n... [Output truncated: maximum size limit reached]`;
         truncated = true;
       }
 
       if (Buffer.byteLength(stderrBuffer, 'utf-8') > maxBytes) {
-        stderrBuffer = stderrBuffer.slice(0, maxBytes) + '\n... [Output truncated: maximum size limit reached]';
+        stderrBuffer = `${stderrBuffer.slice(0, maxBytes)}\n... [Output truncated: maximum size limit reached]`;
         truncated = true;
       }
 
       // Handle output truncation if exceeds max lines
       const stdoutLines = stdoutBuffer.split(/\r?\n/);
       if (stdoutLines.length > maxLines) {
-        stdoutBuffer = stdoutLines.slice(0, maxLines).join('\n') + '\n... [Output truncated: maximum line limit reached]';
+        stdoutBuffer =
+          stdoutLines.slice(0, maxLines).join('\n') +
+          '\n... [Output truncated: maximum line limit reached]';
         truncated = true;
       }
 
       const stderrLines = stderrBuffer.split(/\r?\n/);
       if (stderrLines.length > maxLines) {
-        stderrBuffer = stderrLines.slice(0, maxLines).join('\n') + '\n... [Output truncated: maximum line limit reached]';
+        stderrBuffer =
+          stderrLines.slice(0, maxLines).join('\n') +
+          '\n... [Output truncated: maximum line limit reached]';
         truncated = true;
       }
 
@@ -156,7 +161,7 @@ export async function executeCommandTool(args, context = {}) {
         stderr: stderrBuffer,
         durationMs,
         timedOut,
-        truncated
+        truncated,
       });
     };
 
@@ -170,10 +175,10 @@ export async function executeCommandTool(args, context = {}) {
         command,
         exitCode: 1,
         stdout: stdoutBuffer,
-        stderr: (stderrBuffer ? stderrBuffer + '\n' : '') + `Spawn Error: ${err.message}`,
+        stderr: `${stderrBuffer ? `${stderrBuffer}\n` : ''}Spawn Error: ${err.message}`,
         durationMs,
         timedOut: false,
-        truncated: false
+        truncated: false,
       });
     });
 

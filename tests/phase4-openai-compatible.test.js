@@ -1,10 +1,10 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
+import { parseArgs } from '../src/cli/args.js';
 import { BUILTIN_PROVIDERS } from '../src/config/constants.js';
-import { createLlmClient } from '../src/llm/registry.js';
 import { GeminiClient } from '../src/llm/gemini.js';
 import { OpenAIClient } from '../src/llm/openai.js';
-import { parseArgs } from '../src/cli/args.js';
+import { createLlmClient } from '../src/llm/registry.js';
 
 describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
   // 4.3 Metadata adapter in constants.js
@@ -21,7 +21,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
       for (const [id, def] of Object.entries(BUILTIN_PROVIDERS)) {
         assert.ok(
           def.adapter === 'gemini' || def.adapter === 'openai',
-          `BUILTIN_PROVIDERS.${id}.adapter must be 'gemini' or 'openai', got: "${def.adapter}"`
+          `BUILTIN_PROVIDERS.${id}.adapter must be 'gemini' or 'openai', got: "${def.adapter}"`,
         );
       }
     });
@@ -33,7 +33,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
       const client = createLlmClient({
         provider: 'gemini',
         model: 'gemini-2.5-flash',
-        apiKey: 'test-key'
+        apiKey: 'test-key',
       });
       assert.ok(client instanceof GeminiClient);
       assert.equal(client.getModel(), 'gemini-2.5-flash');
@@ -44,7 +44,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
         provider: 'openai',
         model: 'gpt-4o',
         apiKey: 'test-key',
-        baseUrl: 'https://api.openai.com/v1'
+        baseUrl: 'https://api.openai.com/v1',
       });
       assert.ok(client instanceof OpenAIClient);
       assert.equal(client.getModel(), 'gpt-4o');
@@ -56,7 +56,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
         provider: 'groq',
         model: 'llama-3.3-70b-versatile',
         apiKey: 'gsk_test',
-        baseUrl: 'https://api.groq.com/openai/v1'
+        baseUrl: 'https://api.groq.com/openai/v1',
       });
       assert.ok(client instanceof OpenAIClient);
       assert.equal(client.getModel(), 'llama-3.3-70b-versatile');
@@ -70,7 +70,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
         adapter: 'openai',
         model: 'my-custom-model',
         apiKey: 'sk-custom',
-        baseUrl: 'http://localhost:11434/v1'
+        baseUrl: 'http://localhost:11434/v1',
       });
       assert.ok(client instanceof OpenAIClient);
       assert.equal(client.getModel(), 'my-custom-model');
@@ -80,7 +80,7 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
     test('throws descriptive error for unknown provider without baseUrl or adapter', () => {
       assert.throws(
         () => createLlmClient({ provider: 'unsupported-llm', apiKey: 'k' }),
-        /Unknown provider: unsupported-llm/
+        /Unknown provider: unsupported-llm/,
       );
     });
   });
@@ -88,7 +88,15 @@ describe('Phase 4 — OpenAI-Compatible Adapter Clarity & Routing', () => {
   // CLI argument parsing for --adapter
   describe('Phase 4.1 / CLI — parseArgs --adapter option', () => {
     test('parses --adapter <type> flag', () => {
-      const parsed = parseArgs(['provider', 'add', 'groq', '--adapter', 'openai', '--base-url', 'https://api.groq.com']);
+      const parsed = parseArgs([
+        'provider',
+        'add',
+        'groq',
+        '--adapter',
+        'openai',
+        '--base-url',
+        'https://api.groq.com',
+      ]);
       assert.equal(parsed.flags.adapter, 'openai');
       assert.equal(parsed.flags.baseUrl, 'https://api.groq.com');
       assert.equal(parsed.args[0], 'groq');

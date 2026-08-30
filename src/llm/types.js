@@ -7,7 +7,7 @@ export const GEMINI_ROLES = {
   USER: 'user',
   MODEL: 'model',
   FUNCTION: 'function',
-  SYSTEM: 'system'
+  SYSTEM: 'system',
 };
 
 /**
@@ -20,15 +20,15 @@ export function createUserMessage(textOrParts) {
   if (typeof textOrParts === 'string') {
     return {
       role: GEMINI_ROLES.USER,
-      parts: [{ text: textOrParts }]
+      parts: [{ text: textOrParts }],
     };
   }
 
   if (Array.isArray(textOrParts)) {
-    const parts = textOrParts.map(p => (typeof p === 'string' ? { text: p } : p));
+    const parts = textOrParts.map((p) => (typeof p === 'string' ? { text: p } : p));
     return {
       role: GEMINI_ROLES.USER,
-      parts
+      parts,
     };
   }
 
@@ -45,15 +45,15 @@ export function createModelMessage(textOrParts) {
   if (typeof textOrParts === 'string') {
     return {
       role: GEMINI_ROLES.MODEL,
-      parts: [{ text: textOrParts }]
+      parts: [{ text: textOrParts }],
     };
   }
 
   if (Array.isArray(textOrParts)) {
-    const parts = textOrParts.map(p => (typeof p === 'string' ? { text: p } : p));
+    const parts = textOrParts.map((p) => (typeof p === 'string' ? { text: p } : p));
     return {
       role: GEMINI_ROLES.MODEL,
-      parts
+      parts,
     };
   }
 
@@ -74,8 +74,8 @@ export function createFunctionCallPart(name, args = {}) {
   return {
     functionCall: {
       name,
-      args: typeof args === 'object' && args !== null ? args : {}
-    }
+      args: typeof args === 'object' && args !== null ? args : {},
+    },
   };
 }
 
@@ -99,8 +99,8 @@ export function createFunctionResponsePart(name, response) {
   return {
     functionResponse: {
       name,
-      response: responseObj
-    }
+      response: responseObj,
+    },
   };
 }
 
@@ -114,7 +114,7 @@ export function createFunctionResponsePart(name, response) {
 export function createFunctionResponseMessage(name, response) {
   return {
     role: GEMINI_ROLES.FUNCTION,
-    parts: [createFunctionResponsePart(name, response)]
+    parts: [createFunctionResponsePart(name, response)],
   };
 }
 
@@ -129,7 +129,7 @@ export function createSystemInstruction(instruction) {
 
   if (typeof instruction === 'string') {
     return {
-      parts: [{ text: instruction }]
+      parts: [{ text: instruction }],
     };
   }
 
@@ -139,7 +139,7 @@ export function createSystemInstruction(instruction) {
 
   if (typeof instruction === 'object' && instruction.text) {
     return {
-      parts: [{ text: instruction.text }]
+      parts: [{ text: instruction.text }],
     };
   }
 
@@ -171,8 +171,8 @@ export function formatTools(tools) {
   if (Array.isArray(tools)) {
     return [
       {
-        functionDeclarations: tools
-      }
+        functionDeclarations: tools,
+      },
     ];
   }
 
@@ -212,7 +212,7 @@ export function normalizeContent(content) {
   }
 
   // Normalize each part if it's a raw string
-  const normalizedParts = parts.map(part => {
+  const normalizedParts = parts.map((part) => {
     if (typeof part === 'string') {
       return { text: part };
     }
@@ -221,6 +221,6 @@ export function normalizeContent(content) {
 
   return {
     role,
-    parts: normalizedParts
+    parts: normalizedParts,
   };
 }

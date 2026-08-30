@@ -12,7 +12,7 @@ import { BaseLlmClient } from './base.js';
 export function convertToJsonSchema(schema) {
   if (!schema || typeof schema !== 'object') return schema;
   if (Array.isArray(schema)) {
-    return schema.map(item => {
+    return schema.map((item) => {
       if (item && typeof item === 'object') return convertToJsonSchema(item);
       return item;
     });
@@ -40,7 +40,7 @@ export class OpenAIClient extends BaseLlmClient {
     }
   }
 
-  getEndpoint(action = 'chat/completions', isStream = false) {
+  getEndpoint(action = 'chat/completions', _isStream = false) {
     let base = (this.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
     if (!base.endsWith('/v1') && !base.includes('/v1/')) {
       base = `${base}/v1`;
@@ -54,9 +54,10 @@ export class OpenAIClient extends BaseLlmClient {
 
     // System instruction -> top-level system message
     if (systemInstruction) {
-      const text = typeof systemInstruction === 'string'
-        ? systemInstruction
-        : (systemInstruction.parts?.[0]?.text || '');
+      const text =
+        typeof systemInstruction === 'string'
+          ? systemInstruction
+          : systemInstruction.parts?.[0]?.text || '';
       if (text) messages.push({ role: 'system', content: text });
     }
 
@@ -65,7 +66,7 @@ export class OpenAIClient extends BaseLlmClient {
 
       for (const msg of contents) {
         if (msg.role === 'user') {
-          const text = (msg.parts || []).map(p => p.text || '').join('');
+          const text = (msg.parts || []).map((p) => p.text || '').join('');
           messages.push({ role: 'user', content: text });
         } else if (msg.role === 'model') {
           const texts = [];
@@ -74,7 +75,10 @@ export class OpenAIClient extends BaseLlmClient {
             const part = msg.parts[pIdx];
             if (part.text) texts.push(part.text);
             if (part.functionCall) {
-              const callId = part.functionCall.id || part.functionCall.toolCallId || `call_${Date.now()}_${pIdx}`;
+              const callId =
+                part.functionCall.id ||
+                part.functionCall.toolCallId ||
+                `call_${Date.now()}_${pIdx}`;
               toolCallIdQueue.push({ name: part.functionCall.name, id: callId });
               toolCalls.push({
                 id: callId,
@@ -93,11 +97,13 @@ export class OpenAIClient extends BaseLlmClient {
             messages.push(entry);
           }
         } else if (msg.role === 'function') {
-          for (const part of (msg.parts || [])) {
+          for (const part of msg.parts || []) {
             if (part.functionResponse) {
               let callId = part.functionResponse.toolCallId || part.functionResponse.id;
               if (!callId) {
-                const qIdx = toolCallIdQueue.findIndex(q => q.name === part.functionResponse.name);
+                const qIdx = toolCallIdQueue.findIndex(
+                  (q) => q.name === part.functionResponse.name,
+                );
                 if (qIdx !== -1) {
                   callId = toolCallIdQueue[qIdx].id;
                   toolCallIdQueue.splice(qIdx, 1);
@@ -120,7 +126,7 @@ export class OpenAIClient extends BaseLlmClient {
 
     const payload = {
       model: this.model || 'gpt-4o-mini',
-      messages
+      messages,
     };
 
     // Tools: flat OpenAI shape
@@ -129,7 +135,7 @@ export class OpenAIClient extends BaseLlmClient {
       for (const t of tools) {
         const fds = Array.isArray(t.functionDeclarations) ? t.functionDeclarations : [t];
         for (const fd of fds) {
-          if (fd && fd.name) {
+          if (fd?.name) {
             oaTools.push({
               type: 'function',
               function: {
@@ -172,21 +178,24 @@ export class OpenAIClient extends BaseLlmClient {
     const endpoint = this.getEndpoint('chat/completions', true);
     const parentSignal = options.signal;
 
-    return await this._requestWithRetry(async () => {
-      const response = await this.fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: parentSignal,
-      });
+    return await this._requestWithRetry(
+      async () => {
+        const response = await this.fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: parentSignal,
+        });
 
-      if (!response.ok) await this._handleErrorResponse(response);
+        if (!response.ok) await this._handleErrorResponse(response);
 
-      return await this._parseOpenAISSE(response.body, options, parentSignal);
-    }, { signal: parentSignal, logger: this.logger });
+        return await this._parseOpenAISSE(response.body, options, parentSignal);
+      },
+      { signal: parentSignal, logger: this.logger },
+    );
   }
 
   async _parseOpenAISSE(body, options, parentSignal) {
@@ -203,14 +212,20 @@ export class OpenAIClient extends BaseLlmClient {
         const b = toolCallBuffers[idx];
         let args = {};
         if (b.argsParts.length) {
-          try { args = JSON.parse(b.argsParts.join('')); } catch { args = {}; }
+          try {
+            args = JSON.parse(b.argsParts.join(''));
+          } catch {
+            args = {};
+          }
         }
         functionCalls.push({ name: b.name, args });
         if (typeof options.onFunctionCall === 'function') {
           options.onFunctionCall({ name: b.name, args });
         }
       }
-      Object.keys(toolCallBuffers).forEach(k => delete toolCallBuffers[k]);
+      Object.keys(toolCallBuffers).forEach((k) => {
+        delete toolCallBuffers[k];
+      });
     };
 
     const onChunk = (line) => {
@@ -220,7 +235,11 @@ export class OpenAIClient extends BaseLlmClient {
       const jsonStr = line.slice(5).trim();
       if (!jsonStr) return;
       let data;
-      try { data = JSON.parse(jsonStr); } catch { return; }
+      try {
+        data = JSON.parse(jsonStr);
+      } catch {
+        return;
+      }
 
       if (data.choices && data.choices.length === 0) {
         finishReason = 'STOP';
@@ -228,7 +247,7 @@ export class OpenAIClient extends BaseLlmClient {
       }
 
       const choice = data.choices?.[0];
-      if (!choice || !choice.delta) return;
+      if (!choice?.delta) return;
 
       if (choice.delta.content) {
         tokens.push(choice.delta.content);
@@ -265,7 +284,8 @@ export class OpenAIClient extends BaseLlmClient {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         let nlIdx;
-        while ((nlIdx = buffer.indexOf('\n')) !== -1) {
+        while (buffer.includes('\n')) {
+          nlIdx = buffer.indexOf('\n');
           const line = buffer.slice(0, nlIdx);
           buffer = buffer.slice(nlIdx + 1);
           onChunk(line);
@@ -309,27 +329,32 @@ export class OpenAIClient extends BaseLlmClient {
     const endpoint = this.getEndpoint('chat/completions', false);
     const parentSignal = options.signal;
 
-    return await this._requestWithRetry(async () => {
-      const response = await this.fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: parentSignal,
-      });
+    return await this._requestWithRetry(
+      async () => {
+        const response = await this.fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: parentSignal,
+        });
 
-      if (!response.ok) await this._handleErrorResponse(response);
+        if (!response.ok) await this._handleErrorResponse(response);
 
-      const data = await response.json();
-      return this._extractNonStreamResult(data);
-    }, { signal: parentSignal, logger: this.logger });
+        const data = await response.json();
+        return this._extractNonStreamResult(data);
+      },
+      { signal: parentSignal, logger: this.logger },
+    );
   }
 
   _validateApiKey() {
     if (!this.apiKey || typeof this.apiKey !== 'string' || this.apiKey.trim() === '') {
-      throw new Error("OpenAI API key is not configured. Set OPENAI_API_KEY or run 'termuxai provider add openai'.");
+      throw new Error(
+        "OpenAI API key is not configured. Set OPENAI_API_KEY or run 'termuxai provider add openai'.",
+      );
     }
   }
 
@@ -341,7 +366,9 @@ export class OpenAIClient extends BaseLlmClient {
       if (errorDetails?.error?.message) errorMessage = errorDetails.error.message;
     } catch {}
     if (!errorMessage) {
-      try { errorMessage = await response.text(); } catch {}
+      try {
+        errorMessage = await response.text();
+      } catch {}
       if (!errorMessage) errorMessage = `HTTP error ${response.status} ${response.statusText}`;
     }
     const error = new Error(`OpenAI API Error (${response.status}): ${errorMessage}`);
@@ -363,7 +390,11 @@ export class OpenAIClient extends BaseLlmClient {
         for (const tc of choice.message.tool_calls) {
           let args = {};
           if (tc.function?.arguments) {
-            try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
+            try {
+              args = JSON.parse(tc.function.arguments);
+            } catch {
+              args = {};
+            }
           }
           functionCalls.push({ name: tc.function.name, args });
         }
@@ -415,7 +446,9 @@ export function parseTextToolCalls(rawText) {
     if (!name || !args || typeof args !== 'object') return;
     const cleanName = name.trim();
     if (validTools.includes(cleanName)) {
-      if (!calls.some(c => c.name === cleanName && JSON.stringify(c.args) === JSON.stringify(args))) {
+      if (
+        !calls.some((c) => c.name === cleanName && JSON.stringify(c.args) === JSON.stringify(args))
+      ) {
         calls.push({ name: cleanName, args });
       }
     }
@@ -438,7 +471,9 @@ export function parseTextToolCalls(rawText) {
   const toolCallsBlocks = text.matchAll(/<tool_calls?>([\s\S]*?)<\/tool_calls?>/gi);
   for (const match of toolCallsBlocks) {
     const block = match[1];
-    const nameMatch = block.match(new RegExp(`(?:<tool_name>|<tool_call>|name[:=]?\\s*)?(${validToolsRegex})`, 'i'));
+    const nameMatch = block.match(
+      new RegExp(`(?:<tool_name>|<tool_call>|name[:=]?\\s*)?(${validToolsRegex})`, 'i'),
+    );
     if (nameMatch) {
       const name = nameMatch[1];
       const parsedArgs = extractJson(block);
@@ -449,10 +484,14 @@ export function parseTextToolCalls(rawText) {
   }
 
   // Pattern 2: XML tags <tool_call><_function_call>... or <function_call>...<tool_name>name</tool_name>...
-  const xmlMatches = text.matchAll(/<(?:tool_call>)?<_(?:function_call|action)>([\s\S]*?)<\/(?:function_call|action)>/gi);
+  const xmlMatches = text.matchAll(
+    /<(?:tool_call>)?<_(?:function_call|action)>([\s\S]*?)<\/(?:function_call|action)>/gi,
+  );
   for (const match of xmlMatches) {
     const block = match[1];
-    const nameMatch = block.match(/<tool_name>([\s\S]*?)<\/tool_name>/i) || block.match(/<action_name>([\s\S]*?)<\/action_name>/i);
+    const nameMatch =
+      block.match(/<tool_name>([\s\S]*?)<\/tool_name>/i) ||
+      block.match(/<action_name>([\s\S]*?)<\/action_name>/i);
     if (nameMatch) {
       const name = nameMatch[1].trim();
       const args = {};
@@ -474,7 +513,9 @@ export function parseTextToolCalls(rawText) {
     const name = match[1].trim();
     const block = match[2];
     const args = {};
-    const paramMatches = block.matchAll(/<parameter(?:=|\s+name=)["']?([a-zA-Z0-9_]+)["']?>([\s\S]*?)<\/parameter>/gi);
+    const paramMatches = block.matchAll(
+      /<parameter(?:=|\s+name=)["']?([a-zA-Z0-9_]+)["']?>([\s\S]*?)<\/parameter>/gi,
+    );
     for (const pm of paramMatches) {
       const key = pm[1];
       const mappedKey = key === 'path' ? 'filePath' : key;
@@ -484,13 +525,18 @@ export function parseTextToolCalls(rawText) {
   }
 
   // Pattern 3: <tool_call> JSON </tool_call> or <function_call> JSON </function_call>
-  const jsonMatches = text.matchAll(/<(?:tool_call|function_call)>\s*(\{[\s\S]*?\})\s*<\/(?:tool_call|function_call)>/gi);
+  const jsonMatches = text.matchAll(
+    /<(?:tool_call|function_call)>\s*(\{[\s\S]*?\})\s*<\/(?:tool_call|function_call)>/gi,
+  );
   for (const match of jsonMatches) {
     try {
       const parsed = JSON.parse(match[1]);
       const name = parsed.name || parsed.tool || parsed.function;
       if (name) {
-        const args = typeof parsed.arguments === 'string' ? JSON.parse(parsed.arguments) : (parsed.arguments || parsed.args || parsed.parameters || {});
+        const args =
+          typeof parsed.arguments === 'string'
+            ? JSON.parse(parsed.arguments)
+            : parsed.arguments || parsed.args || parsed.parameters || {};
         addCall(name, args);
       }
     } catch {}
@@ -501,16 +547,22 @@ export function parseTextToolCalls(rawText) {
   for (const match of mdMatches) {
     try {
       const parsed = JSON.parse(match[1]);
-      const name = parsed.name || parsed.tool || parsed.function || parsed.tool_name || parsed.action;
+      const name =
+        parsed.name || parsed.tool || parsed.function || parsed.tool_name || parsed.action;
       if (name) {
-        const args = typeof parsed.arguments === 'string' ? JSON.parse(parsed.arguments) : (parsed.arguments || parsed.parameters || parsed.args || parsed.action_input || {});
+        const args =
+          typeof parsed.arguments === 'string'
+            ? JSON.parse(parsed.arguments)
+            : parsed.arguments || parsed.parameters || parsed.args || parsed.action_input || {};
         addCall(name, args);
       }
     } catch {}
   }
 
   // Pattern 5: Action: tool \n Action Input: {...}
-  const actionMatch = text.match(/Action:\s*([a-zA-Z0-9_]+)[\s\S]*?Action\s*Input:\s*(\{[\s\S]*?\})/i);
+  const actionMatch = text.match(
+    /Action:\s*([a-zA-Z0-9_]+)[\s\S]*?Action\s*Input:\s*(\{[\s\S]*?\})/i,
+  );
   if (actionMatch) {
     const name = actionMatch[1].trim();
     try {
@@ -521,7 +573,10 @@ export function parseTextToolCalls(rawText) {
 
   // Pattern 6: Tool name followed by JSON object anywhere with arbitrary delimiter
   // e.g. execute_command\nwrite_file\n{"path": "..."} or write_file<tool_sep>{"filePath": ...}
-  const plainRegex = new RegExp(`(?:^|\\n|\\s|<tool_call>)(${validToolsRegex})[^\\w{]*(\\{[\\s\\S]*?\\})`, 'gi');
+  const plainRegex = new RegExp(
+    `(?:^|\\n|\\s|<tool_call>)(${validToolsRegex})[^\\w{]*(\\{[\\s\\S]*?\\})`,
+    'gi',
+  );
   for (const match of text.matchAll(plainRegex)) {
     const name = match[1];
     try {
@@ -537,7 +592,11 @@ export function parseTextToolCalls(rawText) {
       try {
         const obj = JSON.parse(match[0]);
         if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-          if (obj.content !== undefined || (obj.filePath && obj.content) || (obj.path && obj.content)) {
+          if (
+            obj.content !== undefined ||
+            (obj.filePath && obj.content) ||
+            (obj.path && obj.content)
+          ) {
             addCall('write_file', obj);
           } else if (obj.searchString || obj.replaceString || obj.search || obj.replace) {
             addCall('patch_file', obj);
@@ -555,4 +614,3 @@ export function parseTextToolCalls(rawText) {
 
   return calls;
 }
-

@@ -44,9 +44,7 @@ export async function listDirTool(args = {}, context = {}) {
     throw new Error(`Path is a file, not a directory: "${dirPath}". Use "read_file" instead.`);
   }
 
-  const ignores = new Set(
-    Array.isArray(ignorePatterns) ? ignorePatterns : DEFAULT_IGNORE_PATTERNS
-  );
+  const ignores = new Set(Array.isArray(ignorePatterns) ? ignorePatterns : DEFAULT_IGNORE_PATTERNS);
 
   const maxDepth = Math.max(1, Math.min(typeof depth === 'number' ? Math.floor(depth) : 2, 10));
 
@@ -66,13 +64,13 @@ export async function listDirTool(args = {}, context = {}) {
     try {
       // BUG-04: async I/O — never blocks the event loop on large dirs
       items = await fsp.readdir(currentDir, { withFileTypes: true });
-    } catch (err) {
+    } catch (_err) {
       return [`${prefix}└── [Permission Denied / Read Error]`];
     }
 
     // Sort: directories first, then files alphabetically
     const filteredItems = items
-      .filter(item => !ignores.has(item.name))
+      .filter((item) => !ignores.has(item.name))
       .sort((a, b) => {
         if (a.isDirectory() && !b.isDirectory()) return -1;
         if (!a.isDirectory() && b.isDirectory()) return 1;
@@ -94,7 +92,7 @@ export async function listDirTool(args = {}, context = {}) {
         entries.push({
           name: item.name,
           relativePath: relPath,
-          type: 'directory'
+          type: 'directory',
         });
         lines.push(`${prefix}${pointer}${item.name}/`);
 
@@ -113,7 +111,7 @@ export async function listDirTool(args = {}, context = {}) {
           name: item.name,
           relativePath: relPath,
           type: 'file',
-          sizeBytes: size
+          sizeBytes: size,
         });
 
         lines.push(`${prefix}${pointer}${item.name} (${formatSize(size)})`);
@@ -133,6 +131,6 @@ export async function listDirTool(args = {}, context = {}) {
     totalDirs,
     depth: maxDepth,
     entries,
-    tree
+    tree,
   };
 }

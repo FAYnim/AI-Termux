@@ -2,13 +2,14 @@
  * Tests for provider-wizard.js
  * Tests helper functions (isLocalUrl, isApiKeyRequired) and runProviderAddWizard wizard.
  */
-import { test, describe } from 'node:test';
+
 import assert from 'node:assert/strict';
-import { Readable, PassThrough } from 'node:stream';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import fs from 'node:fs';
-import { isLocalUrl, isApiKeyRequired, runProviderAddWizard } from '../src/cli/provider-wizard.js';
+import { PassThrough, Readable } from 'node:stream';
+import { describe, test } from 'node:test';
+import { isApiKeyRequired, isLocalUrl, runProviderAddWizard } from '../src/cli/provider-wizard.js';
 import { ConfigManager } from '../src/config/manager.js';
 
 describe('provider-wizard: isLocalUrl', () => {
@@ -66,9 +67,12 @@ class AnswerStream extends Readable {
     this._closed = false;
   }
   _read() {
-    if (this._closed) { this.push(null); return; }
+    if (this._closed) {
+      this.push(null);
+      return;
+    }
     if (this._i < this._answers.length) {
-      this.push(this._answers[this._i++] + '\n');
+      this.push(`${this._answers[this._i++]}\n`);
     } else {
       this._closed = true;
       this.push(null);
@@ -85,7 +89,10 @@ function makeOutput() {
 }
 
 function makeTmpConfigMgr() {
-  const tmpDir = path.join(os.tmpdir(), `tai-wiz-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const tmpDir = path.join(
+    os.tmpdir(),
+    `tai-wiz-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   fs.mkdirSync(tmpDir, { recursive: true });
   return new ConfigManager(tmpDir);
 }
@@ -93,7 +100,14 @@ function makeTmpConfigMgr() {
 describe('runProviderAddWizard: happy paths', () => {
   test('openai cloud provider (wajib API key + base URL)', async () => {
     // Answers: id, adapter, baseUrl, apiKey, model, switchNow
-    const answers = ['groq', 'openai', 'https://api.groq.com/openai/v1', 'gsk_test123', 'llama-3.3-70b', 'n'];
+    const answers = [
+      'groq',
+      'openai',
+      'https://api.groq.com/openai/v1',
+      'gsk_test123',
+      'llama-3.3-70b',
+      'n',
+    ];
     const input = new AnswerStream(answers);
     const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
@@ -163,7 +177,12 @@ describe('runProviderAddWizard: happy paths', () => {
     const output = makeOutput();
     const configMgr = makeTmpConfigMgr();
 
-    const result = await runProviderAddWizard({ configMgr, input, output, prefilledId: 'openrouter' });
+    const result = await runProviderAddWizard({
+      configMgr,
+      input,
+      output,
+      prefilledId: 'openrouter',
+    });
 
     assert.strictEqual(result.cancelled, false);
     assert.strictEqual(result.providerId, 'openrouter');

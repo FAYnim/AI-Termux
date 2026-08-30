@@ -2,23 +2,23 @@
  * Step 5 Test Suite: Markdown Renderer, Code Syntax Highlighter, Spinner & Box UI
  */
 
-import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  renderMarkdown,
-  highlightCode,
-  renderTable,
-  renderInline,
-  createSpinner,
-  renderBox,
-  renderBanner,
-  renderStatusCard,
-  stripAnsi,
-  setColorEnabled
-} from '../src/index.js';
+import { PassThrough } from 'node:stream';
+import { beforeEach, describe, test } from 'node:test';
 import { REPL_PROMPT } from '../src/cli/repl.js';
 import { APP_NAME } from '../src/config/constants.js';
-import { PassThrough } from 'node:stream';
+import {
+  createSpinner,
+  highlightCode,
+  renderBanner,
+  renderBox,
+  renderInline,
+  renderMarkdown,
+  renderStatusCard,
+  renderTable,
+  setColorEnabled,
+  stripAnsi,
+} from '../src/index.js';
 
 describe('Step 5: ANSI Markdown & Syntax Highlighter', () => {
   beforeEach(() => {
@@ -40,7 +40,8 @@ describe('Step 5: ANSI Markdown & Syntax Highlighter', () => {
 
   test('should render inline formatting (bold, italic, strikethrough, inline code, links)', () => {
     setColorEnabled(true);
-    const text = 'This is **bold**, *italic*, ~~strikethrough~~, `const x = 10;`, and [Google](https://google.com)';
+    const text =
+      'This is **bold**, *italic*, ~~strikethrough~~, `const x = 10;`, and [Google](https://google.com)';
     const rendered = renderInline(text);
     const plain = stripAnsi(rendered);
 
@@ -187,7 +188,7 @@ describe('Step 5: Terminal Box & Banner UI', () => {
     const box = renderBox('Hello from Termux AI CLI', {
       title: 'Status',
       borderStyle: 'round',
-      borderColor: 'cyan'
+      borderColor: 'cyan',
     });
     const plain = stripAnsi(box);
 
@@ -202,7 +203,7 @@ describe('Step 5: Terminal Box & Banner UI', () => {
       title: '⚡ termux-ai-cli',
       version: 'v1.0.0',
       subtitle: 'Autonomous AI Agent CLI for Termux',
-      details: ['Model: gemini-2.5-flash', 'Session: sess_test123']
+      details: ['Model: gemini-2.5-flash', 'Session: sess_test123'],
     });
     const plain = stripAnsi(banner);
 
@@ -213,9 +214,9 @@ describe('Step 5: Terminal Box & Banner UI', () => {
 
   test('should render status card key-value pairs', () => {
     const card = renderStatusCard('Session Info', {
-      'ID': 'sess_999',
-      'Turns': 5,
-      'Active': true
+      ID: 'sess_999',
+      Turns: 5,
+      Active: true,
     });
     const plain = stripAnsi(card);
 
@@ -235,14 +236,14 @@ describe('Step 5: Live Spinner & Status Indicator', () => {
   test('should start, update text, and succeed on stream', () => {
     const mockStream = new PassThrough();
     let written = '';
-    mockStream.on('data', chunk => {
+    mockStream.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 
     const spinner = createSpinner({
       text: 'Starting engine...',
       stream: mockStream,
-      enabled: true
+      enabled: true,
     });
 
     spinner.start();
@@ -262,7 +263,7 @@ describe('Step 5: Live Spinner & Status Indicator', () => {
   test('should support fail, warn, and info methods', () => {
     const mockStream = new PassThrough();
     let written = '';
-    mockStream.on('data', chunk => {
+    mockStream.on('data', (chunk) => {
       written += chunk.toString('utf8');
     });
 

@@ -14,20 +14,16 @@
  *  - bin/tai.js: model command end-to-end via subprocess
  */
 
-import { test, describe, after, before } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 
 import { parseArgs } from '../src/cli/args.js';
-import {
-  listModelsCli,
-  setModelCli,
-  handleModelCommand
-} from '../src/cli/model-commands.js';
+import { handleModelCommand, listModelsCli, setModelCli } from '../src/cli/model-commands.js';
 import { ConfigManager } from '../src/config/manager.js';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -40,7 +36,7 @@ const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
 function makeTmpDir(label) {
   const dir = path.join(
     os.tmpdir(),
-    `tai-model-cli-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `tai-model-cli-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -181,7 +177,10 @@ describe('listModelsCli', () => {
     assert.ok(res.output.length > 50, 'output should be substantial');
     // Box chars (round style)
     assert.ok(res.output.includes('╭') || res.output.includes('┌'), 'should have top-left border');
-    assert.ok(res.output.includes('╰') || res.output.includes('└'), 'should have bottom-left border');
+    assert.ok(
+      res.output.includes('╰') || res.output.includes('└'),
+      'should have bottom-left border',
+    );
   });
 });
 
@@ -228,9 +227,9 @@ describe('setModelCli', () => {
     assert.equal(stored.providers.gemini.model, 'my-custom-finetune-v1');
     // And it must be present in the stored `models[]` array as well.
     assert.ok(
-      Array.isArray(stored.providers.gemini.models)
-        && stored.providers.gemini.models.includes('my-custom-finetune-v1'),
-      'custom model should be auto-included in providers[pid].models[]'
+      Array.isArray(stored.providers.gemini.models) &&
+        stored.providers.gemini.models.includes('my-custom-finetune-v1'),
+      'custom model should be auto-included in providers[pid].models[]',
     );
   });
 
@@ -284,10 +283,7 @@ describe('handleModelCommand (dispatcher)', () => {
   });
 
   test('routes to list when subcommand=list', () => {
-    const res = handleModelCommand(
-      { command: 'model', subcommand: 'list', flags: {} },
-      configMgr
-    );
+    const res = handleModelCommand({ command: 'model', subcommand: 'list', flags: {} }, configMgr);
     assert.equal(res.exitCode, 0);
     const clean = stripAnsi(res.output);
     assert.ok(clean.includes('Model ('), 'should be a list output');
@@ -296,7 +292,7 @@ describe('handleModelCommand (dispatcher)', () => {
   test('routes to set when subcommand=set', () => {
     const res = handleModelCommand(
       { command: 'model', subcommand: 'set', flags: { modelSet: 'gemini-1.5-pro' } },
-      configMgr
+      configMgr,
     );
     assert.equal(res.exitCode, 0);
     assert.equal(res.model, 'gemini-1.5-pro');
@@ -305,7 +301,7 @@ describe('handleModelCommand (dispatcher)', () => {
   test('routes to list when subcommand is null but --list flag present', () => {
     const res = handleModelCommand(
       { command: 'model', subcommand: null, flags: { modelList: true } },
-      configMgr
+      configMgr,
     );
     assert.equal(res.exitCode, 0);
     const clean = stripAnsi(res.output);
@@ -313,10 +309,7 @@ describe('handleModelCommand (dispatcher)', () => {
   });
 
   test('fallback to list when subcommand is unknown', () => {
-    const res = handleModelCommand(
-      { command: 'model', subcommand: 'weird', flags: {} },
-      configMgr
-    );
+    const res = handleModelCommand({ command: 'model', subcommand: 'weird', flags: {} }, configMgr);
     assert.equal(res.exitCode, 0);
     const clean = stripAnsi(res.output);
     assert.ok(clean.includes('Model ('), 'should fall back to list output');
@@ -348,17 +341,21 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
         // Make sure no real key leaks in
         GEMINI_API_KEY: '',
         OPENAI_API_KEY: '',
-        TERMUXAI_API_KEY: ''
+        TERMUXAI_API_KEY: '',
       },
       encoding: 'utf8',
-      timeout: 15000
+      timeout: 15000,
     });
   }
 
   test('`tai model --list` prints the gemini catalog and exits 0', () => {
     const result = runTai(['model', '--list']);
     const clean = stripAnsi(result.stdout + result.stderr);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(
+      result.status,
+      0,
+      `expected exit 0, got ${result.status}; stderr: ${result.stderr}`,
+    );
     assert.ok(clean.includes('Model (gemini)'), 'should render gemini catalog box');
     assert.ok(clean.includes('gemini-2.5-flash'), 'should list default model');
   });
@@ -382,7 +379,11 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
   test('`tai model --set <m>` persists model and exits 0', () => {
     const result = runTai(['model', '--set', 'gemini-2.5-pro']);
     const clean = stripAnsi(result.stdout + result.stderr);
-    assert.equal(result.status, 0, `expected exit 0, got ${result.status}; stderr: ${result.stderr}`);
+    assert.equal(
+      result.status,
+      0,
+      `expected exit 0, got ${result.status}; stderr: ${result.stderr}`,
+    );
     assert.ok(clean.includes('gemini-2.5-pro'), 'should confirm the new model');
     // Verify persistence on disk
     const configPath = path.join(tmpDir, 'config.json');

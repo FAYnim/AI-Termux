@@ -15,20 +15,20 @@
  * the multi-turn error feedback injection mechanism.
  */
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { AgentOrchestrator } from '../../src/agent/orchestrator.js';
 import { SessionManager } from '../../src/agent/session.js';
 import { SecurityGuard } from '../../src/security/guard.js';
-import { writeFileTool } from '../../src/tools/write_file.js';
-import { patchFileTool } from '../../src/tools/patch_file.js';
 import { executeCommandTool } from '../../src/tools/execute_command.js';
+import { patchFileTool } from '../../src/tools/patch_file.js';
 import { readFileTool } from '../../src/tools/read_file.js';
 import { dispatchToolCall } from '../../src/tools/registry.js';
+import { writeFileTool } from '../../src/tools/write_file.js';
 
 describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
   let tempDir;
@@ -53,40 +53,56 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
     const context = { baseDir: tempDir, autoApprove: true };
 
     // Step 1: AI writes buggy calc.js (uses subtraction instead of addition)
-    await writeFileTool({
-      filePath: 'calc.js',
-      content: `// Calculator module\nexport function add(a, b) {\n  return a - b; // BUG: should be a + b\n}\n`
-    }, context);
+    await writeFileTool(
+      {
+        filePath: 'calc.js',
+        content: `// Calculator module\nexport function add(a, b) {\n  return a - b; // BUG: should be a + b\n}\n`,
+      },
+      context,
+    );
 
     // Step 2: AI writes test-calc.js
-    await writeFileTool({
-      filePath: 'test-calc.js',
-      content: `import { add } from './calc.js';\nconst result = add(3, 4);\nif (result !== 7) {\n  console.error('FAIL: add(3, 4) returned ' + result + ', expected 7');\n  process.exit(1);\n}\nconsole.log('PASS: add(3, 4) ===', result);\n`
-    }, context);
+    await writeFileTool(
+      {
+        filePath: 'test-calc.js',
+        content: `import { add } from './calc.js';\nconst result = add(3, 4);\nif (result !== 7) {\n  console.error('FAIL: add(3, 4) returned ' + result + ', expected 7');\n  process.exit(1);\n}\nconsole.log('PASS: add(3, 4) ===', result);\n`,
+      },
+      context,
+    );
 
     // Verify both files exist
     assert.ok(fs.existsSync(path.join(tempDir, 'calc.js')), 'calc.js should exist');
     assert.ok(fs.existsSync(path.join(tempDir, 'test-calc.js')), 'test-calc.js should exist');
 
     // Step 3: AI runs the test -> should FAIL
-    const failRun = await executeCommandTool({
-      command: `node test-calc.js`,
-      workingDir: tempDir
-    }, context);
+    const failRun = await executeCommandTool(
+      {
+        command: `node test-calc.js`,
+        workingDir: tempDir,
+      },
+      context,
+    );
 
-    assert.notEqual(failRun.exitCode, 0, `Test should fail initially. exitCode: ${failRun.exitCode}`);
+    assert.notEqual(
+      failRun.exitCode,
+      0,
+      `Test should fail initially. exitCode: ${failRun.exitCode}`,
+    );
     assert.match(
       failRun.stderr + failRun.stdout,
       /FAIL|expected 7/i,
-      'Failure output should contain FAIL or expected 7'
+      'Failure output should contain FAIL or expected 7',
     );
 
     // Step 4: Agent detects the error and applies patch
-    const patchResult = await patchFileTool({
-      filePath: 'calc.js',
-      searchString: 'return a - b; // BUG: should be a + b',
-      replaceString: 'return a + b; // FIXED'
-    }, context);
+    const patchResult = await patchFileTool(
+      {
+        filePath: 'calc.js',
+        searchString: 'return a - b; // BUG: should be a + b',
+        replaceString: 'return a + b; // FIXED',
+      },
+      context,
+    );
 
     assert.equal(patchResult.success, true, 'Patch should succeed');
     assert.match(patchResult.message, /Successfully patched/);
@@ -97,10 +113,13 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
     assert.ok(!calcContent.includes('return a - b'), 'calc.js should no longer have the bug');
 
     // Step 5: AI re-runs the test -> should PASS
-    const passRun = await executeCommandTool({
-      command: `node test-calc.js`,
-      workingDir: tempDir
-    }, context);
+    const passRun = await executeCommandTool(
+      {
+        command: `node test-calc.js`,
+        workingDir: tempDir,
+      },
+      context,
+    );
 
     assert.equal(passRun.exitCode, 0, `Test should pass after patch. stderr: ${passRun.stderr}`);
     assert.match(passRun.stdout, /PASS/, 'Output should confirm PASS');
@@ -130,10 +149,12 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
     const calcPath = path.join(tempDir, 'calc.js');
     const testPath = path.join(tempDir, 'test-calc.js');
 
-    fs.writeFileSync(calcPath,
-      `export function add(a, b) {\n  return a - b; // BUG\n}\n`, 'utf8');
-    fs.writeFileSync(testPath,
-      `import { add } from './calc.js';\nconst r = add(2, 3);\nif (r !== 5) { console.error('FAIL: got ' + r); process.exit(1); }\nconsole.log('PASS');\n`, 'utf8');
+    fs.writeFileSync(calcPath, `export function add(a, b) {\n  return a - b; // BUG\n}\n`, 'utf8');
+    fs.writeFileSync(
+      testPath,
+      `import { add } from './calc.js';\nconst r = add(2, 3);\nif (r !== 5) { console.error('FAIL: got ' + r); process.exit(1); }\nconsole.log('PASS');\n`,
+      'utf8',
+    );
 
     let turn = 0;
 
@@ -147,8 +168,13 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
           // Turn 1: Run tests first to check current state
           return {
             text: 'Saya akan menjalankan tes terlebih dahulu untuk melihat kondisi awal.',
-            functionCalls: [{ name: 'execute_command', args: { command: 'node test-calc.js', workingDir: tempDir } }],
-            finishReason: 'STOP'
+            functionCalls: [
+              {
+                name: 'execute_command',
+                args: { command: 'node test-calc.js', workingDir: tempDir },
+              },
+            ],
+            finishReason: 'STOP',
           };
         }
 
@@ -156,14 +182,15 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
           // Turn 2: Tests failed. Read calc.js to inspect code.
           // The function response (last message) should contain the error
           const lastMsg = contents[contents.length - 1];
-          const hasFail = JSON.stringify(lastMsg).includes('FAIL') ||
-                          JSON.stringify(lastMsg).includes('exitCode') ||
-                          JSON.stringify(lastMsg).includes('process.exit');
+          const _hasFail =
+            JSON.stringify(lastMsg).includes('FAIL') ||
+            JSON.stringify(lastMsg).includes('exitCode') ||
+            JSON.stringify(lastMsg).includes('process.exit');
           // We accept this step regardless as the mock doesn't have real output
           return {
             text: 'Tes gagal. Saya akan memeriksa kode calc.js untuk menemukan bug.',
             functionCalls: [{ name: 'read_file', args: { filePath: 'calc.js' } }],
-            finishReason: 'STOP'
+            finishReason: 'STOP',
           };
         }
 
@@ -171,15 +198,17 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
           // Turn 3: Found bug. Apply patch.
           return {
             text: 'Saya menemukan bug: menggunakan subtraksi, bukan penjumlahan. Saya akan memperbaikinya.',
-            functionCalls: [{
-              name: 'patch_file',
-              args: {
-                filePath: 'calc.js',
-                searchString: 'return a - b; // BUG',
-                replaceString: 'return a + b; // FIXED'
-              }
-            }],
-            finishReason: 'STOP'
+            functionCalls: [
+              {
+                name: 'patch_file',
+                args: {
+                  filePath: 'calc.js',
+                  searchString: 'return a - b; // BUG',
+                  replaceString: 'return a + b; // FIXED',
+                },
+              },
+            ],
+            finishReason: 'STOP',
           };
         }
 
@@ -187,8 +216,13 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
           // Turn 4: Re-run tests to confirm fix
           return {
             text: 'Bug telah diperbaiki. Saya akan menjalankan ulang tes untuk verifikasi.',
-            functionCalls: [{ name: 'execute_command', args: { command: 'node test-calc.js', workingDir: tempDir } }],
-            finishReason: 'STOP'
+            functionCalls: [
+              {
+                name: 'execute_command',
+                args: { command: 'node test-calc.js', workingDir: tempDir },
+              },
+            ],
+            finishReason: 'STOP',
           };
         }
 
@@ -196,9 +230,9 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
         return {
           text: 'Tes berhasil lulus! Bug telah berhasil diperbaiki. Fungsi add() kini mengembalikan hasil penjumlahan yang benar.',
           functionCalls: [],
-          finishReason: 'STOP'
+          finishReason: 'STOP',
         };
-      }
+      },
     };
 
     const session = sessionManager.createSession({ workingDir: tempDir });
@@ -206,17 +240,27 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
       geminiClient: mockGemini,
       session,
       workingDir: tempDir,
-      autoApprove: true
+      autoApprove: true,
     });
 
     const result = await orchestrator.runTurn(
       'Ada bug di calc.js, tolong perbaiki secara otomatis dan pastikan semua tes lulus.',
-      { maxIterations: 10 }
+      { maxIterations: 10 },
     );
 
-    assert.equal(result.success, true, `Loop should succeed. loopLimitReached: ${result.loopLimitReached}`);
-    assert.ok(result.toolCalls.length >= 4, `Should have called at least 4 tools, got: ${result.toolCalls.length}`);
-    assert.ok(result.iterations >= 5, `Should have run at least 5 iterations, got: ${result.iterations}`);
+    assert.equal(
+      result.success,
+      true,
+      `Loop should succeed. loopLimitReached: ${result.loopLimitReached}`,
+    );
+    assert.ok(
+      result.toolCalls.length >= 4,
+      `Should have called at least 4 tools, got: ${result.toolCalls.length}`,
+    );
+    assert.ok(
+      result.iterations >= 5,
+      `Should have run at least 5 iterations, got: ${result.iterations}`,
+    );
     assert.match(result.text, /berhasil|PASS|diperbaiki/i, 'Final text should confirm success');
 
     // Verify the actual file was patched
@@ -237,16 +281,24 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
       autoApprove: false,
       baseDir: tempDir,
       // Custom confirmation handler that always says NO
-      confirmationHandler: async () => false
+      confirmationHandler: async () => false,
     });
 
     // rm -rf / is in the blacklist and should be outright rejected
-    const result = await dispatchToolCall('execute_command', {
-      command: 'rm -rf /'
-    }, { securityGuard, baseDir: tempDir });
+    const result = await dispatchToolCall(
+      'execute_command',
+      {
+        command: 'rm -rf /',
+      },
+      { securityGuard, baseDir: tempDir },
+    );
 
     assert.equal(result.error, true, 'Blacklisted command should be blocked');
-    assert.match(result.message, /Forbidden|blacklist|blocked/i, 'Should explain why it was blocked');
+    assert.match(
+      result.message,
+      /Forbidden|blacklist|blocked/i,
+      'Should explain why it was blocked',
+    );
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -255,13 +307,17 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
   test('SecurityGuard auto-approve flag bypasses confirmation prompt', async () => {
     const securityGuard = new SecurityGuard({
       autoApprove: true,
-      baseDir: tempDir
+      baseDir: tempDir,
     });
 
     // echo is safe, just a validation test
-    const result = await dispatchToolCall('execute_command', {
-      command: 'node --version'
-    }, { securityGuard, baseDir: tempDir });
+    const result = await dispatchToolCall(
+      'execute_command',
+      {
+        command: 'node --version',
+      },
+      { securityGuard, baseDir: tempDir },
+    );
 
     assert.equal(result.error, undefined, `Should not be an error. message: ${result.message}`);
     assert.equal(result.success, true, 'node --version should execute successfully');

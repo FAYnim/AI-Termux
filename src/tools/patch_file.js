@@ -53,14 +53,14 @@ export async function patchFileTool(args, context = {}) {
   if (count === 0) {
     throw new Error(
       `Could not patch "${filePath}": searchString was not found.\n` +
-      `Ensure that searchString matches the exact character sequence, indentation, and line breaks.`
+        `Ensure that searchString matches the exact character sequence, indentation, and line breaks.`,
     );
   }
 
   if (count > 1) {
     throw new Error(
       `Could not patch "${filePath}": searchString occurs ${count} times in the file.\n` +
-      `The searchString must be unique to prevent ambiguous or unintended replacements. Include more surrounding context lines.`
+        `The searchString must be unique to prevent ambiguous or unintended replacements. Include more surrounding context lines.`,
     );
   }
 
@@ -78,6 +78,6 @@ export async function patchFileTool(args, context = {}) {
     originalLines,
     updatedLines,
     lineDelta: updatedLines - originalLines,
-    message: `Successfully patched "${filePath}" (unique match replaced).`
+    message: `Successfully patched "${filePath}" (unique match replaced).`,
   };
 }

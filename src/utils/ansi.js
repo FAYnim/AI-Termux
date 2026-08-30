@@ -3,10 +3,8 @@
  * Lightweight, fast (< 0.1ms overhead)
  */
 
-let colorsEnabled = (
-  !process.env.NO_COLOR &&
-  (Boolean(process.env.FORCE_COLOR) || Boolean(process.stdout && process.stdout.isTTY))
-);
+let colorsEnabled =
+  !process.env.NO_COLOR && (Boolean(process.env.FORCE_COLOR) || Boolean(process.stdout?.isTTY));
 
 export function setColorEnabled(enabled) {
   colorsEnabled = Boolean(enabled);
@@ -65,7 +63,7 @@ export const ansi = {
   bgMagenta: wrap(45, 49),
   bgCyan: wrap(46, 49),
   bgWhite: wrap(47, 49),
-  bgGray: wrap(100, 49)
+  bgGray: wrap(100, 49),
 };
 
 /**
@@ -75,6 +73,6 @@ export const ansi = {
  */
 export function stripAnsi(str) {
   if (typeof str !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences are control characters by definition
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }

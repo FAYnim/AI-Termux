@@ -10,7 +10,7 @@
  */
 export const HARD_LIMITS = {
   maxCommandLength: 2000,
-  maxTokenLength: 256
+  maxTokenLength: 256,
 };
 
 /**
@@ -27,7 +27,7 @@ export const OBFUSCATION_PATTERNS = [
   // Base64 decoded to shell
   /\bbase64\s+(?:-d|--decode)\b.*\|\s*(bash|sh|zsh|dash|ksh)\b/i,
   // Eval of any string
-  /\beval\s+/i
+  /\beval\s+/i,
 ];
 
 /**
@@ -36,13 +36,13 @@ export const OBFUSCATION_PATTERNS = [
  * regardless of verb (covers `find / -delete`, `rsync --delete /`, etc.).
  */
 export const PROTECTED_PATH_PATTERNS = [
-  /(^|\s)\/(?:\s|$|[;&|><])/i,                       // bare `/`
-  /(^|\s)\/\*(?:\s|$|[;&|><])/i,                     // `/*`
-  /(^|\s)~(?:\s|$|[;&|><])/i,                        // bare `~`
-  /(^|\s)\$\{?HOME\}?\/(?:\*)?(?:\s|$|[;&|><])/i,    // $HOME
-  /(^|\s)\/etc(?:\s|$|[;&|><])/i,                    // /etc
-  /(^|\s)\/boot(?:\s|$|[;&|><])/i,                   // /boot
-  /(^|\s)\/var\/lib(?:\s|$|[;&|><])/i                // /var/lib
+  /(^|\s)\/(?:\s|$|[;&|><])/i, // bare `/`
+  /(^|\s)\/\*(?:\s|$|[;&|><])/i, // `/*`
+  /(^|\s)~(?:\s|$|[;&|><])/i, // bare `~`
+  /(^|\s)\$\{?HOME\}?\/(?:\*)?(?:\s|$|[;&|><])/i, // $HOME
+  /(^|\s)\/etc(?:\s|$|[;&|><])/i, // /etc
+  /(^|\s)\/boot(?:\s|$|[;&|><])/i, // /boot
+  /(^|\s)\/var\/lib(?:\s|$|[;&|><])/i, // /var/lib
 ];
 
 /**
@@ -67,7 +67,7 @@ export const BLACKLIST_PATTERNS = [
   /\bchown\s+-[a-zA-Z0-9]*R[a-zA-Z0-9]*\s+.*\s+((\/|\/\*|~|\$HOME)\s*($|[;&|><]))/i,
 
   // System partition remounts in Android/Linux
-  /\bmount\s+.*-o\s+.*remount,rw\s+\/(system|vendor|product)?/i
+  /\bmount\s+.*-o\s+.*remount,rw\s+\/(system|vendor|product)?/i,
 ];
 
 /**
@@ -94,7 +94,7 @@ export const RISKY_COMMAND_PATTERNS = [
   /\b(apt|pkg|apt-get|pacman|apk)\s+(remove|purge|autoremove|clean)/i,
 
   // Global installations
-  /\b(npm|yarn|pnpm)\s+install\s+-g\b/i
+  /\b(npm|yarn|pnpm)\s+install\s+-g\b/i,
 ];
 
 /**
@@ -115,20 +115,62 @@ export const DEFAULT_IGNORE_PATTERNS = [
   'venv',
   'coverage',
   '.DS_Store',
-  'Thumbs.db'
+  'Thumbs.db',
 ];
 
 /**
  * Known binary file extensions
  */
 export const BINARY_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp', '.svgz',
-  '.mp3', '.mp4', '.wav', '.ogg', '.flac', '.avi', '.mov', '.mkv',
-  '.zip', '.tar', '.gz', '.tgz', '.bz2', '.xz', '.7z', '.rar',
-  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-  '.exe', '.bin', '.dll', '.so', '.dylib', '.elf', '.apk', '.dex',
-  '.woff', '.woff2', '.ttf', '.eot', '.otf',
-  '.iso', '.img', '.dmg', '.sqlite', '.db'
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.bmp',
+  '.ico',
+  '.webp',
+  '.svgz',
+  '.mp3',
+  '.mp4',
+  '.wav',
+  '.ogg',
+  '.flac',
+  '.avi',
+  '.mov',
+  '.mkv',
+  '.zip',
+  '.tar',
+  '.gz',
+  '.tgz',
+  '.bz2',
+  '.xz',
+  '.7z',
+  '.rar',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.exe',
+  '.bin',
+  '.dll',
+  '.so',
+  '.dylib',
+  '.elf',
+  '.apk',
+  '.dex',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.eot',
+  '.otf',
+  '.iso',
+  '.img',
+  '.dmg',
+  '.sqlite',
+  '.db',
 ]);
 
 /**
@@ -148,5 +190,5 @@ export const DEFAULT_SECURITY_CONFIG = {
   maxOutputSizeBytes: 50 * 1024,
 
   // Max lines for command output capture
-  maxOutputLines: 500
+  maxOutputLines: 500,
 };

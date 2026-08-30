@@ -13,11 +13,11 @@
  *   node scripts/benchmark.js --json
  */
 
-import { performance } from 'node:perf_hooks';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { performance } from 'node:perf_hooks';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
@@ -126,7 +126,7 @@ function measureMemorySync(iterations = 3) {
       timeout: 20000,
     });
 
-    if (result.stdout && result.stdout.trim()) {
+    if (result.stdout?.trim()) {
       try {
         const mem = JSON.parse(result.stdout.trim());
         results.push(mem);
@@ -137,10 +137,17 @@ function measureMemorySync(iterations = 3) {
   }
 
   // Cleanup temp dir
-  spawnSync(process.execPath, ['-e', `
+  spawnSync(
+    process.execPath,
+    [
+      '-e',
+      `
     import { rmSync } from 'node:fs';
     try { rmSync('.benchmark-tmp', { recursive: true, force: true }); } catch {}
-  `], { cwd: ROOT_DIR, encoding: 'utf8', timeout: 5000 });
+  `,
+    ],
+    { cwd: ROOT_DIR, encoding: 'utf8', timeout: 5000 },
+  );
 
   return results;
 }
@@ -164,7 +171,7 @@ async function measureCurrentProcessMemory() {
   await import('../src/cli/args.js');
 
   // Wait for any async init to settle
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise((r) => setTimeout(r, 100));
 
   // Force GC if available
   if (global.gc) global.gc();
@@ -179,14 +186,14 @@ async function measureCurrentProcessMemory() {
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes('--json');
-  const iterationsArg = args.find(a => a.startsWith('--iterations='));
+  const iterationsArg = args.find((a) => a.startsWith('--iterations='));
   const iterations = iterationsArg ? parseInt(iterationsArg.split('=')[1], 10) : 5;
 
   if (!jsonMode) {
     console.log('');
     console.log(ANSI.bold(ANSI.cyan('  ⚡ Termux AI CLI — Performance Benchmark')));
     console.log(ANSI.dim(`  PRD NFR Targets: Startup < 300 ms | Memory RSS < 50 MB`));
-    console.log('  ' + hr());
+    console.log(`  ${hr()}`);
     console.log('');
   }
 
@@ -198,7 +205,7 @@ async function main() {
   const startup = measureStartupTime(iterations);
 
   if (!jsonMode) {
-    process.stdout.write('\r' + ' '.repeat(60) + '\r');
+    process.stdout.write(`\r${' '.repeat(60)}\r`);
   }
 
   const TARGET_STARTUP_MS = 300;
@@ -209,11 +216,11 @@ async function main() {
     process.stdout.write(ANSI.dim('  Measuring memory footprint (module import probe)...'));
   }
 
-  const memResults = measureMemorySync(3);
+  const _memResults = measureMemorySync(3);
   const mem = await measureCurrentProcessMemory();
 
   if (!jsonMode) {
-    process.stdout.write('\r' + ' '.repeat(60) + '\r');
+    process.stdout.write(`\r${' '.repeat(60)}\r`);
   }
 
   const TARGET_MEMORY_MB = 50 * 1024 * 1024; // 50 MB in bytes
@@ -228,7 +235,7 @@ async function main() {
         minMs: parseFloat(startup.min.toFixed(2)),
         maxMs: parseFloat(startup.max.toFixed(2)),
         targetMs: TARGET_STARTUP_MS,
-        pass: startupPass
+        pass: startupPass,
       },
       memory: {
         rssMB: parseFloat((mem.rss / 1024 / 1024).toFixed(2)),
@@ -236,22 +243,25 @@ async function main() {
         heapTotalMB: parseFloat((mem.heapTotal / 1024 / 1024).toFixed(2)),
         externalMB: parseFloat((mem.external / 1024 / 1024).toFixed(2)),
         targetMB: 50,
-        pass: memoryPass
+        pass: memoryPass,
       },
       nodeVersion: process.version,
       platform: process.platform,
       arch: process.arch,
-      allPass: startupPass && memoryPass
+      allPass: startupPass && memoryPass,
     };
     console.log(JSON.stringify(report, null, 2));
     process.exit(report.allPass ? 0 : 1);
   }
 
   // Human-readable table
-  const COL1 = 30, COL2 = 16, COL3 = 16, COL4 = 10;
+  const COL1 = 30,
+    COL2 = 16,
+    COL3 = 16,
+    COL4 = 10;
   const header = `  ${ANSI.bold(padRight('Benchmark', COL1))}${ANSI.bold(padRight('Measured', COL2))}${ANSI.bold(padRight('Target', COL3))}${ANSI.bold(padLeft('Result', COL4))}`;
   console.log(header);
-  console.log('  ' + hr());
+  console.log(`  ${hr()}`);
 
   // Startup rows
   const startupRows = [
@@ -266,7 +276,7 @@ async function main() {
     console.log(`  ${nameColor}${padRight(measured, COL2)}${padRight(target, COL3)}${badge}`);
   }
 
-  console.log('  ' + ANSI.dim(hr('·')));
+  console.log(`  ${ANSI.dim(hr('·'))}`);
 
   // Memory rows
   const memoryRows = [
@@ -282,7 +292,7 @@ async function main() {
     console.log(`  ${nameColor}${padRight(measured, COL2)}${padRight(target, COL3)}${badge}`);
   }
 
-  console.log('  ' + hr());
+  console.log(`  ${hr()}`);
   console.log('');
 
   // Environment
@@ -294,10 +304,15 @@ async function main() {
   // Overall verdict
   const allPass = startupPass && memoryPass;
   if (allPass) {
-    console.log(`  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — termuxai meets PRD performance targets.`);
+    console.log(
+      `  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — termuxai meets PRD performance targets.`,
+    );
   } else {
     const failures = [];
-    if (!startupPass) failures.push(`Startup avg ${formatMs(startup.avg)} exceeds < ${TARGET_STARTUP_MS} ms target`);
+    if (!startupPass)
+      failures.push(
+        `Startup avg ${formatMs(startup.avg)} exceeds < ${TARGET_STARTUP_MS} ms target`,
+      );
     if (!memoryPass) failures.push(`Memory RSS ${formatMB(mem.rss)} exceeds < 50 MB target`);
     console.log(`  ${ANSI.bold(ANSI.red('✘ SOME BENCHMARKS FAILED'))}`);
     for (const f of failures) {

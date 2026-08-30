@@ -2,10 +2,10 @@
  * Path Validator & Workspace Boundary Checker
  */
 
-import path from 'node:path';
 import fs from 'node:fs';
-import { BINARY_EXTENSIONS } from './rules.js';
+import path from 'node:path';
 import { getTermuxAllowedStoragePaths, isTermuxStoragePath } from '../utils/termux.js';
+import { BINARY_EXTENSIONS } from './rules.js';
 
 /**
  * Check if targetPath is strictly inside parentDir (or identical to parentDir)
@@ -47,7 +47,7 @@ export function validateSafePath(targetPath, baseDir = process.cwd(), options = 
 
   let isAllowed = isInsideBase;
   if (!isAllowed && Array.isArray(options.allowedDirs)) {
-    isAllowed = options.allowedDirs.some(dir => isPathInside(dir, resolvedTarget));
+    isAllowed = options.allowedDirs.some((dir) => isPathInside(dir, resolvedTarget));
   }
 
   // SEC-04: Termux storage paths are now opt-in. Default `false` so the
@@ -58,7 +58,7 @@ export function validateSafePath(targetPath, baseDir = process.cwd(), options = 
       isAllowed = true;
     } else {
       const termuxPaths = getTermuxAllowedStoragePaths();
-      if (termuxPaths.some(dir => isPathInside(dir, resolvedTarget))) {
+      if (termuxPaths.some((dir) => isPathInside(dir, resolvedTarget))) {
         isAllowed = true;
       }
     }
@@ -73,7 +73,7 @@ export function validateSafePath(targetPath, baseDir = process.cwd(), options = 
     resolvedPath: resolvedTarget,
     isInsideBase,
     isAllowed,
-    exists
+    exists,
   };
 }
 

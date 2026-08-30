@@ -1,7 +1,7 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { ansi, stripAnsi, setColorEnabled } from '../src/utils/ansi.js';
-import { logger, setVerbose, isVerbose } from '../src/utils/logger.js';
+import { describe, test } from 'node:test';
+import { ansi, setColorEnabled, stripAnsi } from '../src/utils/ansi.js';
+import { isVerbose, logger, setVerbose } from '../src/utils/logger.js';
 
 describe('ANSI Utilities (src/utils/ansi.js)', () => {
   test('should format text with ANSI escape codes when enabled', () => {

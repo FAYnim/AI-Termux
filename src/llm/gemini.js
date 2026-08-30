@@ -3,15 +3,15 @@
  * Zero-dependency pure fetch client supporting SSE streaming and non-streaming modes.
  */
 
-import { DEFAULT_MODEL, DEFAULT_TIMEOUT_MS, DEFAULT_TEMPERATURE } from '../config/constants.js';
+import { DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TIMEOUT_MS } from '../config/constants.js';
 import { configManager } from '../config/manager.js';
 import { withRetry } from './retry.js';
 import { parseSSEStream } from './stream-parser.js';
 import {
-  createUserMessage,
   createSystemInstruction,
+  createUserMessage,
   formatTools,
-  normalizeContent
+  normalizeContent,
 } from './types.js';
 
 export class GeminiClient {
@@ -29,17 +29,21 @@ export class GeminiClient {
    * @param {object} [options.logger] - Logger instance
    */
   constructor(options = {}) {
-    this.apiKey = options.apiKey !== undefined ? options.apiKey : (configManager.getApiKey() || '');
+    this.apiKey = options.apiKey !== undefined ? options.apiKey : configManager.getApiKey() || '';
     this.model = options.model || configManager.get('model') || DEFAULT_MODEL;
     this.apiVersion = options.apiVersion || 'v1beta';
-    this.baseUrl = (options.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+    this.baseUrl = (options.baseUrl || 'https://generativelanguage.googleapis.com').replace(
+      /\/+$/,
+      '',
+    );
     this.timeoutMs = options.timeoutMs ?? configManager.get('timeoutMs') ?? DEFAULT_TIMEOUT_MS;
-    this.useHeaderAuth = options.useHeaderAuth !== undefined
-      ? options.useHeaderAuth
-      : (configManager.get('gemini.useHeaderAuth') ?? false);
+    this.useHeaderAuth =
+      options.useHeaderAuth !== undefined
+        ? options.useHeaderAuth
+        : (configManager.get('gemini.useHeaderAuth') ?? false);
     this.generationConfig = options.generationConfig || {
       temperature: DEFAULT_TEMPERATURE,
-      maxOutputTokens: 8192
+      maxOutputTokens: 8192,
     };
     this.systemInstruction = options.systemInstruction;
     this.retryOptions = options.retryOptions || {};
@@ -134,7 +138,7 @@ export class GeminiClient {
     }
 
     const payload = {
-      contents: normalizedContents
+      contents: normalizedContents,
     };
 
     // Tools formatting
@@ -155,7 +159,7 @@ export class GeminiClient {
     // Generation config
     const mergedGenConfig = {
       ...this.generationConfig,
-      ...(generationConfig || {})
+      ...(generationConfig || {}),
     };
     if (Object.keys(mergedGenConfig).length > 0) {
       payload.generationConfig = mergedGenConfig;
@@ -193,7 +197,7 @@ export class GeminiClient {
       contents: options.contents,
       tools: options.tools,
       systemInstruction: options.systemInstruction,
-      generationConfig: options.generationConfig
+      generationConfig: options.generationConfig,
     });
 
     const endpoint = this.getEndpoint('streamGenerateContent', true);
@@ -203,7 +207,7 @@ export class GeminiClient {
     const retryOpts = {
       ...this.retryOptions,
       signal: parentSignal,
-      logger: this.logger
+      logger: this.logger,
     };
 
     return await withRetry(async () => {
@@ -214,7 +218,7 @@ export class GeminiClient {
           method: 'POST',
           headers: this._buildHeaders(),
           body: JSON.stringify(payload),
-          signal
+          signal,
         });
 
         if (!response.ok) {
@@ -226,7 +230,7 @@ export class GeminiClient {
           onChunk: options.onChunk,
           onFunctionCall: options.onFunctionCall,
           onFinish: options.onFinish,
-          signal
+          signal,
         });
       } finally {
         cleanup();
@@ -259,7 +263,7 @@ export class GeminiClient {
       contents: options.contents,
       tools: options.tools,
       systemInstruction: options.systemInstruction,
-      generationConfig: options.generationConfig
+      generationConfig: options.generationConfig,
     });
 
     const endpoint = this.getEndpoint('generateContent', false);
@@ -269,7 +273,7 @@ export class GeminiClient {
     const retryOpts = {
       ...this.retryOptions,
       signal: parentSignal,
-      logger: this.logger
+      logger: this.logger,
     };
 
     return await withRetry(async () => {
@@ -280,7 +284,7 @@ export class GeminiClient {
           method: 'POST',
           headers: this._buildHeaders(),
           body: JSON.stringify(payload),
-          signal
+          signal,
         });
 
         if (!response.ok) {
@@ -302,7 +306,7 @@ export class GeminiClient {
   _validateApiKey() {
     if (!this.apiKey || typeof this.apiKey !== 'string' || this.apiKey.trim() === '') {
       throw new Error(
-        'Gemini API key is not configured. Please set it using `termuxai config set apiKey <key>` or set GEMINI_API_KEY environment variable.'
+        'Gemini API key is not configured. Please set it using `termuxai config set apiKey <key>` or set GEMINI_API_KEY environment variable.',
       );
     }
   }
@@ -390,7 +394,7 @@ export class GeminiClient {
       usage = {
         promptTokenCount: data.usageMetadata.promptTokenCount ?? 0,
         candidatesTokenCount: data.usageMetadata.candidatesTokenCount ?? 0,
-        totalTokenCount: data.usageMetadata.totalTokenCount ?? 0
+        totalTokenCount: data.usageMetadata.totalTokenCount ?? 0,
       };
     }
 
@@ -406,7 +410,7 @@ export class GeminiClient {
           if (part.functionCall) {
             functionCalls.push({
               name: part.functionCall.name,
-              args: part.functionCall.args || {}
+              args: part.functionCall.args || {},
             });
           }
         }
@@ -418,7 +422,7 @@ export class GeminiClient {
       functionCalls,
       finishReason,
       usage,
-      raw: data
+      raw: data,
     };
   }
 }

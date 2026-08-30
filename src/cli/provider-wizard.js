@@ -84,7 +84,9 @@ export async function runProviderAddWizard(ctx = {}) {
   }
 
   try {
-    write(`${ansi.dim('  Press Esc anytime to cancel — nothing will be saved until you confirm at the end.')}\n\n`);
+    write(
+      `${ansi.dim('  Press Esc anytime to cancel — nothing will be saved until you confirm at the end.')}\n\n`,
+    );
 
     // ── Step 1: Provider ID ───────────────────────────────────────────
     let providerId;
@@ -92,7 +94,9 @@ export async function runProviderAddWizard(ctx = {}) {
       providerId = prefilledId.trim();
     } else {
       while (true) {
-        const raw = await ask(ansi.cyan('  Provider ID') + ' (e.g. groq, deepseek, ollama) [Esc to cancel]: ');
+        const raw = await ask(
+          `${ansi.cyan('  Provider ID')} (e.g. groq, deepseek, ollama) [Esc to cancel]: `,
+        );
         const id = raw.trim();
         if (!id) {
           write(`${ansi.yellow('  ⚠')} Provider ID cannot be empty.\n`);
@@ -102,7 +106,9 @@ export async function runProviderAddWizard(ctx = {}) {
         const existingCfg = configMgr ? configMgr.loadConfig() : {};
         const existing = existingCfg.providers || {};
         if (existing[id]) {
-          const overwrite = await ask(`${ansi.yellow('  ⚠')} Provider "${ansi.bold(id)}" already exists. Overwrite? [y/N, Esc to cancel]: `);
+          const overwrite = await ask(
+            `${ansi.yellow('  ⚠')} Provider "${ansi.bold(id)}" already exists. Overwrite? [y/N, Esc to cancel]: `,
+          );
           if (overwrite.trim().toLowerCase() !== 'y') {
             write(`  Asking for a new ID...\n`);
             continue;
@@ -116,17 +122,28 @@ export async function runProviderAddWizard(ctx = {}) {
     // ── Step 2: Adapter ───────────────────────────────────────────────
     let adapter;
     while (true) {
-      const raw = await ask(ansi.cyan('  Adapter') + ' [openai/gemini] (default: openai) [Esc to cancel]: ');
+      const raw = await ask(
+        `${ansi.cyan('  Adapter')} [openai/gemini] (default: openai) [Esc to cancel]: `,
+      );
       const val = raw.trim().toLowerCase();
-      if (val === '' || val === 'openai') { adapter = 'openai'; break; }
-      if (val === 'gemini') { adapter = 'gemini'; break; }
+      if (val === '' || val === 'openai') {
+        adapter = 'openai';
+        break;
+      }
+      if (val === 'gemini') {
+        adapter = 'gemini';
+        break;
+      }
       write(`${ansi.yellow('  ⚠')} Invalid adapter. Must be "openai" or "gemini".\n`);
     }
 
     // ── Step 3: Base URL (skip for gemini) ────────────────────────────
     let baseUrl;
     if (adapter !== 'gemini') {
-      const raw = await ask(ansi.cyan('  Base URL') + ' (e.g. https://api.groq.com/openai/v1, Enter for OpenAI default) [Esc to cancel]: ');
+      const raw = await ask(
+        ansi.cyan('  Base URL') +
+          ' (e.g. https://api.groq.com/openai/v1, Enter for OpenAI default) [Esc to cancel]: ',
+      );
       baseUrl = raw.trim() || '';
     }
     // gemini: baseUrl stays undefined (not stored)
@@ -136,7 +153,7 @@ export async function runProviderAddWizard(ctx = {}) {
     const keyRequired = isApiKeyRequired(adapter, baseUrl || '');
     while (true) {
       const suffix = keyRequired ? '' : ' (optional, Enter to skip)';
-      const raw = await ask(ansi.cyan('  API Key') + suffix + ' [Esc to cancel]: ');
+      const raw = await ask(`${ansi.cyan('  API Key') + suffix} [Esc to cancel]: `);
       const val = raw.trim();
       if (!val && keyRequired) {
         const ctx_label = adapter === 'gemini' ? 'gemini' : 'cloud openai providers';
@@ -148,12 +165,16 @@ export async function runProviderAddWizard(ctx = {}) {
     }
 
     // ── Step 5: Default Model (always optional) ───────────────────────
-    const rawModel = await ask(ansi.cyan('  Default model') + ' (optional, Enter to skip) [Esc to cancel]: ');
+    const rawModel = await ask(
+      `${ansi.cyan('  Default model')} (optional, Enter to skip) [Esc to cancel]: `,
+    );
     const model = rawModel.trim() || undefined;
 
     // ── Post-save: switch now? ────────────────────────────────────────
     write(`\n${ansi.green('  ✔')} Provider ${ansi.bold(ansi.yellow(providerId))} ready to save.\n`);
-    const rawSwitch = await ask(`  Switch to ${ansi.bold(providerId)} now? [Y/n, Esc to cancel without switching]: `);
+    const rawSwitch = await ask(
+      `  Switch to ${ansi.bold(providerId)} now? [Y/n, Esc to cancel without switching]: `,
+    );
     const switchNow = rawSwitch.trim().toLowerCase() !== 'n';
 
     rl.close();
@@ -165,10 +186,11 @@ export async function runProviderAddWizard(ctx = {}) {
     if (model) config.model = model;
 
     return { cancelled: false, providerId, config, switchNow };
-
-  } catch (err) {
+  } catch (_err) {
     // SIGINT or stream closed mid-wizard
-    try { rl.close(); } catch (_) {}
+    try {
+      rl.close();
+    } catch (_) {}
     write(`\n${ansi.yellow('  ⚠')} Provider add cancelled.\n\n`);
     return { cancelled: true };
   }

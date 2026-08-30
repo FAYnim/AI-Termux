@@ -5,17 +5,17 @@
  * Executable Entrypoint
  */
 
+import { createAgentOrchestrator } from '../src/agent/orchestrator.js';
+import { defaultSessionManager } from '../src/agent/session.js';
 import { parseArgs } from '../src/cli/args.js';
 import { showHelp, showVersion } from '../src/cli/help.js';
-import { ConfigManager } from '../src/config/manager.js';
-import { defaultSessionManager } from '../src/agent/session.js';
-import { createAgentOrchestrator } from '../src/agent/orchestrator.js';
+import { handleModelCommand } from '../src/cli/model-commands.js';
+import { isPipedInput, mergePipedPrompt, readPipedStdin } from '../src/cli/piping.js';
 import { startRepl } from '../src/cli/repl.js';
 import { runSingleShot } from '../src/cli/single-shot.js';
-import { isPipedInput, readPipedStdin, mergePipedPrompt } from '../src/cli/piping.js';
-import { handleModelCommand } from '../src/cli/model-commands.js';
-import { logger } from '../src/utils/logger.js';
+import { ConfigManager } from '../src/config/manager.js';
 import { ansi } from '../src/utils/ansi.js';
+import { logger } from '../src/utils/logger.js';
 
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
@@ -75,7 +75,9 @@ async function main() {
         process.exit(1);
       }
       configMgr.set(key, val);
-      logger.success(`Configuration updated: ${key} = ${key === 'apiKey' ? configMgr.maskApiKey(val) : val}`);
+      logger.success(
+        `Configuration updated: ${key} = ${key === 'apiKey' ? configMgr.maskApiKey(val) : val}`,
+      );
       process.exit(0);
     }
 
@@ -111,7 +113,9 @@ async function main() {
       } else {
         logger.info(`Found ${sessions.length} saved session(s):`);
         for (const s of sessions) {
-          console.log(`  • ${ansi.yellow(s.id)} (${s.messageCount} msgs, updated: ${new Date(s.updatedAt).toLocaleString()})`);
+          console.log(
+            `  • ${ansi.yellow(s.id)} (${s.messageCount} msgs, updated: ${new Date(s.updatedAt).toLocaleString()})`,
+          );
           if (s.lastMessagePreview) {
             console.log(`    ${ansi.dim(s.lastMessagePreview)}`);
           }
@@ -256,12 +260,14 @@ async function main() {
 └──────────────────────────────────────────┘
 Select: `);
       if (!process.stdin.isTTY) {
-        logger.error('No API key configured. Set GEMINI_API_KEY or OPENAI_API_KEY, or run \'termuxai provider add <id>\'.');
+        logger.error(
+          "No API key configured. Set GEMINI_API_KEY or OPENAI_API_KEY, or run 'termuxai provider add <id>'.",
+        );
         process.exit(1);
       }
       const readline = await import('node:readline');
       const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise(resolve => rl.question('Select [1-4]: ', resolve));
+      const answer = await new Promise((resolve) => rl.question('Select [1-4]: ', resolve));
       rl.close();
       if (answer.trim() === '1') {
         console.log('\nSet GEMINI_API_KEY and restart.\n');
@@ -285,7 +291,9 @@ Select: `);
     const { BUILTIN_PROVIDERS } = await import('../src/config/constants.js');
     const builtin = BUILTIN_PROVIDERS[effectiveProvider];
     const envVars = builtin?.envVars?.join(', ') || 'none';
-    logger.warn(`${effectiveProvider.charAt(0).toUpperCase() + effectiveProvider.slice(1)} API key is not configured!`);
+    logger.warn(
+      `${effectiveProvider.charAt(0).toUpperCase() + effectiveProvider.slice(1)} API key is not configured!`,
+    );
     console.log(`
 ${ansi.yellow('To set your API key, run:')}
   ${ansi.green(`termuxai provider add ${effectiveProvider} --api-key <key>`)}
@@ -297,7 +305,8 @@ ${ansi.yellow('Or export as environment variable:')}
   }
 
   const providerConfig = configMgr.getProviderConfig(effectiveProvider);
-  const model = parsed.flags.model || providerConfig.model || providerConfig.defaultModel || 'gemini-2.5-flash';
+  const model =
+    parsed.flags.model || providerConfig.model || providerConfig.defaultModel || 'gemini-2.5-flash';
   const autoApprove = Boolean(parsed.flags.yes || configMgr.get('autoApprove'));
 
   // Handle Resume Session
@@ -316,7 +325,8 @@ ${ansi.yellow('Or export as environment variable:')}
   const sessionProvider = activeSession?.provider || effectiveProvider;
   const sessionProviderConfig = configMgr.getProviderConfig(sessionProvider);
   const sessionApiKey = configMgr.getApiKey(parsed.flags.apiKey, sessionProvider);
-  const sessionBaseUrl = parsed.flags.baseUrl || sessionProviderConfig.baseUrl || sessionProviderConfig.defaultBaseUrl;
+  const sessionBaseUrl =
+    parsed.flags.baseUrl || sessionProviderConfig.baseUrl || sessionProviderConfig.defaultBaseUrl;
   if (!sessionApiKey) {
     logger.error(`API key for session provider "${sessionProvider}" is not configured.`);
     process.exit(1);
@@ -330,7 +340,7 @@ ${ansi.yellow('Or export as environment variable:')}
     baseUrl: sessionBaseUrl,
     session: activeSession,
     autoApprove,
-    logger
+    logger,
   });
 
   // Check for UNIX piped input (e.g. cat file | t-ai "analisis")
@@ -345,7 +355,7 @@ ${ansi.yellow('Or export as environment variable:')}
         apiKey: sessionApiKey,
         provider: sessionProvider,
         autoApprove,
-        logger
+        logger,
       });
       process.exit(outcome.success ? 0 : 1);
     }
@@ -359,7 +369,7 @@ ${ansi.yellow('Or export as environment variable:')}
       apiKey: sessionApiKey,
       provider: sessionProvider,
       autoApprove,
-      logger
+      logger,
     });
     process.exit(outcome.success ? 0 : 1);
   }
@@ -372,7 +382,7 @@ ${ansi.yellow('Or export as environment variable:')}
     model,
     apiKey: sessionApiKey,
     autoApprove,
-    logger
+    logger,
   });
 }
 

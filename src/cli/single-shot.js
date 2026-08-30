@@ -4,8 +4,8 @@
  */
 
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
-import { createSpinner } from '../ui/spinner.js';
 import { renderMarkdown } from '../ui/markdown.js';
+import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 
@@ -44,7 +44,7 @@ export async function runSingleShot(prompt, options = {}) {
       apiKey: options.apiKey,
       workingDir: options.workingDir,
       autoApprove: options.autoApprove,
-      logger
+      logger,
     });
 
   const spinner = createSpinner({ stream });
@@ -84,17 +84,19 @@ export async function runSingleShot(prompt, options = {}) {
         }
         const toolDetails = call.args ? JSON.stringify(call.args).slice(0, 60) : '';
         const preview = toolDetails.length >= 60 ? `${toolDetails}...` : toolDetails;
-        stream.write(`\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(preview)}\n`);
+        stream.write(
+          `\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(preview)}\n`,
+        );
         spinner.start(`Executing ${call.name}...`);
       },
       onToolResult: (name, toolRes) => {
-        if (toolRes && toolRes.error) {
+        if (toolRes?.error) {
           spinner.warn(`Tool ${name} reported error: ${toolRes.message || 'Failed'}`);
         } else {
           spinner.succeed(`Tool ${name} finished successfully`);
         }
         spinner.start('Thinking...');
-      }
+      },
     });
 
     if (spinner.isSpinning()) {
@@ -114,21 +116,21 @@ export async function runSingleShot(prompt, options = {}) {
       text: result.text,
       iterations: result.iterations,
       toolCalls: result.toolCalls,
-      session: result.session
+      session: result.session,
     };
   } catch (err) {
     if (spinner.isSpinning()) {
       spinner.stop();
     }
 
-    if (options.signal && options.signal.aborted) {
+    if (options.signal?.aborted) {
       stream.write(`\n${ansi.yellow('⚠ [Operation cancelled by user]')}\n\n`);
       return {
         success: false,
         text: streamedText,
         iterations: 0,
         toolCalls: [],
-        error: err
+        error: err,
       };
     }
 
@@ -138,7 +140,7 @@ export async function runSingleShot(prompt, options = {}) {
       text: streamedText,
       iterations: 0,
       toolCalls: [],
-      error: err
+      error: err,
     };
   }
 }

@@ -12,10 +12,10 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { performance } from 'node:perf_hooks';
 import fs from 'node:fs';
+import path from 'node:path';
+import { performance } from 'node:perf_hooks';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
@@ -44,10 +44,11 @@ function discoverTestFiles() {
     return [];
   }
 
-  return fs.readdirSync(E2E_DIR)
-    .filter(f => f.endsWith('.test.js') || f.endsWith('.test.mjs'))
+  return fs
+    .readdirSync(E2E_DIR)
+    .filter((f) => f.endsWith('.test.js') || f.endsWith('.test.mjs'))
     .sort()
-    .map(f => path.join(E2E_DIR, f));
+    .map((f) => path.join(E2E_DIR, f));
 }
 
 // ── Parse node:test TAP output for pass/fail counts ────────────
@@ -74,7 +75,7 @@ function parseTapOutput(output) {
 }
 
 // ── Run a single test file ──────────────────────────────────────
-function runTestFile(filePath, verbose = false) {
+function runTestFile(filePath, _verbose = false) {
   const relPath = path.relative(ROOT_DIR, filePath);
   const start = performance.now();
 
@@ -85,9 +86,9 @@ function runTestFile(filePath, verbose = false) {
       ...process.env,
       // Suppress color in subprocess output for cleaner parsing
       FORCE_COLOR: '0',
-      NO_COLOR: '1'
+      NO_COLOR: '1',
     },
-    timeout: 60000 // 60 second timeout per suite
+    timeout: 60000, // 60 second timeout per suite
   });
 
   const elapsed = performance.now() - start;
@@ -104,7 +105,7 @@ function runTestFile(filePath, verbose = false) {
     stdout: result.stdout || '',
     stderr: result.stderr || '',
     status: result.status,
-    error: result.error
+    error: result.error,
   };
 }
 
@@ -126,7 +127,7 @@ async function main() {
     console.log('');
     console.log(A.bold(A.cyan('  🧪 Termux AI CLI — E2E Integration Test Suite')));
     console.log(A.dim(`  ${testFiles.length} test suite(s) found`));
-    console.log('  ' + hr());
+    console.log(`  ${hr()}`);
     console.log('');
   }
 
@@ -144,25 +145,27 @@ async function main() {
     results.push(result);
 
     if (!jsonMode) {
-      process.stdout.write('\r' + ' '.repeat(60) + '\r');
+      process.stdout.write(`\r${' '.repeat(60)}\r`);
 
-      const badge = result.success
-        ? A.green('✔ PASS')
-        : A.red('✘ FAIL');
+      const badge = result.success ? A.green('✔ PASS') : A.red('✘ FAIL');
 
       const stats = result.stats;
-      const statsStr = `${A.green(stats.passed + ' passed')}${stats.failed > 0 ? ', ' + A.red(stats.failed + ' failed') : ''}${stats.skipped > 0 ? ', ' + A.yellow(stats.skipped + ' skipped') : ''}`;
+      const statsStr = `${A.green(`${stats.passed} passed`)}${stats.failed > 0 ? `, ${A.red(`${stats.failed} failed`)}` : ''}${stats.skipped > 0 ? `, ${A.yellow(`${stats.skipped} skipped`)}` : ''}`;
 
       const elapsedStr = A.dim(`${(result.elapsed / 1000).toFixed(2)}s`);
 
       console.log(`  ${badge}  ${A.bold(suiteName)}`);
-      console.log(`        ${A.dim(relPath)} ${A.dim('|')} ${statsStr} ${A.dim('|')} ${elapsedStr}`);
+      console.log(
+        `        ${A.dim(relPath)} ${A.dim('|')} ${statsStr} ${A.dim('|')} ${elapsedStr}`,
+      );
 
       if (!result.success) {
         // Show relevant error lines
         const errorLines = (result.stdout + result.stderr)
           .split('\n')
-          .filter(l => l.includes('not ok') || l.includes('Error') || l.includes('AssertionError'))
+          .filter(
+            (l) => l.includes('not ok') || l.includes('Error') || l.includes('AssertionError'),
+          )
           .slice(0, 10);
 
         for (const line of errorLines) {
@@ -172,7 +175,14 @@ async function main() {
 
       if (verbose && result.stdout) {
         console.log('');
-        console.log(A.dim(result.stdout.split('\n').map(l => '    ' + l).join('\n')));
+        console.log(
+          A.dim(
+            result.stdout
+              .split('\n')
+              .map((l) => `    ${l}`)
+              .join('\n'),
+          ),
+        );
       }
 
       console.log('');
@@ -181,7 +191,7 @@ async function main() {
 
   // ── Summary ──────────────────────────────────────────────────
   const totalSuites = results.length;
-  const passedSuites = results.filter(r => r.success).length;
+  const passedSuites = results.filter((r) => r.success).length;
   const failedSuites = totalSuites - passedSuites;
   const totalTests = results.reduce((s, r) => s + (r.stats.total || 0), 0);
   const totalPassed = results.reduce((s, r) => s + (r.stats.passed || 0), 0);
@@ -195,42 +205,46 @@ async function main() {
       suites: {
         total: totalSuites,
         passed: passedSuites,
-        failed: failedSuites
+        failed: failedSuites,
       },
       tests: {
         total: totalTests,
         passed: totalPassed,
-        failed: totalFailed
+        failed: totalFailed,
       },
       durationMs: parseFloat(totalElapsed.toFixed(2)),
       allPassed,
-      results: results.map(r => ({
+      results: results.map((r) => ({
         suite: path.basename(r.filePath),
         relPath: r.relPath,
         success: r.success,
         durationMs: parseFloat(r.elapsed.toFixed(2)),
-        stats: r.stats
-      }))
+        stats: r.stats,
+      })),
     };
     console.log(JSON.stringify(report, null, 2));
     process.exit(allPassed ? 0 : 1);
   }
 
   // Human-readable summary
-  console.log('  ' + hr());
+  console.log(`  ${hr()}`);
   console.log('');
   console.log(`  ${A.bold('Results:')}  ${passedSuites}/${totalSuites} suites passed`);
-  console.log(`  ${A.bold('Tests:')}    ${A.green(totalPassed + ' passed')}${totalFailed > 0 ? ', ' + A.red(totalFailed + ' failed') : ''}`);
+  console.log(
+    `  ${A.bold('Tests:')}    ${A.green(`${totalPassed} passed`)}${totalFailed > 0 ? `, ${A.red(`${totalFailed} failed`)}` : ''}`,
+  );
   console.log(`  ${A.bold('Duration:')} ${(totalElapsed / 1000).toFixed(2)}s total`);
   console.log('');
 
   if (allPassed) {
-    console.log(`  ${A.bold(A.green('✔ ALL E2E TESTS PASSED'))} — Integration verified end-to-end.`);
+    console.log(
+      `  ${A.bold(A.green('✔ ALL E2E TESTS PASSED'))} — Integration verified end-to-end.`,
+    );
   } else {
     console.log(`  ${A.bold(A.red(`✘ ${failedSuites} SUITE(S) FAILED`))}`);
     console.log('');
     console.log(`  ${A.yellow('Failed suites:')}`);
-    for (const r of results.filter(r => !r.success)) {
+    for (const r of results.filter((r) => !r.success)) {
       console.log(`    ${A.red('•')} ${path.basename(r.filePath)}`);
     }
     console.log('');

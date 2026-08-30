@@ -3,11 +3,10 @@
  * Step 3: LLM Client & SSE Streaming
  */
 
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { SSEStreamParser, parseSSEStream } from '../src/llm/stream-parser.js';
+import { describe, test } from 'node:test';
 import { createLlmClient } from '../src/llm/registry.js';
-
+import { parseSSEStream, SSEStreamParser } from '../src/llm/stream-parser.js';
 
 describe('Step 3: SSE Stream Parser', () => {
   test('should parse normal single chunk stream with text tokens', () => {
@@ -15,10 +14,10 @@ describe('Step 3: SSE Stream Parser', () => {
     let finish = null;
 
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t),
-      onFinish: r => {
+      onToken: (t) => tokens.push(t),
+      onFinish: (r) => {
         finish = r;
-      }
+      },
     });
 
     const sseChunk =
@@ -39,7 +38,7 @@ describe('Step 3: SSE Stream Parser', () => {
   test('should handle fragmented chunks split across network packets', () => {
     const tokens = [];
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t)
+      onToken: (t) => tokens.push(t),
     });
 
     // Simulating packets split arbitrarily
@@ -64,7 +63,7 @@ describe('Step 3: SSE Stream Parser', () => {
   test('should correctly parse function calls from SSE chunks', () => {
     const functionCalls = [];
     const parser = new SSEStreamParser({
-      onFunctionCall: fc => functionCalls.push(fc)
+      onFunctionCall: (fc) => functionCalls.push(fc),
     });
 
     const sseData =
@@ -87,8 +86,8 @@ describe('Step 3: SSE Stream Parser', () => {
     const functionCalls = [];
 
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t),
-      onFunctionCall: fc => functionCalls.push(fc)
+      onToken: (t) => tokens.push(t),
+      onFunctionCall: (fc) => functionCalls.push(fc),
     });
 
     const sseData =
@@ -120,14 +119,14 @@ describe('Step 3: SSE Stream Parser', () => {
     assert.deepEqual(result.usage, {
       promptTokenCount: 45,
       candidatesTokenCount: 12,
-      totalTokenCount: 57
+      totalTokenCount: 57,
     });
   });
 
   test('should ignore SSE comments and empty lines', () => {
     const tokens = [];
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t)
+      onToken: (t) => tokens.push(t),
     });
 
     const sseData =
@@ -158,11 +157,13 @@ describe('Step 3: SSE Stream Parser', () => {
   test('should parse Uint8Array and Buffer chunks directly', () => {
     const tokens = [];
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t)
+      onToken: (t) => tokens.push(t),
     });
 
     const encoder = new TextEncoder();
-    const uint8 = encoder.encode('data: {"candidates":[{"content":{"parts":[{"text":"Binary chunk"}]}}]}\n\n');
+    const uint8 = encoder.encode(
+      'data: {"candidates":[{"content":{"parts":[{"text":"Binary chunk"}]}}]}\n\n',
+    );
 
     parser.feed(uint8);
     parser.flush();
@@ -173,7 +174,7 @@ describe('Step 3: SSE Stream Parser', () => {
   test('should handle multibyte UTF-8 characters split across chunk boundaries', () => {
     const tokens = [];
     const parser = new SSEStreamParser({
-      onToken: t => tokens.push(t)
+      onToken: (t) => tokens.push(t),
     });
 
     // Character: '⚡' (3 bytes: 0xE2, 0x9A, 0xA1)
@@ -199,7 +200,7 @@ describe('Step 3: SSE Stream Parser', () => {
   test('should propagate API error payload inside SSE stream', () => {
     const errors = [];
     const parser = new SSEStreamParser({
-      onError: err => errors.push(err)
+      onError: (err) => errors.push(err),
     });
 
     const errorData =
@@ -233,12 +234,9 @@ describe('Step 3: SSE Stream Parser', () => {
       yield 'data: {"candidates":[{"content":{"parts":[{"text":"Token 2"}]}}]}\n\n';
     }
 
-    await assert.rejects(
-      async () => {
-        await parseSSEStream(makeInfiniteChunks(), { signal: controller.signal });
-      },
-      /User cancelled/
-    );
+    await assert.rejects(async () => {
+      await parseSSEStream(makeInfiniteChunks(), { signal: controller.signal });
+    }, /User cancelled/);
   });
 
   test('registry e2e: OpenAI SSE stream text', async () => {
@@ -250,7 +248,10 @@ describe('Step 3: SSE Stream Parser', () => {
     const fetch = async () => ({
       ok: true,
       body: new ReadableStream({
-        start(ctrl) { for (const c of chunks) ctrl.enqueue(new TextEncoder().encode(c)); ctrl.close(); },
+        start(ctrl) {
+          for (const c of chunks) ctrl.enqueue(new TextEncoder().encode(c));
+          ctrl.close();
+        },
       }),
     });
     const client = createLlmClient({ provider: 'openai', model: 'gpt-4o', apiKey: 'k', fetch });
@@ -261,4 +262,3 @@ describe('Step 3: SSE Stream Parser', () => {
     assert.equal(result.finishReason, 'STOP');
   });
 });
-

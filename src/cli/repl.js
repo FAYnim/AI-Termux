@@ -5,14 +5,14 @@
 
 import readline from 'node:readline';
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
+import { APP_NAME } from '../config/constants.js';
 import { ConfigManager } from '../config/manager.js';
 import { renderBanner } from '../ui/box.js';
-import { createSpinner } from '../ui/spinner.js';
 import { renderMarkdown } from '../ui/markdown.js';
-import { isSlashCommand, executeSlashCommand } from './slash-commands.js';
-import { APP_NAME } from '../config/constants.js';
+import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { executeSlashCommand, isSlashCommand } from './slash-commands.js';
 
 export const REPL_PROMPT = `${ansi.cyan(APP_NAME)} ${ansi.bold('❯')} `;
 
@@ -44,11 +44,13 @@ export async function startRepl(options = {}) {
       apiKey: options.apiKey || configMgr.getApiKey(),
       workingDir: options.workingDir || process.cwd(),
       autoApprove: options.autoApprove,
-      logger
+      logger,
     });
 
   const session = orchestrator.getSession();
-  const activeModel = orchestrator.llmClient ? orchestrator.llmClient.getModel() : 'gemini-2.5-flash';
+  const activeModel = orchestrator.llmClient
+    ? orchestrator.llmClient.getModel()
+    : 'gemini-2.5-flash';
   const activeProvider = orchestrator.provider || 'gemini';
 
   // Display Welcome Banner
@@ -61,8 +63,8 @@ export async function startRepl(options = {}) {
       `Model   : ${ansi.bold(ansi.cyan(activeModel))}`,
       `Session : ${ansi.bold(ansi.yellow(session.id))}`,
       `WorkDir : ${ansi.dim(orchestrator.workingDir)}`,
-      `Commands: Type ${ansi.cyan('/help')} for menu or ${ansi.cyan('/exit')} to quit`
-    ]
+      `Commands: Type ${ansi.cyan('/help')} for menu or ${ansi.cyan('/exit')} to quit`,
+    ],
   });
 
   output.write(`\n${banner}\n\n`);
@@ -71,14 +73,14 @@ export async function startRepl(options = {}) {
     input,
     output,
     prompt: REPL_PROMPT,
-    terminal: Boolean(output.isTTY)
+    terminal: Boolean(output.isTTY),
   });
 
   let isBusy = false;
   let activeAbortController = null;
   let lastSigintTime = 0;
   let isClosing = false;
-  let wizardActive = false; // true while a sub-readline wizard owns stdin
+  let _wizardActive = false; // true while a sub-readline wizard owns stdin
 
   // Handle SIGINT (Ctrl+C)
   rl.on('SIGINT', () => {
@@ -140,7 +142,9 @@ export async function startRepl(options = {}) {
         logger,
         stream: output,
         input,
-        onWizardActive: (active) => { wizardActive = active; }
+        onWizardActive: (active) => {
+          _wizardActive = active;
+        },
       });
       // Resume the REPL readline and force a fresh prompt so any stale
       // buffer is cleared before the user types the next line.
@@ -173,7 +177,10 @@ export async function startRepl(options = {}) {
           }
         },
         onToken: (token) => {
-          const clean = token.replace(/<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi, '');
+          const clean = token.replace(
+            /<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi,
+            '',
+          );
           if (!clean) return;
 
           if (spinner.isSpinning()) {
@@ -190,17 +197,19 @@ export async function startRepl(options = {}) {
             spinner.stop();
           }
           const argsStr = JSON.stringify(call.args || {}).slice(0, 50);
-          output.write(`\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(argsStr)}\n`);
+          output.write(
+            `\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(argsStr)}\n`,
+          );
           spinner.start(`Menjalankan tool [${call.name}]...`);
         },
         onToolResult: (name, toolRes) => {
-          if (toolRes && toolRes.error) {
+          if (toolRes?.error) {
             spinner.warn(`Tool [${name}] error: ${toolRes.message || 'Gagal'}`);
           } else {
             spinner.succeed(`Tool [${name}] selesai`);
           }
           spinner.start('Menganalisis hasil tool...');
-        }
+        },
       });
 
       if (spinner.isSpinning()) {
@@ -217,7 +226,7 @@ export async function startRepl(options = {}) {
         spinner.stop();
       }
 
-      if (activeAbortController && activeAbortController.signal.aborted) {
+      if (activeAbortController?.signal.aborted) {
         // Handled in SIGINT handler
       } else {
         logger.error(`Turn execution failed: ${err.message}`);

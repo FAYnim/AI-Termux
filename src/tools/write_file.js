@@ -42,7 +42,7 @@ export async function writeFileTool(args, context = {}) {
   try {
     fs.writeFileSync(tempPath, content, { encoding: encoding || 'utf-8' });
     fs.renameSync(tempPath, resolvedPath);
-  } catch (err) {
+  } catch (_err) {
     // Fallback if atomic rename fails on certain filesystems
     try {
       if (fs.existsSync(tempPath)) {
@@ -61,6 +61,6 @@ export async function writeFileTool(args, context = {}) {
     filePath,
     bytesWritten,
     createdDirs,
-    message: `Successfully wrote ${bytesWritten} bytes to "${filePath}".`
+    message: `Successfully wrote ${bytesWritten} bytes to "${filePath}".`,
   };
 }

@@ -4,15 +4,15 @@
  * Local Tools Actuator, Security Guard, and Session Persistence.
  */
 
-import { createLlmClient } from '../llm/registry.js';
 import { parseTextToolCalls } from '../llm/openai.js';
+import { createLlmClient } from '../llm/registry.js';
 import { SecurityGuard } from '../security/guard.js';
-import { getToolDeclarations, dispatchToolCall } from '../tools/registry.js';
-import { buildSystemPrompt } from './system-prompt.js';
-import { pruneMessages, estimateSessionTokens } from './pruner.js';
-import { Session, createSession, defaultSessionManager } from './session.js';
+import { dispatchToolCall, getToolDeclarations } from '../tools/registry.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { estimateSessionTokens, pruneMessages } from './pruner.js';
 import { ReflectionChecker } from './reflection.js';
+import { createSession, Session } from './session.js';
+import { buildSystemPrompt } from './system-prompt.js';
 
 export const DEFAULT_MAX_ITERATIONS = 30;
 
@@ -50,7 +50,7 @@ export class AgentOrchestrator {
       options.securityGuard ||
       new SecurityGuard({
         autoApprove: options.autoApprove,
-        baseDir: this.workingDir
+        baseDir: this.workingDir,
       });
 
     // LLM client: prefer explicit llmClient, then geminiClient (legacy), then create from provider
@@ -66,7 +66,7 @@ export class AgentOrchestrator {
         model: options.model,
         apiKey: options.apiKey,
         baseUrl: this.baseUrl,
-        logger: this.logger
+        logger: this.logger,
       });
     this.geminiClient = this.llmClient; // legacy alias
 
@@ -76,7 +76,7 @@ export class AgentOrchestrator {
       createSession({
         model: this.llmClient.getModel(),
         provider: this.provider,
-        workingDir: this.workingDir
+        workingDir: this.workingDir,
       });
 
     // Tools
@@ -86,7 +86,7 @@ export class AgentOrchestrator {
     this.systemInstruction =
       options.systemInstruction ||
       buildSystemPrompt({
-        workingDir: this.workingDir
+        workingDir: this.workingDir,
       });
   }
 
@@ -140,11 +140,15 @@ export class AgentOrchestrator {
 
     // Reflection checker (0 means disabled)
     const reflectionEnabled = (options.reflectionInterval ?? this.reflectionInterval) > 0;
-    const reflectionInterval = reflectionEnabled ? (options.reflectionInterval ?? this.reflectionInterval) : 0;
-    const reflectionChecker = reflectionEnabled ? new ReflectionChecker(this.llmClient, {
-      interval: reflectionInterval,
-      logger: this.logger
-    }) : null;
+    const reflectionInterval = reflectionEnabled
+      ? (options.reflectionInterval ?? this.reflectionInterval)
+      : 0;
+    const reflectionChecker = reflectionEnabled
+      ? new ReflectionChecker(this.llmClient, {
+          interval: reflectionInterval,
+          logger: this.logger,
+        })
+      : null;
 
     // Add user prompt to session history if provided
     if (prompt && typeof prompt === 'string' && prompt.trim() !== '') {
@@ -152,7 +156,7 @@ export class AgentOrchestrator {
     }
 
     while (currentIteration < maxIters) {
-      if (signal && signal.aborted) {
+      if (signal?.aborted) {
         throw signal.reason || new Error('ReAct loop was aborted');
       }
 
@@ -167,7 +171,7 @@ export class AgentOrchestrator {
       if (currentTokens > budgetLimit) {
         this.logger.warn(
           `Token budget exceeded (${currentTokens.toLocaleString()} / ${budgetLimit.toLocaleString()} tokens). ` +
-          `Stopping ReAct loop at iteration ${currentIteration} to avoid context overflow.`
+            `Stopping ReAct loop at iteration ${currentIteration} to avoid context overflow.`,
         );
         break;
       }
@@ -175,7 +179,7 @@ export class AgentOrchestrator {
       // Step 1: Context Pruning
       const rawMessages = this.session.getMessages();
       const prunedContents = pruneMessages(rawMessages, {
-        maxTokens: this.maxContextTokens
+        maxTokens: this.maxContextTokens,
       });
 
       // Step 2: Stream generation via LLM API
@@ -190,7 +194,7 @@ export class AgentOrchestrator {
               options.onToken(token);
             }
           },
-          signal
+          signal,
         });
       } catch (genErr) {
         // If stream error occurs, log and rethrow
@@ -218,15 +222,15 @@ export class AgentOrchestrator {
       // Step 4: Handle Function Call(s)
       // Record model message containing function call(s) and any accompanying thinking text
       const modelParts = [];
-      if (text && text.trim()) {
+      if (text?.trim()) {
         modelParts.push({ text });
       }
       for (const fc of functionCalls) {
         modelParts.push({
           functionCall: {
             name: fc.name,
-            args: fc.args || {}
-          }
+            args: fc.args || {},
+          },
         });
       }
       this.session.addMessage({ role: 'model', parts: modelParts });
@@ -243,7 +247,7 @@ export class AgentOrchestrator {
         const toolExecution = await dispatchToolCall(name, args, {
           securityGuard: this.securityGuard,
           baseDir: this.workingDir,
-          logger: this.logger
+          logger: this.logger,
         });
 
         let responsePayload;
@@ -253,19 +257,20 @@ export class AgentOrchestrator {
           responsePayload = {
             error: true,
             status: 'error',
-            message: toolExecution.message || 'Tool execution failed'
+            message: toolExecution.message || 'Tool execution failed',
           };
           this.logger.warn(`Tool "${name}" failed: ${toolExecution.message}`);
         } else {
           // Successful tool output
-          responsePayload = toolExecution.result !== undefined ? toolExecution.result : { status: 'ok' };
+          responsePayload =
+            toolExecution.result !== undefined ? toolExecution.result : { status: 'ok' };
         }
 
         executedToolCalls.push({
           name,
           args,
           response: responsePayload,
-          iteration: currentIteration
+          iteration: currentIteration,
         });
 
         if (typeof options.onToolResult === 'function') {
@@ -290,7 +295,9 @@ export class AgentOrchestrator {
               break;
             }
           } catch (refErr) {
-            this.logger.warn(`[Reflection] Check failed at iter ${currentIteration}: ${refErr.message}`);
+            this.logger.warn(
+              `[Reflection] Check failed at iter ${currentIteration}: ${refErr.message}`,
+            );
           }
         }
       }
@@ -316,7 +323,7 @@ export class AgentOrchestrator {
       iterations: currentIteration,
       toolCalls: executedToolCalls,
       loopLimitReached,
-      session: this.session
+      session: this.session,
     };
   }
 
@@ -366,4 +373,3 @@ export class AgentOrchestrator {
 export function createAgentOrchestrator(options = {}) {
   return new AgentOrchestrator(options);
 }
-

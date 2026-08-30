@@ -7,17 +7,37 @@ import { ansi, stripAnsi } from '../utils/ansi.js';
 
 const BORDER_STYLES = {
   round: {
-    tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│'
+    tl: '╭',
+    tr: '╮',
+    bl: '╰',
+    br: '╯',
+    h: '─',
+    v: '│',
   },
   single: {
-    tl: '┌', tr: '┐', bl: '└', br: '┘', h: '─', v: '│'
+    tl: '┌',
+    tr: '┐',
+    bl: '└',
+    br: '┘',
+    h: '─',
+    v: '│',
   },
   double: {
-    tl: '╔', tr: '╗', bl: '╚', br: '╝', h: '═', v: '║'
+    tl: '╔',
+    tr: '╗',
+    bl: '╚',
+    br: '╝',
+    h: '═',
+    v: '║',
   },
   bold: {
-    tl: '┏', tr: '┓', bl: '┗', br: '┛', h: '━', v: '┃'
-  }
+    tl: '┏',
+    tr: '┓',
+    bl: '┗',
+    br: '┛',
+    h: '━',
+    v: '┃',
+  },
 };
 
 /**
@@ -65,7 +85,9 @@ export function renderBox(text, options = {}) {
   for (const line of lines) {
     const cleanLen = stripAnsi(line).length;
     const rightPad = ' '.repeat(Math.max(0, innerWidth - cleanLen));
-    output.push(`${colorFn(borderType.v)}${padStr}${line}${rightPad}${padStr}${colorFn(borderType.v)}`);
+    output.push(
+      `${colorFn(borderType.v)}${padStr}${line}${rightPad}${padStr}${colorFn(borderType.v)}`,
+    );
   }
 
   output.push(colorFn(bottomBorder));
@@ -90,7 +112,7 @@ export function renderBanner(options = {}) {
 
   const lines = [
     `${ansi.bold(ansi.cyanBright(title))} ${ansi.dim(version)}`,
-    `${ansi.white(subtitle)}`
+    `${ansi.white(subtitle)}`,
   ];
 
   if (details.length > 0) {
@@ -104,7 +126,7 @@ export function renderBanner(options = {}) {
     borderStyle: 'round',
     borderColor: 'cyan',
     padding: 1,
-    minWidth: 46
+    minWidth: 46,
   });
 }
 
@@ -133,6 +155,6 @@ export function renderStatusCard(title, data = {}, options = {}) {
     title,
     borderStyle: 'round',
     borderColor: 'yellow',
-    ...options
+    ...options,
   });
 }

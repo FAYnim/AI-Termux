@@ -3,7 +3,7 @@
  * Exports Markdown Highlighter, Spinner, Box/Banner Components, and Model Picker
  */
 
-export * from './markdown.js';
-export * from './spinner.js';
 export * from './box.js';
+export * from './markdown.js';
 export * from './model-menu.js';
+export * from './spinner.js';

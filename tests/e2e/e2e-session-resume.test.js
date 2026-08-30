@@ -13,14 +13,13 @@
  * AgentOrchestrator resume support, context pruning integration.
  */
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-
-import { Session, SessionManager, generateSessionId } from '../../src/agent/session.js';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { AgentOrchestrator } from '../../src/agent/orchestrator.js';
+import { generateSessionId, Session, SessionManager } from '../../src/agent/session.js';
 
 describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
   let tempDir;
@@ -43,7 +42,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
   test('Session is saved to disk after first orchestrator turn', async () => {
     const session = sessionManager.createSession({
       model: 'gemini-2.5-flash',
-      workingDir: tempDir
+      workingDir: tempDir,
     });
 
     const mockGemini = {
@@ -51,18 +50,18 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       generateStream: async () => ({
         text: 'Selamat datang! Nama proyek Anda adalah "CalculatorApp". Saya siap membantu.',
         functionCalls: [],
-        finishReason: 'STOP'
-      })
+        finishReason: 'STOP',
+      }),
     };
 
     const orchestrator = new AgentOrchestrator({
       geminiClient: mockGemini,
       session,
-      workingDir: tempDir
+      workingDir: tempDir,
     });
 
     const result = await orchestrator.runTurn(
-      'Proyek saya bernama CalculatorApp. Bantu saya mengembangkan proyek ini.'
+      'Proyek saya bernama CalculatorApp. Bantu saya mengembangkan proyek ini.',
     );
 
     assert.equal(result.success, true);
@@ -91,26 +90,28 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     const session1 = sessionManager.createSession({ workingDir: tempDir });
     const sessionId = session1.id;
 
-    let turn1Count = 0;
+    let _turn1Count = 0;
     const mockGemini1 = {
       getModel: () => 'gemini-2.5-flash',
-      generateStream: async ({ contents }) => {
-        turn1Count++;
+      generateStream: async () => {
+        _turn1Count++;
         return {
           text: 'Halo! Proyek "CalculatorApp" akan saya bantu. Fitur utama adalah fungsi add, subtract, multiply, divide.',
           functionCalls: [],
-          finishReason: 'STOP'
+          finishReason: 'STOP',
         };
-      }
+      },
     };
 
     const orchestrator1 = new AgentOrchestrator({
       geminiClient: mockGemini1,
       session: session1,
-      workingDir: tempDir
+      workingDir: tempDir,
     });
 
-    await orchestrator1.runTurn('Nama proyek saya adalah CalculatorApp dengan fitur kalkulator dasar.');
+    await orchestrator1.runTurn(
+      'Nama proyek saya adalah CalculatorApp dengan fitur kalkulator dasar.',
+    );
 
     // Verify session saved (turn1)
     const sessionPath = path.join(tempDir, `${sessionId}.json`);
@@ -124,10 +125,10 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
 
     // Verify prior context: user said "CalculatorApp"
     const priorMessages = loadedSession.getMessages();
-    const userMsg = priorMessages.find(m => m.role === 'user');
+    const userMsg = priorMessages.find((m) => m.role === 'user');
     assert.ok(
       JSON.stringify(userMsg).includes('CalculatorApp'),
-      'Prior user message should be in loaded session'
+      'Prior user message should be in loaded session',
     );
 
     // Phase 3: Run follow-up turn on the resumed session
@@ -139,18 +140,20 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
         return {
           text: 'Benar! Fungsi add(a, b) pada CalculatorApp mengembalikan a + b. Saya ingat konteks proyek Anda.',
           functionCalls: [],
-          finishReason: 'STOP'
+          finishReason: 'STOP',
         };
-      }
+      },
     };
 
     const orchestrator2 = new AgentOrchestrator({
       geminiClient: mockGemini2,
       session: loadedSession, // resumed session
-      workingDir: tempDir
+      workingDir: tempDir,
     });
 
-    const result2 = await orchestrator2.runTurn('Jelaskan kembali apa nama proyek saya dan apa fitur utamanya?');
+    const result2 = await orchestrator2.runTurn(
+      'Jelaskan kembali apa nama proyek saya dan apa fitur utamanya?',
+    );
 
     assert.equal(result2.success, true, 'Resume turn should succeed');
     assert.ok(result2.text.includes('CalculatorApp'), 'Response should reference prior context');
@@ -158,12 +161,15 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     // The LLM should have received the prior messages as context
     assert.ok(
       receivedContentsInTurn2.length >= 3,
-      `Should have received >= 3 messages (prior user + model + new user), got ${receivedContentsInTurn2.length}`
+      `Should have received >= 3 messages (prior user + model + new user), got ${receivedContentsInTurn2.length}`,
     );
 
     // Verify prior context was sent to LLM
     const allSentContent = JSON.stringify(receivedContentsInTurn2);
-    assert.ok(allSentContent.includes('CalculatorApp'), 'Prior CalculatorApp context should reach LLM');
+    assert.ok(
+      allSentContent.includes('CalculatorApp'),
+      'Prior CalculatorApp context should reach LLM',
+    );
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -180,23 +186,28 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
         if (callNum === 1) {
           return {
             text: 'Saya akan membuat file config.json.',
-            functionCalls: [{ name: 'write_file', args: { filePath: 'config.json', content: '{"version": "1.0"}' } }],
-            finishReason: 'STOP'
+            functionCalls: [
+              {
+                name: 'write_file',
+                args: { filePath: 'config.json', content: '{"version": "1.0"}' },
+              },
+            ],
+            finishReason: 'STOP',
           };
         }
         return {
           text: 'File config.json berhasil dibuat.',
           functionCalls: [],
-          finishReason: 'STOP'
+          finishReason: 'STOP',
         };
-      }
+      },
     };
 
     const orchestrator = new AgentOrchestrator({
       geminiClient: mockGemini,
       session,
       workingDir: tempDir,
-      autoApprove: true
+      autoApprove: true,
     });
 
     await orchestrator.runTurn('Buat file config.json untuk proyek saya.');
@@ -208,16 +219,20 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     // Should have: user, model(with func call), func response, model(final)
     assert.ok(messages.length >= 4, `Should have >= 4 messages, got: ${messages.length}`);
 
-    const hasFuncCall = messages.some(m =>
-      m.parts?.some(p => p.functionCall != null)
-    );
+    const hasFuncCall = messages.some((m) => m.parts?.some((p) => p.functionCall != null));
     assert.ok(hasFuncCall, 'Session should contain function call message in history');
 
-    const hasFuncResponse = messages.some(m =>
-      m.parts?.some(p => p.functionResponse != null) || m.role === 'function' || m.role === 'user' && JSON.stringify(m).includes('functionResponse')
+    const _hasFuncResponse = messages.some(
+      (m) =>
+        m.parts?.some((p) => p.functionResponse != null) ||
+        m.role === 'function' ||
+        (m.role === 'user' && JSON.stringify(m).includes('functionResponse')),
     );
     // Accept either structure depending on Gemini API format
-    assert.ok(messages.length >= 4, 'Multi-turn session with tool calls should have at least 4 messages');
+    assert.ok(
+      messages.length >= 4,
+      'Multi-turn session with tool calls should have at least 4 messages',
+    );
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -241,7 +256,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     const list = sessionManager.listSessions();
     assert.ok(list.length >= 3, `Should list at least 3 sessions, found: ${list.length}`);
 
-    const ids = list.map(s => s.id);
+    const ids = list.map((s) => s.id);
     assert.ok(ids.includes(s1.id), 'List should include session 1');
     assert.ok(ids.includes(s2.id), 'List should include session 2');
     assert.ok(ids.includes(s3.id), 'List should include session 3');
@@ -275,13 +290,15 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       model: 'gemini-2.5-pro',
       workingDir: tempDir,
       sessionsDir: tempDir,
-      metadata: { testTag: 'e2e', priority: 1 }
+      metadata: { testTag: 'e2e', priority: 1 },
     });
 
     session.addUserMessage('Apa itu Termux?');
     session.addModelMessage('Termux adalah terminal emulator dan Linux environment untuk Android.');
     session.addUserMessage('Bagaimana cara instalasinya?');
-    session.addModelMessage('Install via Google Play Store atau F-Droid, lalu jalankan pkg install nodejs.');
+    session.addModelMessage(
+      'Install via Google Play Store atau F-Droid, lalu jalankan pkg install nodejs.',
+    );
 
     // Serialize
     const json = session.toJSON();
@@ -304,7 +321,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     assert.equal(restoredMsgs[3].role, 'model');
     assert.ok(
       JSON.stringify(restoredMsgs[0]).includes('Apa itu Termux'),
-      'First message content should be preserved'
+      'First message content should be preserved',
     );
   });
 
@@ -319,7 +336,11 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     assert.equal(ids.size, 50, 'All 50 generated session IDs should be unique');
 
     const sampleId = generateSessionId();
-    assert.match(sampleId, /^sess_\d+_[a-z0-9]+$/, 'ID should match expected format: sess_{timestamp}_{random}');
+    assert.match(
+      sampleId,
+      /^sess_\d+_[a-z0-9]+$/,
+      'ID should match expected format: sess_{timestamp}_{random}',
+    );
   });
 
   // ──────────────────────────────────────────────────────────────
@@ -331,7 +352,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       (err) => {
         assert.match(err.message, /not found|Session/, 'Error should explain session not found');
         return true;
-      }
+      },
     );
   });
 
@@ -342,7 +363,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
     const session = new Session({
       model: 'gemini-2.5-flash',
       workingDir: tempDir,
-      sessionsDir: tempDir
+      sessionsDir: tempDir,
     });
 
     session.addUserMessage('Save test message');

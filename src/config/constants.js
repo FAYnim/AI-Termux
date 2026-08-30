@@ -69,7 +69,7 @@ export const BUILTIN_PROVIDERS = {
       'gemini-2.5-pro',
       'gemini-1.5-flash',
       'gemini-1.5-pro',
-      'gemini-2.0-flash'
+      'gemini-2.0-flash',
     ],
     envVars: ['GEMINI_API_KEY', 'TERMUXAI_API_KEY', 'T_AI_API_KEY'],
     envBaseUrlVars: [],
@@ -79,12 +79,7 @@ export const BUILTIN_PROVIDERS = {
     adapter: 'openai',
     defaultBaseUrl: 'https://api.openai.com/v1',
     defaultModel: 'gpt-4o-mini',
-    models: [
-      'gpt-4o',
-      'gpt-4o-mini',
-      'gpt-4',
-      'gpt-3.5-turbo'
-    ],
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4', 'gpt-3.5-turbo'],
     envVars: ['OPENAI_API_KEY'],
     envBaseUrlVars: ['OPENAI_BASE_URL'],
     envModelVars: ['OPENAI_MODEL'],
@@ -102,4 +97,3 @@ export const DEFAULT_CONFIG = {
   autoConfirm: false,
   verbose: false,
 };
-

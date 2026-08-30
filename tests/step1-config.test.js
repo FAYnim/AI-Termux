@@ -1,17 +1,20 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
+import { DEFAULT_CONFIG } from '../src/config/constants.js';
 import { ConfigManager } from '../src/config/manager.js';
-import { DEFAULT_CONFIG, DEFAULT_MODEL } from '../src/config/constants.js';
 
 describe('Config Manager (src/config/manager.js)', () => {
   let tmpDir;
   let manager;
 
   beforeEach(() => {
-    tmpDir = path.join(os.tmpdir(), `termuxai-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tmpDir = path.join(
+      os.tmpdir(),
+      `termuxai-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     manager = new ConfigManager(tmpDir);
   });
 
@@ -151,30 +154,32 @@ describe('Config Manager (src/config/manager.js)', () => {
     }
   });
 
-test('should fall back to legacy ~/.t-ai directory when ~/.termuxai does not exist', () => {
-  const originalEnv = { ...process.env };
-  const originalHome = process.env.HOME;
-  const originalUserProfile = process.env.USERPROFILE;
-  const sandboxHome = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-home-'));
-  const legacyDir = path.join(sandboxHome, '.t-ai');
-  fs.mkdirSync(legacyDir, { recursive: true });
-  // Intentionally do NOT create .termuxai — this is the migration scenario.
+  test('should fall back to legacy ~/.t-ai directory when ~/.termuxai does not exist', () => {
+    const originalEnv = { ...process.env };
+    const originalHome = process.env.HOME;
+    const originalUserProfile = process.env.USERPROFILE;
+    const sandboxHome = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-home-'));
+    const legacyDir = path.join(sandboxHome, '.t-ai');
+    fs.mkdirSync(legacyDir, { recursive: true });
+    // Intentionally do NOT create .termuxai — this is the migration scenario.
 
-  try {
-    process.env.HOME = sandboxHome;
-    process.env.USERPROFILE = sandboxHome;
-    delete process.env.TERMUXAI_CONFIG_DIR;
-    delete process.env.T_AI_CONFIG_DIR;
+    try {
+      process.env.HOME = sandboxHome;
+      process.env.USERPROFILE = sandboxHome;
+      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.T_AI_CONFIG_DIR;
 
-    const m = new ConfigManager();
-    assert.equal(m.getConfigDir(), path.resolve(legacyDir));
-  } finally {
-    process.env.HOME = originalHome;
-    process.env.USERPROFILE = originalUserProfile;
-    delete process.env.TERMUXAI_CONFIG_DIR;
-    delete process.env.T_AI_CONFIG_DIR;
-    try { fs.rmSync(sandboxHome, { recursive: true, force: true }); } catch {}
-    process.env = originalEnv;
-  }
-});
+      const m = new ConfigManager();
+      assert.equal(m.getConfigDir(), path.resolve(legacyDir));
+    } finally {
+      process.env.HOME = originalHome;
+      process.env.USERPROFILE = originalUserProfile;
+      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.T_AI_CONFIG_DIR;
+      try {
+        fs.rmSync(sandboxHome, { recursive: true, force: true });
+      } catch {}
+      process.env = originalEnv;
+    }
+  });
 });

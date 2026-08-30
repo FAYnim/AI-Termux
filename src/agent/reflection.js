@@ -12,7 +12,7 @@ const DEFAULT_REFLECTION_INTERVAL = 3;
 /**
  * System prompt for reflection evaluator — instructs the LLM to output JSON only
  */
-const REFLECTION_SYSTEM_INSTRUCTION = `You are an AI agent progress evaluator. Given a task and a list of recent tool calls, decide whether the task has been completed.
+const _REFLECTION_SYSTEM_INSTRUCTION = `You are an AI agent progress evaluator. Given a task and a list of recent tool calls, decide whether the task has been completed.
 
 Respond with ONLY a valid JSON object, nothing else:
 {
@@ -34,9 +34,10 @@ Rules:
  * Builds the reflection user prompt from original task and recent tool calls
  */
 function buildReflectionPrompt(originalPrompt, iterationCount, recentToolCalls) {
-  const callsDetail = recentToolCalls.length > 0
-    ? recentToolCalls.map(c => `  - ${c.name}(${JSON.stringify(c.args)})`).join('\n')
-    : '  (none yet)';
+  const callsDetail =
+    recentToolCalls.length > 0
+      ? recentToolCalls.map((c) => `  - ${c.name}(${JSON.stringify(c.args)})`).join('\n')
+      : '  (none yet)';
 
   return `TASK: ${originalPrompt}
 
@@ -144,9 +145,7 @@ export class ReflectionChecker {
 
     try {
       const result = await this.llmClient.generate({
-        contents: [
-          { role: 'user', parts: [{ text: userPrompt }] },
-        ],
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
         timeoutMs: 15000,
       });
 
@@ -155,19 +154,18 @@ export class ReflectionChecker {
 
       if (parsed) {
         (this.logger?.info || (() => {}))(
-          `[Reflection] iter ${currentIteration}: ${parsed.reason}`
+          `[Reflection] iter ${currentIteration}: ${parsed.reason}`,
         );
         return parsed;
       }
 
       (this.logger?.warn || (() => {}))(
-        `[Reflection] iter ${currentIteration}: response not parseable as JSON, continuing`
+        `[Reflection] iter ${currentIteration}: response not parseable as JSON, continuing`,
       );
       return { finish: false, reason: 'parse_failed' };
-
     } catch (err) {
       (this.logger?.warn || (() => {}))(
-        `[Reflection] iter ${currentIteration}: check failed (${err.message}), continuing`
+        `[Reflection] iter ${currentIteration}: check failed (${err.message}), continuing`,
       );
       return { finish: false, reason: `error: ${err.message}` };
     }

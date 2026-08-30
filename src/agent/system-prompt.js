@@ -4,7 +4,6 @@
  */
 
 import os from 'node:os';
-import path from 'node:path';
 
 /**
  * Detects host and Termux-specific environment details
@@ -18,9 +17,9 @@ export function detectEnvironment(overrides = {}) {
 
   const isTermux = Boolean(
     env.TERMUX_VERSION ||
-    (env.PREFIX && env.PREFIX.includes('com.termux')) ||
-    (env.HOME && env.HOME.includes('com.termux')) ||
-    cwd.includes('com.termux')
+      env.PREFIX?.includes('com.termux') ||
+      env.HOME?.includes('com.termux') ||
+      cwd.includes('com.termux'),
   );
 
   const platform = overrides.platform || process.platform;
@@ -52,7 +51,7 @@ export function detectEnvironment(overrides = {}) {
     shell: env.SHELL || (platform === 'win32' ? 'powershell' : '/bin/sh'),
     datetime: now.toISOString(),
     localTime: now.toLocaleString(),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   };
 }
 
@@ -98,7 +97,7 @@ You are termuxai (Termux AI), an autonomous, highly capable AI assistant and sof
 export function buildSystemPrompt(options = {}) {
   const envInfo = detectEnvironment({
     workingDir: options.workingDir,
-    ...(options.envOverrides || {})
+    ...(options.envOverrides || {}),
   });
 
   const parts = [];
@@ -107,7 +106,8 @@ export function buildSystemPrompt(options = {}) {
   parts.push(DEFAULT_AGENT_INSTRUCTIONS);
 
   // Environment context block
-  parts.push(`
+  parts.push(
+    `
 ### ACTIVE ENVIRONMENT CONTEXT:
 - **Operating System**: ${envInfo.osType} (${envInfo.platform} / ${envInfo.arch})
 - **Is Termux**: ${envInfo.isTermux ? 'Yes (Native Android Shell)' : 'No (Standard Host)'}
@@ -116,16 +116,19 @@ export function buildSystemPrompt(options = {}) {
 - **Shell**: ${envInfo.shell}
 - **User**: ${envInfo.username}
 - **Current Timestamp**: ${envInfo.datetime} (${envInfo.timezone})
-`.trim());
+`.trim(),
+  );
 
   // Custom user / project instructions if provided
   if (options.customInstructions && typeof options.customInstructions === 'string') {
     const trimmedCustom = options.customInstructions.trim();
     if (trimmedCustom) {
-      parts.push(`
+      parts.push(
+        `
 ### CUSTOM USER INSTRUCTIONS:
 ${trimmedCustom}
-`.trim());
+`.trim(),
+      );
     }
   }
 

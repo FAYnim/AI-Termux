@@ -61,7 +61,8 @@ export function estimateTokens(input) {
  */
 export function estimateSessionTokens(session) {
   if (!session) return 0;
-  const messages = typeof session.getMessages === 'function' ? session.getMessages() : session.messages;
+  const messages =
+    typeof session.getMessages === 'function' ? session.getMessages() : session.messages;
   return estimateTokens(messages || []);
 }
 
@@ -135,21 +136,17 @@ export function pruneMessages(messages, options = {}) {
 
   const firstMsg = keepFirst ? messages[0] : null;
   const startIndex = keepFirst ? 1 : 0;
-  
+
   // Slice candidates for pruning (the middle portion)
-  let candidateMiddle = messages.slice(startIndex, messages.length - preserveRecentCount);
-  let recentSlice = messages.slice(messages.length - preserveRecentCount);
+  const candidateMiddle = messages.slice(startIndex, messages.length - preserveRecentCount);
+  const recentSlice = messages.slice(messages.length - preserveRecentCount);
 
   // Iteratively remove from candidateMiddle until under token budget
   while (candidateMiddle.length > 0) {
     // Remove oldest item from middle
     candidateMiddle.shift();
 
-    const candidateAssembly = [
-      ...(firstMsg ? [firstMsg] : []),
-      ...candidateMiddle,
-      ...recentSlice
-    ];
+    const candidateAssembly = [...(firstMsg ? [firstMsg] : []), ...candidateMiddle, ...recentSlice];
 
     if (estimateTokens(candidateAssembly) <= maxTokens) {
       return sanitizeConversationHistory(candidateAssembly);
@@ -157,10 +154,7 @@ export function pruneMessages(messages, options = {}) {
   }
 
   // If middle is completely drained and still over budget, return sanitized first + recent
-  const minimalAssembly = [
-    ...(firstMsg ? [firstMsg] : []),
-    ...recentSlice
-  ];
+  const minimalAssembly = [...(firstMsg ? [firstMsg] : []), ...recentSlice];
 
   return sanitizeConversationHistory(minimalAssembly);
 }
@@ -181,13 +175,16 @@ export function sanitizeConversationHistory(messages) {
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
-    if (!msg || !msg.role) continue;
+    if (!msg?.role) continue;
 
     // Check if function response has a valid preceding model message with functionCall
     if (msg.role === 'function') {
       const prev = sanitized[sanitized.length - 1];
-      const prevHasCall = prev && prev.role === 'model' && Array.isArray(prev.parts) &&
-        prev.parts.some(p => p.functionCall);
+      const prevHasCall =
+        prev &&
+        prev.role === 'model' &&
+        Array.isArray(prev.parts) &&
+        prev.parts.some((p) => p.functionCall);
 
       if (!prevHasCall) {
         // Skip orphaned function response to prevent Gemini 400 Bad Request

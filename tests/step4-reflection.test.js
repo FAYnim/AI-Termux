@@ -3,15 +3,15 @@
  * Step 4b: Self-Evaluation Loop — verify reflection check behavior
  */
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { AgentOrchestrator } from '../src/agent/orchestrator.js';
+import { createReflectionChecker, ReflectionChecker } from '../src/agent/reflection.js';
 import { SessionManager } from '../src/agent/session.js';
-import { ReflectionChecker, createReflectionChecker } from '../src/agent/reflection.js';
 
 describe('Step 4b: Reflection Checker', () => {
   let tempDir;
@@ -55,7 +55,7 @@ describe('Step 4b: Reflection Checker', () => {
 
     test('should return {finish:false} when no tool calls recorded', async () => {
       const mockClient = {
-        generate: async () => ({ text: '{ "finish": true, "reason": "done" }' })
+        generate: async () => ({ text: '{ "finish": true, "reason": "done" }' }),
       };
       const checker = new ReflectionChecker(mockClient);
       const result = await checker.check('do something', 1);
@@ -65,7 +65,7 @@ describe('Step 4b: Reflection Checker', () => {
 
     test('should parse valid JSON response and return finish:true', async () => {
       const mockClient = {
-        generate: async () => ({ text: '{ "finish": true, "reason": "task complete" }' })
+        generate: async () => ({ text: '{ "finish": true, "reason": "task complete" }' }),
       };
       const checker = new ReflectionChecker(mockClient, { interval: 1 });
       checker.record(1, [{ name: 'write_file', args: { filePath: 'out.txt', content: 'hello' } }]);
@@ -78,8 +78,8 @@ describe('Step 4b: Reflection Checker', () => {
     test('should parse JSON wrapped in markdown fences', async () => {
       const mockClient = {
         generate: async () => ({
-          text: '```json\n{ "finish": false, "reason": "still working" }\n```'
-        })
+          text: '```json\n{ "finish": false, "reason": "still working" }\n```',
+        }),
       };
       const checker = new ReflectionChecker(mockClient, { interval: 1 });
       checker.record(1, [{ name: 'read_file', args: { filePath: 'a.txt' } }]);
@@ -91,7 +91,9 @@ describe('Step 4b: Reflection Checker', () => {
 
     test('should return {finish:false} on unparseable response', async () => {
       const mockClient = {
-        generate: async () => ({ text: 'I think we should keep going because the file is not ready yet.' })
+        generate: async () => ({
+          text: 'I think we should keep going because the file is not ready yet.',
+        }),
       };
       const checker = new ReflectionChecker(mockClient, { interval: 1 });
       checker.record(1, [{ name: 'read_file', args: { filePath: 'a.txt' } }]);
@@ -103,7 +105,9 @@ describe('Step 4b: Reflection Checker', () => {
 
     test('should return {finish:false} on LLM error', async () => {
       const mockClient = {
-        generate: async () => { throw new Error('network timeout'); }
+        generate: async () => {
+          throw new Error('network timeout');
+        },
       };
       const checker = new ReflectionChecker(mockClient, { interval: 1 });
       checker.record(1, [{ name: 'read_file', args: { filePath: 'a.txt' } }]);
@@ -140,12 +144,16 @@ describe('Step 4b: Reflection Checker', () => {
           if (callCount === 1) {
             return {
               text: 'Writing output file...',
-              functionCalls: [{ name: 'write_file', args: { filePath: 'result.txt', content: 'done' } }]
+              functionCalls: [
+                { name: 'write_file', args: { filePath: 'result.txt', content: 'done' } },
+              ],
             };
           }
           return { text: 'Finished!', functionCalls: [] };
         },
-        generate: async () => ({ text: '{ "finish": true, "reason": "task complete after write" }' })
+        generate: async () => ({
+          text: '{ "finish": true, "reason": "task complete after write" }',
+        }),
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -154,11 +162,11 @@ describe('Step 4b: Reflection Checker', () => {
         session,
         workingDir: tempDir,
         autoApprove: true,
-        maxIterations: 10
+        maxIterations: 10,
       });
 
       const result = await orchestrator.runTurn('Buat file result.txt dengan isi done', {
-        reflectionInterval: 1
+        reflectionInterval: 1,
       });
 
       // Reflection at iter 1 should say finish=true → loop breaks after 1 iteration
@@ -177,16 +185,18 @@ describe('Step 4b: Reflection Checker', () => {
           if (callCount === 1) {
             return {
               text: 'Membaca file terlebih dahulu.',
-              functionCalls: [{ name: 'read_file', args: { filePath: 'input.txt' } }]
+              functionCalls: [{ name: 'read_file', args: { filePath: 'input.txt' } }],
             };
           } else if (callCount === 2) {
             return {
               text: 'Menulis hasil.',
-              functionCalls: [{ name: 'write_file', args: { filePath: 'output.txt', content: 'processed' } }]
+              functionCalls: [
+                { name: 'write_file', args: { filePath: 'output.txt', content: 'processed' } },
+              ],
             };
           }
           return { text: 'Selesai!', functionCalls: [] };
-        }
+        },
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -195,11 +205,11 @@ describe('Step 4b: Reflection Checker', () => {
         session,
         workingDir: tempDir,
         autoApprove: true,
-        maxIterations: 10
+        maxIterations: 10,
       });
 
       const result = await orchestrator.runTurn('Baca input.txt dan tulis ke output.txt', {
-        reflectionInterval: 1
+        reflectionInterval: 1,
       });
 
       // Reflection at iter 1 says false, iter 2 says false, iter 3 gives final answer
@@ -210,21 +220,21 @@ describe('Step 4b: Reflection Checker', () => {
     });
 
     test('should skip reflection on last iteration (safety net)', async () => {
-      let streamCallCount = 0;
+      let _streamCallCount = 0;
       const reflectionCalls = [];
       const mockGemini = {
         getModel: () => 'gemini-2.5-flash',
         generateStream: async () => {
-          streamCallCount++;
+          _streamCallCount++;
           return {
             text: 'Looping...',
-            functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }]
+            functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }],
           };
         },
         generate: async (opts) => {
           reflectionCalls.push(opts);
           return { text: '{ "finish": false, "reason": "still going" }' };
-        }
+        },
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -233,11 +243,11 @@ describe('Step 4b: Reflection Checker', () => {
         session,
         workingDir: tempDir,
         autoApprove: true,
-        maxIterations: 3
+        maxIterations: 3,
       });
 
       const result = await orchestrator.runTurn('Scan berulang', {
-        reflectionInterval: 1
+        reflectionInterval: 1,
       });
 
       // Reflection fires at iter 1 (not last), skipped at iter 2 (maxIter-1 = safety net)
@@ -258,12 +268,14 @@ describe('Step 4b: Reflection Checker', () => {
           if (streamCallCount === 1) {
             return {
               text: 'Reading...',
-              functionCalls: [{ name: 'read_file', args: { filePath: 'a.txt' } }]
+              functionCalls: [{ name: 'read_file', args: { filePath: 'a.txt' } }],
             };
           }
           return { text: 'Done!', functionCalls: [] };
         },
-        generate: async () => { throw new Error('API down'); }
+        generate: async () => {
+          throw new Error('API down');
+        },
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -272,11 +284,11 @@ describe('Step 4b: Reflection Checker', () => {
         session,
         workingDir: tempDir,
         autoApprove: true,
-        maxIterations: 5
+        maxIterations: 5,
       });
 
       const result = await orchestrator.runTurn('Baca a.txt', {
-        reflectionInterval: 1
+        reflectionInterval: 1,
       });
 
       // Should continue despite reflection error
@@ -290,9 +302,11 @@ describe('Step 4b: Reflection Checker', () => {
         getModel: () => 'gemini-2.5-flash',
         generateStream: async () => ({
           text: 'Answer',
-          functionCalls: []
+          functionCalls: [],
         }),
-        generate: async () => { throw new Error('should not be called'); }
+        generate: async () => {
+          throw new Error('should not be called');
+        },
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -300,11 +314,11 @@ describe('Step 4b: Reflection Checker', () => {
         geminiClient: mockGemini,
         session,
         workingDir: tempDir,
-        maxIterations: 5
+        maxIterations: 5,
       });
 
       const result = await orchestrator.runTurn('Hi', {
-        reflectionInterval: 0
+        reflectionInterval: 0,
       });
 
       assert.equal(result.success, true);
@@ -321,13 +335,13 @@ describe('Step 4b: Reflection Checker', () => {
           streamCallCount++;
           return {
             text: 'Working...',
-            functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }]
+            functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }],
           };
         },
         generate: async (opts) => {
           reflectionCalls.push(opts);
           return { text: '{ "finish": false, "reason": "keep going" }' };
-        }
+        },
       };
 
       const session = sessionManager.createSession({ workingDir: tempDir });
@@ -336,7 +350,7 @@ describe('Step 4b: Reflection Checker', () => {
         session,
         workingDir: tempDir,
         autoApprove: true,
-        maxIterations: 10
+        maxIterations: 10,
       });
 
       await orchestrator.runTurn('Test default interval');

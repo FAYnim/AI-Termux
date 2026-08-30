@@ -15,7 +15,7 @@ export const RETRYABLE_NETWORK_CODES = [
   'EAI_AGAIN',
   'UND_ERR_CONNECT_TIMEOUT',
   'UND_ERR_SOCKET',
-  'ERR_NETWORK'
+  'ERR_NETWORK',
 ];
 
 /**
@@ -117,7 +117,7 @@ export function calculateBackoffDelay(attempt, options = {}) {
   const maxDelayMs = options.maxDelayMs ?? 15000;
   const jitterMs = options.jitterMs ?? 500;
 
-  const exponential = initialDelayMs * Math.pow(2, attempt);
+  const exponential = initialDelayMs * 2 ** attempt;
   const jitter = Math.random() * jitterMs;
   return Math.min(exponential + jitter, maxDelayMs);
 }
@@ -180,12 +180,12 @@ export async function withRetry(fn, options = {}) {
           attempt: attemptNumber,
           maxRetries,
           delay,
-          error
+          error,
         });
       } else if (log && typeof log.warn === 'function') {
         const sec = (delay / 1000).toFixed(1);
         log.warn(
-          `Jaringan sibuk (${statusDesc}), mencoba kembali dalam ${sec}s (Percobaan ${attemptNumber}/${maxRetries})...`
+          `Jaringan sibuk (${statusDesc}), mencoba kembali dalam ${sec}s (Percobaan ${attemptNumber}/${maxRetries})...`,
         );
       }
 

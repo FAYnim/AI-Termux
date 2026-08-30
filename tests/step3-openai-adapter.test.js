@@ -1,17 +1,17 @@
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
 import { OpenAIClient } from '../src/llm/openai.js';
 
 describe('Step 3: OpenAI Adapter', () => {
   function makeFetcher(chunks) {
-    return async function fetch(url, init) {
-      const body = JSON.parse(init?.body || '{}');
+    return async function fetch(_url, init) {
+      const _body = JSON.parse(init?.body || '{}');
       return {
         ok: true,
         status: 200,
         json: async () => ({
           choices: [{ message: { content: '' }, finish_reason: 'stop' }],
-          usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 }
+          usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
         }),
         body: createReadableStream(chunks),
       };
@@ -44,7 +44,7 @@ describe('Step 3: OpenAI Adapter', () => {
     const tokens = [];
     const result = await client.generateStream({
       contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
-      onToken: t => tokens.push(t),
+      onToken: (t) => tokens.push(t),
     });
     assert.deepEqual(tokens, ['Hello ', 'world!']);
     assert.equal(result.text, 'Hello world!');
@@ -63,7 +63,7 @@ describe('Step 3: OpenAI Adapter', () => {
     const calls = [];
     const result = await client.generateStream({
       contents: [{ role: 'user', parts: [{ text: 'read x' }] }],
-      onFunctionCall: fc => calls.push(fc),
+      onFunctionCall: (fc) => calls.push(fc),
     });
     assert.equal(calls.length, 1);
     assert.equal(calls[0].name, 'read_file');
@@ -82,8 +82,8 @@ describe('Step 3: OpenAI Adapter', () => {
     const calls = [];
     const result = await client.generateStream({
       contents: [{ role: 'user', parts: [{ text: 'do it' }] }],
-      onToken: t => tokens.push(t),
-      onFunctionCall: fc => calls.push(fc),
+      onToken: (t) => tokens.push(t),
+      onFunctionCall: (fc) => calls.push(fc),
     });
     assert.equal(result.text, 'doing ');
     assert.equal(calls.length, 1);
@@ -99,9 +99,13 @@ describe('Step 3: OpenAI Adapter', () => {
       [null, null],
     ];
     for (const [reason, expected] of cases) {
-      const clamped = reason === null ? {} : {'finish_reason': reason};
+      const clamped = reason === null ? {} : { finish_reason: reason };
       const chunk = `data: {"choices":[{"delta":${JSON.stringify(clamped)}}]}\n\n`;
-      const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: makeFetcher([chunk, 'data: [DONE]\n\n']) });
+      const client = new OpenAIClient({
+        apiKey: 'k',
+        model: 'gpt-4o',
+        fetch: makeFetcher([chunk, 'data: [DONE]\n\n']),
+      });
       const r = await client.generateStream({
         contents: [{ role: 'user', parts: [{ text: 'x' }] }],
       });
@@ -123,7 +127,9 @@ describe('Step 3: OpenAI Adapter', () => {
     let err;
     try {
       await client.generate({ contents: 'hi' });
-    } catch (e) { err = e; }
+    } catch (e) {
+      err = e;
+    }
     assert.ok(err);
     assert.match(err.message, /401/);
     assert.equal(err.status, 401);
@@ -132,8 +138,14 @@ describe('Step 3: OpenAI Adapter', () => {
   });
 
   test('empty choices yields empty text and STOP', async () => {
-    const client = new OpenAIClient({ apiKey: 'k', model: 'gpt-4o', fetch: makeFetcher(['data: {"choices":[]}\n\ndata: [DONE]\n\n']) });
-    const r = await client.generateStream({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] });
+    const client = new OpenAIClient({
+      apiKey: 'k',
+      model: 'gpt-4o',
+      fetch: makeFetcher(['data: {"choices":[]}\n\ndata: [DONE]\n\n']),
+    });
+    const r = await client.generateStream({
+      contents: [{ role: 'user', parts: [{ text: 'hi' }] }],
+    });
     assert.equal(r.text, '');
     assert.equal(r.functionCalls.length, 0);
     assert.equal(r.finishReason, 'STOP');

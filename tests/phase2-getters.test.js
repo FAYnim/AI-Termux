@@ -15,11 +15,11 @@
  * — test ini HANYA mengunci kontrak getter, bukan call sites.
  */
 
-import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import os from 'node:os';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { after, describe, test } from 'node:test';
 
 import { BUILTIN_PROVIDERS } from '../src/config/constants.js';
 import { ConfigManager } from '../src/config/manager.js';
@@ -32,7 +32,7 @@ const tmpDirs = [];
 function makeManager(label = '2.1') {
   const dir = path.join(
     os.tmpdir(),
-    `termuxai-phase21-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    `termuxai-phase21-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   tmpDirs.push(dir);
   return new ConfigManager(dir);
@@ -172,7 +172,7 @@ describe('Phase 2.1-B — getModelCatalog() = getProviderModels() (read-side ali
     const catalog = mgr.getModelCatalog('gemini');
     assert.ok(
       catalog.includes('gemini-custom-finetune-v2'),
-      'getModelCatalog must surface the stored active model even outside builtin catalog'
+      'getModelCatalog must surface the stored active model even outside builtin catalog',
     );
   });
 
@@ -207,7 +207,7 @@ describe('Phase 2.1-C — Getters are read-side (no new fields written to config
       'activeModel' in stored,
       false,
       'getActiveModel must NOT add an "activeModel" field — the on-disk format ' +
-        'remains { model: "..." } for backward compatibility.'
+        'remains { model: "..." } for backward compatibility.',
     );
     // Sanity: original `model` field is still there
     assert.equal(stored.model, 'gemini-2.5-pro');
@@ -224,7 +224,7 @@ describe('Phase 2.1-C — Getters are read-side (no new fields written to config
       'catalog' in stored,
       false,
       'getModelCatalog must NOT add a "catalog" field — the on-disk format ' +
-        'remains { models: [...] } for backward compatibility.'
+        'remains { models: [...] } for backward compatibility.',
     );
   });
 
@@ -262,8 +262,8 @@ describe('Phase 2.1-D — Backward-compat: legacy config (model / models) masih 
       providers: {
         gemini: {
           apiKey: 'sk-legacy-123',
-          model: 'gemini-1.5-pro-legacy',  // ← format lama, HARUS tetap terbaca
-        }
+          model: 'gemini-1.5-pro-legacy', // ← format lama, HARUS tetap terbaca
+        },
       },
       timeoutMs: 30000,
       maxContextTokens: 1000000,
@@ -276,7 +276,7 @@ describe('Phase 2.1-D — Backward-compat: legacy config (model / models) masih 
     assert.equal(
       active,
       'gemini-1.5-pro-legacy',
-      'getActiveModel harus tetap membaca stored.model pada config lama'
+      'getActiveModel harus tetap membaca stored.model pada config lama',
     );
   });
 
@@ -288,8 +288,8 @@ describe('Phase 2.1-D — Backward-compat: legacy config (model / models) masih 
       providers: {
         openai: {
           apiKey: 'sk-legacy-456',
-          models: ['gpt-4-legacy', 'gpt-3.5-turbo-legacy'],  // ← format lama
-        }
+          models: ['gpt-4-legacy', 'gpt-3.5-turbo-legacy'], // ← format lama
+        },
       },
       timeoutMs: 30000,
       maxContextTokens: 1000000,
@@ -300,7 +300,10 @@ describe('Phase 2.1-D — Backward-compat: legacy config (model / models) masih 
 
     const catalog = mgr.getModelCatalog('openai');
     assert.ok(catalog.includes('gpt-4-legacy'), 'legacy stored.models[] harus tetap terbaca');
-    assert.ok(catalog.includes('gpt-3.5-turbo-legacy'), 'legacy stored.models[] harus tetap terbaca');
+    assert.ok(
+      catalog.includes('gpt-3.5-turbo-legacy'),
+      'legacy stored.models[] harus tetap terbaca',
+    );
   });
 
   test('getProviderModels (legacy API) masih jalan dan hasilnya identik dengan getModelCatalog', () => {
@@ -333,7 +336,7 @@ describe('Phase 2.1-E — Cross-consistency: active model appears in catalog', (
       assert.equal(active, customName);
       assert.ok(
         catalog.includes(customName),
-        `getModelCatalog("${id}") harus selalu menyertakan active model "${customName}"`
+        `getModelCatalog("${id}") harus selalu menyertakan active model "${customName}"`,
       );
     }
   });

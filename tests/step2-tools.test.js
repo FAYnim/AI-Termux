@@ -1,16 +1,15 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-
-import { readFileTool } from '../src/tools/read_file.js';
-import { writeFileTool } from '../src/tools/write_file.js';
-import { patchFileTool } from '../src/tools/patch_file.js';
-import { listDirTool } from '../src/tools/list_dir.js';
-import { executeCommandTool } from '../src/tools/execute_command.js';
-import { getToolDeclarations, getTool, dispatchToolCall, TOOLS_MAP } from '../src/tools/registry.js';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { SecurityGuard } from '../src/security/guard.js';
+import { executeCommandTool } from '../src/tools/execute_command.js';
+import { listDirTool } from '../src/tools/list_dir.js';
+import { patchFileTool } from '../src/tools/patch_file.js';
+import { readFileTool } from '../src/tools/read_file.js';
+import { dispatchToolCall, getTool, getToolDeclarations } from '../src/tools/registry.js';
+import { writeFileTool } from '../src/tools/write_file.js';
 
 describe('Local Actuator Tools (src/tools/)', () => {
   let tempBaseDir;
@@ -31,7 +30,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should write text content to a new file', async () => {
       const res = await writeFileTool(
         { filePath: 'test.txt', content: 'Hello World!' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.success, true);
       assert.equal(res.bytesWritten, 12);
@@ -43,19 +42,28 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should auto-create nested directories when writing', async () => {
       const res = await writeFileTool(
         { filePath: 'nested/dir/structure/file.js', content: 'console.log(42);' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.success, true);
       assert.equal(res.createdDirs, true);
 
-      const saved = fs.readFileSync(path.join(tempBaseDir, 'nested/dir/structure/file.js'), 'utf-8');
+      const saved = fs.readFileSync(
+        path.join(tempBaseDir, 'nested/dir/structure/file.js'),
+        'utf-8',
+      );
       assert.equal(saved, 'console.log(42);');
     });
 
     test('should overwrite existing file atomically', async () => {
       const target = 'existing.txt';
-      await writeFileTool({ filePath: target, content: 'Initial version' }, { baseDir: tempBaseDir });
-      const res = await writeFileTool({ filePath: target, content: 'Updated version' }, { baseDir: tempBaseDir });
+      await writeFileTool(
+        { filePath: target, content: 'Initial version' },
+        { baseDir: tempBaseDir },
+      );
+      const res = await writeFileTool(
+        { filePath: target, content: 'Updated version' },
+        { baseDir: tempBaseDir },
+      );
 
       assert.equal(res.success, true);
       const saved = fs.readFileSync(path.join(tempBaseDir, target), 'utf-8');
@@ -82,7 +90,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
 
       const res = await readFileTool(
         { filePath: 'sample.txt', startLine: 2, endLine: 4 },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.content, 'Line 2\nLine 3\nLine 4');
       assert.equal(res.startLine, 2);
@@ -120,9 +128,9 @@ describe('Local Actuator Tools (src/tools/)', () => {
         {
           filePath: 'calc.js',
           searchString: 'return a - b;',
-          replaceString: 'return a + b;'
+          replaceString: 'return a + b;',
         },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
 
       assert.equal(res.success, true);
@@ -138,9 +146,9 @@ describe('Local Actuator Tools (src/tools/)', () => {
           {
             filePath: 'test.js',
             searchString: 'const y = 20;',
-            replaceString: 'const y = 30;'
+            replaceString: 'const y = 30;',
           },
-          { baseDir: tempBaseDir }
+          { baseDir: tempBaseDir },
         );
       }, /searchString was not found/);
     });
@@ -154,9 +162,9 @@ describe('Local Actuator Tools (src/tools/)', () => {
           {
             filePath: 'dup.js',
             searchString: 'console.log("hello");',
-            replaceString: 'console.log("world");'
+            replaceString: 'console.log("world");',
           },
-          { baseDir: tempBaseDir }
+          { baseDir: tempBaseDir },
         );
       }, /occurs 2 times/);
     });
@@ -174,7 +182,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
       const res = await listDirTool({ dirPath: '.' }, { baseDir: tempBaseDir });
       assert.ok(res.tree);
       assert.equal(res.totalFiles, 2); // src/index.js + package.json (node_modules & .git ignored)
-      assert.equal(res.totalDirs, 1);  // src
+      assert.equal(res.totalDirs, 1); // src
 
       assert.ok(res.tree.includes('index.js'));
       assert.ok(res.tree.includes('package.json'));
@@ -196,7 +204,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should execute shell command and capture stdout and exitCode 0', async () => {
       const res = await executeCommandTool(
         { command: 'node -e "console.log(\'test-output-123\')"' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.exitCode, 0);
       assert.equal(res.timedOut, false);
@@ -207,7 +215,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should capture non-zero exitCode and stderr on failure', async () => {
       const res = await executeCommandTool(
         { command: 'node -e "process.stderr.write(\'custom-error\'); process.exit(42)"' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.exitCode, 42);
       assert.match(res.stderr, /custom-error/);
@@ -217,9 +225,9 @@ describe('Local Actuator Tools (src/tools/)', () => {
       const res = await executeCommandTool(
         {
           command: 'node -e "setTimeout(() => {}, 5000)"',
-          timeoutMs: 150
+          timeoutMs: 150,
         },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.timedOut, true);
       assert.equal(res.exitCode, 124);
@@ -229,7 +237,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should handle output truncation when limits are exceeded', async () => {
       const res = await executeCommandTool(
         { command: 'node -e "console.log(\'A\'.repeat(2000))"' },
-        { baseDir: tempBaseDir, maxOutputSizeBytes: 500 }
+        { baseDir: tempBaseDir, maxOutputSizeBytes: 500 },
       );
       assert.equal(res.truncated, true);
       assert.ok(res.stdout.includes('Output truncated'));
@@ -241,13 +249,13 @@ describe('Local Actuator Tools (src/tools/)', () => {
       const decls = getToolDeclarations();
       assert.equal(decls.length, 5);
 
-      const names = decls.map(d => d.name);
+      const names = decls.map((d) => d.name);
       assert.deepEqual(names.sort(), [
         'execute_command',
         'list_dir',
         'patch_file',
         'read_file',
-        'write_file'
+        'write_file',
       ]);
 
       for (const decl of decls) {
@@ -272,7 +280,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
       const res = await dispatchToolCall(
         'write_file',
         { filePath: 'dispatch.txt', content: 'Dispatched successfully' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(res.success, true);
       assert.equal(res.result.success, true);
@@ -280,7 +288,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
       const readRes = await dispatchToolCall(
         'read_file',
         { filePath: 'dispatch.txt' },
-        { baseDir: tempBaseDir }
+        { baseDir: tempBaseDir },
       );
       assert.equal(readRes.success, true);
       assert.equal(readRes.result.content, 'Dispatched successfully');
@@ -289,13 +297,13 @@ describe('Local Actuator Tools (src/tools/)', () => {
     test('should block unauthorized tool calls through SecurityGuard in dispatchToolCall', async () => {
       const guard = new SecurityGuard({
         baseDir: tempBaseDir,
-        confirmationHandler: async () => false // reject risky action
+        confirmationHandler: async () => false, // reject risky action
       });
 
       const res = await dispatchToolCall(
         'execute_command',
         { command: 'rm dangerous.txt' },
-        { baseDir: tempBaseDir, securityGuard: guard }
+        { baseDir: tempBaseDir, securityGuard: guard },
       );
 
       assert.equal(res.error, true);

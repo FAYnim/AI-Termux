@@ -3,9 +3,9 @@
  * Provides helpers for detecting Termux-specific paths and storage layouts.
  */
 
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import fs from 'node:fs';
 
 // Termux standard environment markers
 const TERMUX_PREFIX = '/data/data/com.termux/files/usr';
@@ -144,7 +144,7 @@ export function getEnvironmentInfo() {
     allowedStoragePaths: getTermuxAllowedStoragePaths(),
     platform: process.platform,
     arch: process.arch,
-    nodeVersion: process.version
+    nodeVersion: process.version,
   };
 }
 

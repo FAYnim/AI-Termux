@@ -13,14 +13,14 @@
  *  - showModelMenuFromConfig: builds items from configMgr & active provider
  */
 
-import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
+import { describe, test } from 'node:test';
 import {
   buildModelMenuItems,
   showModelMenu,
-  showModelMenuFromConfig
+  showModelMenuFromConfig,
 } from '../src/ui/model-menu.js';
 
 // --- Mock TTY input stream with keypress support -----------------------
@@ -56,10 +56,10 @@ class MockTtyInput extends EventEmitter {
 function makeItems() {
   return [
     { providerId: 'gemini', model: 'gemini-2.5-flash', isActive: true, isCurrentProvider: true },
-    { providerId: 'gemini', model: 'gemini-2.5-pro',   isActive: false, isCurrentProvider: true },
+    { providerId: 'gemini', model: 'gemini-2.5-pro', isActive: false, isCurrentProvider: true },
     { providerId: 'gemini', model: 'gemini-1.5-flash', isActive: false, isCurrentProvider: true },
-    { providerId: 'openai', model: 'gpt-4o-mini',      isActive: false, isCurrentProvider: false },
-    { providerId: 'openai', model: 'gpt-4o',           isActive: false, isCurrentProvider: false }
+    { providerId: 'openai', model: 'gpt-4o-mini', isActive: false, isCurrentProvider: false },
+    { providerId: 'openai', model: 'gpt-4o', isActive: false, isCurrentProvider: false },
   ];
 }
 
@@ -70,7 +70,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     const items = buildModelMenuItems(
       { gemini: ['gemini-2.5-flash', 'gemini-2.5-pro'], openai: ['gpt-4o-mini'] },
       'gemini',
-      'gemini-2.5-flash'
+      'gemini-2.5-flash',
     );
     assert.equal(items.length, 3);
     assert.equal(items[0].providerId, 'gemini');
@@ -87,7 +87,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     assert.deepEqual(buildModelMenuItems({}, 'gemini', 'gemini-2.5-flash'), []);
     assert.deepEqual(
       buildModelMenuItems({ gemini: [], openai: [] }, 'gemini', 'gemini-2.5-flash'),
-      []
+      [],
     );
   });
 
@@ -95,7 +95,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     const items = buildModelMenuItems(
       { gemini: ['gemini-2.5-flash', '', null, undefined, 42, '  ', 'gemini-2.5-pro'] },
       'gemini',
-      'gemini-2.5-flash'
+      'gemini-2.5-flash',
     );
     assert.equal(items.length, 2);
     assert.equal(items[0].model, 'gemini-2.5-flash');
@@ -105,7 +105,13 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
   test('showModelMenu returns cancelled when items array is empty', async () => {
     const input = new MockTtyInput();
     const output = new PassThrough();
-    const res = await showModelMenu([], { input, output, activeProvider: 'gemini', activeModel: 'gemini-2.5-flash', enabled: true });
+    const res = await showModelMenu([], {
+      input,
+      output,
+      activeProvider: 'gemini',
+      activeModel: 'gemini-2.5-flash',
+      enabled: true,
+    });
     assert.deepEqual(res, { cancelled: true });
   });
 
@@ -117,7 +123,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: false
+      enabled: false,
     });
     assert.deepEqual(res, { cancelled: true });
   });
@@ -131,7 +137,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     // Defer so the menu has a chance to register its listener
@@ -152,7 +158,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -175,7 +181,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -202,7 +208,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'openai',
       activeModel: 'gpt-4o',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -224,7 +230,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -244,7 +250,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -264,7 +270,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -289,7 +295,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'openai',
       activeModel: 'gpt-4o',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -309,7 +315,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -328,14 +334,16 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     const input = new MockTtyInput();
     const output = new PassThrough();
     let written = '';
-    output.on('data', (chunk) => { written += chunk.toString('utf8'); });
+    output.on('data', (chunk) => {
+      written += chunk.toString('utf8');
+    });
 
     const promise = showModelMenu(makeItems(), {
       input,
       output,
       activeProvider: 'gemini',
       activeModel: 'gemini-2.5-flash',
-      enabled: true
+      enabled: true,
     });
 
     setImmediate(() => {
@@ -370,7 +378,7 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
 
     const tmpDir = path.join(
       os.tmpdir(),
-      `tai-menu-cfg-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `tai-menu-cfg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new ConfigManager(tmpDir);
@@ -381,14 +389,14 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     const output = new PassThrough();
     const mockOrch = {
       provider: 'gemini',
-      llmClient: { getModel: () => 'gemini-2.5-flash' }
+      llmClient: { getModel: () => 'gemini-2.5-flash' },
     };
 
     const promise = showModelMenuFromConfig({
       configMgr,
       orchestrator: mockOrch,
       input,
-      output
+      output,
     });
 
     setImmediate(() => {
@@ -399,7 +407,9 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
     // We only assert that it returned cleanly (escape was pressed)
     assert.deepEqual(res, { cancelled: true });
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 
   test('showModelMenuFromConfig: non-TTY input returns cancelled without prompting', async () => {
@@ -410,28 +420,30 @@ describe('Step 2: Interactive TUI Model Menu (src/ui/model-menu.js)', () => {
 
     const tmpDir = path.join(
       os.tmpdir(),
-      `tai-menu-pipe-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `tai-menu-pipe-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     fs.mkdirSync(tmpDir, { recursive: true });
     const configMgr = new ConfigManager(tmpDir);
     configMgr.setProviderField('openai', 'apiKey', 'test-openai-key');
 
-    const input = new PassThrough();   // not a TTY
-    const output = new PassThrough();  // not a TTY
+    const input = new PassThrough(); // not a TTY
+    const output = new PassThrough(); // not a TTY
     const mockOrch = {
       provider: 'gemini',
-      llmClient: { getModel: () => 'gemini-2.5-flash' }
+      llmClient: { getModel: () => 'gemini-2.5-flash' },
     };
 
     const res = await showModelMenuFromConfig({
       configMgr,
       orchestrator: mockOrch,
       input,
-      output
+      output,
     });
 
     assert.deepEqual(res, { cancelled: true });
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 });

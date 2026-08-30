@@ -45,12 +45,17 @@ function listKnownProviders(configMgr) {
  * @param {object} [options.configMgr]
  * @returns {string[]} lines (without trailing newline)
  */
-function formatProviderModels({ providerId, isActiveProvider = false, currentModel = null, configMgr = null }) {
+function formatProviderModels({
+  providerId,
+  isActiveProvider = false,
+  currentModel = null,
+  configMgr = null,
+}) {
   const builtin = BUILTIN_PROVIDERS[providerId];
   // Phase 2.2: prefer getModelCatalog() (canonical getter) over deprecated getProviderModels()
   const models = configMgr?.getModelCatalog
     ? configMgr.getModelCatalog(providerId)
-    : (builtin?.models || [builtin?.defaultModel].filter(Boolean));
+    : builtin?.models || [builtin?.defaultModel].filter(Boolean);
 
   if (!Array.isArray(models) || models.length === 0) {
     return [`  ${ansi.dim('(no models registered)')}`];
@@ -83,18 +88,23 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
   let currentModel = '';
   try {
     // Phase 2.2: use getActiveModel() instead of getProviderConfig().model
-    currentModel = configMgr.getActiveModel?.(targetProvider)
-      || BUILTIN_PROVIDERS[targetProvider]?.defaultModel
-      || '';
+    currentModel =
+      configMgr.getActiveModel?.(targetProvider) ||
+      BUILTIN_PROVIDERS[targetProvider]?.defaultModel ||
+      '';
   } catch (_) {
     currentModel = '';
   }
 
   // Validate the explicit provider, if any
-  if (providerOverride && !BUILTIN_PROVIDERS[providerOverride] && !configMgr.get('providers.' + providerOverride)) {
+  if (
+    providerOverride &&
+    !BUILTIN_PROVIDERS[providerOverride] &&
+    !configMgr.get(`providers.${providerOverride}`)
+  ) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Unknown provider: ${ansi.yellow(providerOverride)}\n`
+      output: `${ansi.red('✖')} Unknown provider: ${ansi.yellow(providerOverride)}\n`,
     };
   }
 
@@ -106,38 +116,39 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
       const isActive = pid === activeProvider;
       const headerSuffix = isActive ? ` ${ansi.dim('(active)')}` : '';
       sections.push(`${ansi.bold(ansi.magenta(pid))}${headerSuffix}`);
-      sections.push(...formatProviderModels({
-        providerId: pid,
-        isActiveProvider: isActive,
-        currentModel: pid === activeProvider ? currentModel : null,
-        configMgr
-      }));
+      sections.push(
+        ...formatProviderModels({
+          providerId: pid,
+          isActiveProvider: isActive,
+          currentModel: pid === activeProvider ? currentModel : null,
+          configMgr,
+        }),
+      );
       sections.push('');
     }
     const box = renderBox(sections.join('\n').trimEnd(), {
       title: `Models — All Providers (${known.length})`,
       borderStyle: 'round',
       borderColor: 'cyan',
-      minWidth: 40
+      minWidth: 40,
     });
     return { exitCode: 0, output: `\n${box}\n` };
   }
 
   // Single-provider view (default)
   // Phase 2.2: prefer getModelCatalog() over deprecated getProviderModels()
-  const models = configMgr.getModelCatalog?.(targetProvider)
-    || BUILTIN_PROVIDERS[targetProvider]?.models
-    || [];
+  const models =
+    configMgr.getModelCatalog?.(targetProvider) || BUILTIN_PROVIDERS[targetProvider]?.models || [];
 
   const lines = formatProviderModels({
     providerId: targetProvider,
     isActiveProvider: targetProvider === activeProvider,
     currentModel,
-    configMgr
+    configMgr,
   });
 
   // Optional: show "other providers" snapshot when not in --all mode
-  const otherProviders = listKnownProviders(configMgr).filter(p => p !== targetProvider);
+  const otherProviders = listKnownProviders(configMgr).filter((p) => p !== targetProvider);
   if (otherProviders.length > 0) {
     lines.push('');
     lines.push(ansi.dim('  Other providers:'));
@@ -154,7 +165,7 @@ export function listModelsCli({ configMgr, all = false, providerOverride = null 
     title: `Model (${targetProvider})`,
     borderStyle: 'round',
     borderColor: 'cyan',
-    minWidth: 36
+    minWidth: 36,
   });
   return { exitCode: 0, output: `\n${box}\n`, currentModel, models };
 }
@@ -175,7 +186,7 @@ export function setModelCli({ configMgr, model, providerOverride = null } = {}) 
   if (!model || typeof model !== 'string' || !model.trim()) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name. Usage: termuxai model --set <model> [--provider <id>]\n`
+      output: `${ansi.red('✖')} Missing model name. Usage: termuxai model --set <model> [--provider <id>]\n`,
     };
   }
 
@@ -205,7 +216,7 @@ export function setModelCli({ configMgr, model, providerOverride = null } = {}) 
     output: `\n${ansi.green('✔')} Active model set to: ${ansi.bold(ansi.yellow(model.trim()))} ${ansi.dim(`[${target}]`)}${note}\n`,
     provider: target,
     model: model.trim(),
-    inCatalog
+    inCatalog,
   };
 }
 
@@ -230,12 +241,15 @@ export function addModelsCli({ configMgr, models, providerOverride = null } = {}
   if (!configMgr) {
     return { exitCode: 1, output: null, error: 'ConfigManager unavailable' };
   }
-  if (models === null || models === undefined ||
-      (typeof models === 'string' && !models.trim()) ||
-      (Array.isArray(models) && models.length === 0)) {
+  if (
+    models === null ||
+    models === undefined ||
+    (typeof models === 'string' && !models.trim()) ||
+    (Array.isArray(models) && models.length === 0)
+  ) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --add <name[,name2,...]> [--provider <id>]\n`
+      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --add <name[,name2,...]> [--provider <id>]\n`,
     };
   }
 
@@ -253,27 +267,31 @@ export function addModelsCli({ configMgr, models, providerOverride = null } = {}
       added,
       skipped,
       provider: target,
-      catalog
+      catalog,
     };
   }
 
   const lines = [];
-  lines.push(`${ansi.green('✔')} Added ${ansi.bold(String(added.length))} model(s) to ${ansi.bold(ansi.cyan(target))}:`);
+  lines.push(
+    `${ansi.green('✔')} Added ${ansi.bold(String(added.length))} model(s) to ${ansi.bold(ansi.cyan(target))}:`,
+  );
   for (const m of added) {
     lines.push(`  ${ansi.green('+')} ${ansi.cyan(m)}`);
   }
   if (skipped.length > 0) {
-    lines.push(ansi.dim(`  (${skipped.length} already in catalog, skipped: ${skipped.join(', ')})`));
+    lines.push(
+      ansi.dim(`  (${skipped.length} already in catalog, skipped: ${skipped.join(', ')})`),
+    );
   }
   lines.push(ansi.dim(`  Catalog now has ${catalog.length} model(s).`));
 
   return {
     exitCode: 0,
-    output: '\n' + lines.join('\n') + '\n',
+    output: `\n${lines.join('\n')}\n`,
     added,
     skipped,
     provider: target,
-    catalog
+    catalog,
   };
 }
 
@@ -291,12 +309,15 @@ export function removeModelCli({ configMgr, models, providerOverride = null } = 
   if (!configMgr) {
     return { exitCode: 1, output: null, error: 'ConfigManager unavailable' };
   }
-  if (models === null || models === undefined ||
-      (typeof models === 'string' && !models.trim()) ||
-      (Array.isArray(models) && models.length === 0)) {
+  if (
+    models === null ||
+    models === undefined ||
+    (typeof models === 'string' && !models.trim()) ||
+    (Array.isArray(models) && models.length === 0)
+  ) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --remove <name[,name2,...]> [--provider <id>]\n`
+      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --remove <name[,name2,...]> [--provider <id>]\n`,
     };
   }
 
@@ -311,18 +332,22 @@ export function removeModelCli({ configMgr, models, providerOverride = null } = 
       removed,
       skipped,
       provider: target,
-      catalog
+      catalog,
     };
   }
 
   const lines = [];
   if (removed.length > 0) {
-    lines.push(`${ansi.green('✔')} Removed ${ansi.bold(String(removed.length))} model(s) from ${ansi.bold(ansi.cyan(target))}:`);
+    lines.push(
+      `${ansi.green('✔')} Removed ${ansi.bold(String(removed.length))} model(s) from ${ansi.bold(ansi.cyan(target))}:`,
+    );
     for (const m of removed) {
       lines.push(`  ${ansi.red('-')} ${ansi.cyan(m)}`);
     }
   } else {
-    lines.push(`${ansi.yellow('ℹ')} No models removed from ${ansi.bold(target)} — none of the specified names were in the catalog.`);
+    lines.push(
+      `${ansi.yellow('ℹ')} No models removed from ${ansi.bold(target)} — none of the specified names were in the catalog.`,
+    );
   }
   if (skipped.length > 0) {
     lines.push(ansi.dim(`  Skipped (active model): ${skipped.join(', ')}`));
@@ -331,11 +356,11 @@ export function removeModelCli({ configMgr, models, providerOverride = null } = 
 
   return {
     exitCode: 0,
-    output: '\n' + lines.join('\n') + '\n',
+    output: `\n${lines.join('\n')}\n`,
     removed,
     skipped,
     provider: target,
-    catalog
+    catalog,
   };
 }
 
@@ -359,15 +384,13 @@ export function clearModelsCli({ configMgr, providerOverride = null } = {}) {
   const { catalog } = result;
 
   const isBuiltin = Boolean(builtin);
-  const source = isBuiltin
-    ? 'builtin defaults'
-    : 'empty (custom provider)';
+  const source = isBuiltin ? 'builtin defaults' : 'empty (custom provider)';
 
   return {
     exitCode: 0,
-    output: `\n${ansi.green('✔')} Reset ${ansi.bold(ansi.cyan(target))} catalog to ${ansi.dim(source)}.\n${ansi.dim('  Catalog now has ' + catalog.length + ' model(s).')}\n`,
+    output: `\n${ansi.green('✔')} Reset ${ansi.bold(ansi.cyan(target))} catalog to ${ansi.dim(source)}.\n${ansi.dim(`  Catalog now has ${catalog.length} model(s).`)}\n`,
     provider: target,
-    catalog
+    catalog,
   };
 }
 
@@ -385,7 +408,7 @@ export function handleModelCommand(parsed, configMgr) {
     return listModelsCli({
       configMgr,
       all: Boolean(parsed?.flags?.modelAll),
-      providerOverride: parsed?.flags?.provider || null
+      providerOverride: parsed?.flags?.provider || null,
     });
   }
 
@@ -393,7 +416,7 @@ export function handleModelCommand(parsed, configMgr) {
     return setModelCli({
       configMgr,
       model: parsed?.flags?.modelSet,
-      providerOverride: parsed?.flags?.provider || null
+      providerOverride: parsed?.flags?.provider || null,
     });
   }
 
@@ -401,7 +424,7 @@ export function handleModelCommand(parsed, configMgr) {
     return addModelsCli({
       configMgr,
       models: parsed?.flags?.modelAdd,
-      providerOverride: parsed?.flags?.provider || null
+      providerOverride: parsed?.flags?.provider || null,
     });
   }
 
@@ -409,14 +432,14 @@ export function handleModelCommand(parsed, configMgr) {
     return removeModelCli({
       configMgr,
       models: parsed?.flags?.modelRemove,
-      providerOverride: parsed?.flags?.provider || null
+      providerOverride: parsed?.flags?.provider || null,
     });
   }
 
   if (sub === 'clear' || parsed?.flags?.modelClear) {
     return clearModelsCli({
       configMgr,
-      providerOverride: parsed?.flags?.provider || null
+      providerOverride: parsed?.flags?.provider || null,
     });
   }
 
@@ -424,6 +447,6 @@ export function handleModelCommand(parsed, configMgr) {
   return listModelsCli({
     configMgr,
     all: Boolean(parsed?.flags?.modelAll),
-    providerOverride: parsed?.flags?.provider || null
+    providerOverride: parsed?.flags?.provider || null,
   });
 }

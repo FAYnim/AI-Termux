@@ -3,33 +3,19 @@
  * Step 4: ReAct Agentic Loop & Conversation State Engine
  */
 
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
-
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import {
-  detectEnvironment,
-  buildSystemPrompt,
-  DEFAULT_AGENT_INSTRUCTIONS
-} from '../src/agent/system-prompt.js';
-import {
-  estimateTokens,
   estimatePartTokens,
+  estimateTokens,
   pruneMessages,
-  sanitizeConversationHistory
+  sanitizeConversationHistory,
 } from '../src/agent/pruner.js';
-import {
-  Session,
-  SessionManager,
-  generateSessionId,
-  createSession,
-  saveSession,
-  loadSession,
-  listSessions,
-  deleteSession
-} from '../src/agent/session.js';
+import { generateSessionId, Session, SessionManager } from '../src/agent/session.js';
+import { buildSystemPrompt, detectEnvironment } from '../src/agent/system-prompt.js';
 
 describe('Step 4: System Prompt & Environment Detection', () => {
   test('detectEnvironment should identify host OS, arch and working directory', () => {
@@ -48,9 +34,9 @@ describe('Step 4: System Prompt & Environment Detection', () => {
       env: {
         PREFIX: '/data/data/com.termux/files/usr',
         TERMUX_VERSION: '0.118.0',
-        HOME: '/data/data/com.termux/files/home'
+        HOME: '/data/data/com.termux/files/home',
       },
-      workingDir: '/data/data/com.termux/files/home/workspace'
+      workingDir: '/data/data/com.termux/files/home/workspace',
     });
 
     assert.equal(fakeTermuxEnv.isTermux, true);
@@ -61,7 +47,7 @@ describe('Step 4: System Prompt & Environment Detection', () => {
   test('buildSystemPrompt should assemble full instructions with environment info and custom prompt', () => {
     const prompt = buildSystemPrompt({
       workingDir: '/test/dir',
-      customInstructions: 'Please write all responses in Indonesian language.'
+      customInstructions: 'Please write all responses in Indonesian language.',
     });
 
     assert.ok(prompt.includes('termuxai (Termux AI)'));
@@ -84,14 +70,14 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
     const partFnCall = {
       functionCall: {
         name: 'write_file',
-        args: { filePath: 'index.js', content: 'console.log("hi");' }
-      }
+        args: { filePath: 'index.js', content: 'console.log("hi");' },
+      },
     };
     assert.ok(estimatePartTokens(partFnCall) > 5);
 
     const message = {
       role: 'user',
-      parts: [{ text: 'Hello AI assistant' }]
+      parts: [{ text: 'Hello AI assistant' }],
     };
     // Message overhead (4) + text tokens (~5)
     assert.ok(estimateTokens(message) >= 8);
@@ -101,7 +87,7 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
     const messages = [
       { role: 'user', parts: [{ text: 'Step 1' }] },
       { role: 'model', parts: [{ text: 'Step 1 reply' }] },
-      { role: 'user', parts: [{ text: 'Step 2' }] }
+      { role: 'user', parts: [{ text: 'Step 2' }] },
     ];
 
     const pruned = pruneMessages(messages, { maxTokens: 10000 });
@@ -114,19 +100,19 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
 
     const messages = [
       { role: 'user', parts: [{ text: 'Initial user prompt' }] }, // Message 0 (First)
-      { role: 'model', parts: [{ text: 'Turn 1 ' + longText }] },  // Middle 1
-      { role: 'user', parts: [{ text: 'Turn 2 ' + longText }] },   // Middle 2
-      { role: 'model', parts: [{ text: 'Turn 3 ' + longText }] },  // Middle 3
-      { role: 'user', parts: [{ text: 'Turn 4 ' + longText }] },   // Middle 4
-      { role: 'user', parts: [{ text: 'Recent turn 1' }] },        // Recent
-      { role: 'model', parts: [{ text: 'Recent turn 2' }] }        // Recent
+      { role: 'model', parts: [{ text: `Turn 1 ${longText}` }] }, // Middle 1
+      { role: 'user', parts: [{ text: `Turn 2 ${longText}` }] }, // Middle 2
+      { role: 'model', parts: [{ text: `Turn 3 ${longText}` }] }, // Middle 3
+      { role: 'user', parts: [{ text: `Turn 4 ${longText}` }] }, // Middle 4
+      { role: 'user', parts: [{ text: 'Recent turn 1' }] }, // Recent
+      { role: 'model', parts: [{ text: 'Recent turn 2' }] }, // Recent
     ];
 
     // Set budget tight enough so middle turns get pruned
     const pruned = pruneMessages(messages, {
       maxTokens: 250,
       preserveRecentCount: 2,
-      keepFirst: true
+      keepFirst: true,
     });
 
     assert.ok(pruned.length < messages.length);
@@ -142,9 +128,9 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
       { role: 'user', parts: [{ text: 'Hi' }] },
       {
         role: 'function',
-        parts: [{ functionResponse: { name: 'read_file', response: { content: 'test' } } }]
+        parts: [{ functionResponse: { name: 'read_file', response: { content: 'test' } } }],
       }, // Orphaned: no previous model functionCall
-      { role: 'model', parts: [{ text: 'Hello' }] }
+      { role: 'model', parts: [{ text: 'Hello' }] },
     ];
 
     const sanitized = sanitizeConversationHistory(invalidHistory);
@@ -204,7 +190,7 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
   test('SessionManager should save, check existence, and reload session atomically', () => {
     const session = sessionManager.createSession({
       model: 'gemini-2.5-pro',
-      workingDir: tempDir
+      workingDir: tempDir,
     });
 
     session.addUserMessage('Buatkan server express');
@@ -229,7 +215,7 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
     sessionManager.saveSession(session1);
 
     // Ensure timestamp distinction
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
 
     const session2 = sessionManager.createSession({ id: 'sess_002' });
     session2.addUserMessage('Second session task');
@@ -263,7 +249,11 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
   });
 
   test('should persist and restore provider field', () => {
-    const sess = sessionManager.createSession({ provider: 'openai', model: 'gpt-4o', workingDir: tempDir });
+    const sess = sessionManager.createSession({
+      provider: 'openai',
+      model: 'gpt-4o',
+      workingDir: tempDir,
+    });
     assert.equal(sess.provider, 'openai');
     assert.equal(sess.model, 'gpt-4o');
 
@@ -273,4 +263,3 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
     assert.equal(loaded.model, 'gpt-4o');
   });
 });
-

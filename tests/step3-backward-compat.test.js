@@ -1,8 +1,8 @@
-import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, test } from 'node:test';
 import { ConfigManager } from '../src/config/manager.js';
 
 describe('Step 3: Backward compatibility', { concurrency: 1 }, () => {
@@ -10,13 +10,18 @@ describe('Step 3: Backward compatibility', { concurrency: 1 }, () => {
   let manager;
 
   beforeEach(() => {
-    tmpDir = path.join(os.tmpdir(), `termuxai-bc-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    tmpDir = path.join(
+      os.tmpdir(),
+      `termuxai-bc-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(tmpDir, { recursive: true });
     manager = new ConfigManager(tmpDir);
   });
 
   afterEach(() => {
-    try { if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    try {
+      if (fs.existsSync(tmpDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch (_) {}
   });
 
   test('legacy config.json loads without throwing', () => {
