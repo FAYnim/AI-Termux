@@ -13,6 +13,14 @@ const CHARS_PER_TOKEN = 4;
 const MESSAGE_OVERHEAD_TOKENS = 4;
 
 /**
+ * Per-message token estimate cache. Keyed by message object identity: message
+ * objects are treated as immutable once added to a session (sessions only
+ * append fresh messages), so repeated scans pay only for newly added messages.
+ * Pruned/dropped messages fall out of the cache automatically via GC.
+ */
+const messageTokenCache = new WeakMap();
+
+/**
  * Estimates token count for a string, part object, message, or array of messages.
  *
  * @param {string|object|Array} input
@@ -55,6 +63,31 @@ export function estimateTokens(input) {
 }
 
 /**
+ * Estimates total tokens for an array of messages, caching each message's
+ * estimate so only unseen messages are computed (incremental delta per message).
+ * @param {Array<object>} messages
+ * @returns {number}
+ */
+export function estimateMessagesTokens(messages) {
+  if (!Array.isArray(messages)) return 0;
+
+  let total = 0;
+  for (const message of messages) {
+    if (message === null || typeof message !== 'object') {
+      total += estimateTokens(message);
+      continue;
+    }
+    let cached = messageTokenCache.get(message);
+    if (cached === undefined) {
+      cached = estimateTokens(message);
+      messageTokenCache.set(message, cached);
+    }
+    total += cached;
+  }
+  return total;
+}
+
+/**
  * Estimates total tokens for a Session instance
  * @param {object} session
  * @returns {number}
@@ -63,7 +96,7 @@ export function estimateSessionTokens(session) {
   if (!session) return 0;
   const messages =
     typeof session.getMessages === 'function' ? session.getMessages() : session.messages;
-  return estimateTokens(messages || []);
+  return estimateMessagesTokens(messages || []);
 }
 
 /**
@@ -123,7 +156,7 @@ export function pruneMessages(messages, options = {}) {
   const preserveRecentCount = Math.max(2, options.preserveRecentCount ?? 10);
   const keepFirst = options.keepFirst !== false;
 
-  const currentTokens = estimateTokens(messages);
+  const currentTokens = estimateMessagesTokens(messages);
   if (currentTokens <= maxTokens) {
     return [...messages];
   }
@@ -148,7 +181,7 @@ export function pruneMessages(messages, options = {}) {
 
     const candidateAssembly = [...(firstMsg ? [firstMsg] : []), ...candidateMiddle, ...recentSlice];
 
-    if (estimateTokens(candidateAssembly) <= maxTokens) {
+    if (estimateMessagesTokens(candidateAssembly) <= maxTokens) {
       return sanitizeConversationHistory(candidateAssembly);
     }
   }

@@ -148,6 +148,7 @@
 - **File**: `src/agent/orchestrator.js:165`
 - **Why**: Called at top of every loop iteration. If estimate is expensive (token counting over full message list), this adds overhead.
 - **Fix**: Cache token count incrementally (add delta per message).
+- **Status**: ✅ **FINISHED** (2026-08-30) — Added a per-message token cache (module-level `WeakMap` keyed by message object identity) in `src/agent/pruner.js`. `estimateSessionTokens` now routes through the new `estimateMessagesTokens()`: repeated scans only compute estimates for newly appended messages (the delta), while pruned messages fall out of the cache via GC. Safe because sessions are append-only — `normalizeContent` always produces fresh message objects and nothing mutates messages in place. `pruneMessages`' internal re-estimation loop and the `/status` call in `slash-commands.js` benefit from the same cache for free. 2 new tests in `tests/step4-session.test.js` lock cache consistency (matches full recompute, correct growth after append, no staleness after `setMessages`). Suite 496/505 (same 9 pre-existing wizard failures).
 
 ---
 

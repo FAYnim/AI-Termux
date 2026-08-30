@@ -9,7 +9,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import {
+  estimateMessagesTokens,
   estimatePartTokens,
+  estimateSessionTokens,
   estimateTokens,
   pruneMessages,
   sanitizeConversationHistory,
@@ -81,6 +83,37 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
     };
     // Message overhead (4) + text tokens (~5)
     assert.ok(estimateTokens(message) >= 8);
+  });
+
+  test('estimateMessagesTokens should handle non-array input and non-object entries', () => {
+    assert.equal(estimateMessagesTokens(null), 0);
+    assert.equal(estimateMessagesTokens('nope'), 0);
+    assert.equal(estimateMessagesTokens([]), 0);
+    assert.equal(estimateMessagesTokens(['abcd', 7]), estimateTokens('abcd') + 1);
+  });
+
+  test('estimateSessionTokens should match full recomputation and stay correct across session growth', () => {
+    const session = new Session({ messages: [] });
+    session.addUserMessage('Hello there, this is the first user turn.');
+    session.addModelMessage('First model reply with some longer content to estimate.');
+    session.addFunctionCallMessage('read_file', { filePath: 'src/index.js' });
+
+    const initial = estimateSessionTokens(session);
+    assert.ok(initial > 0);
+    assert.equal(initial, estimateTokens(session.getMessages()));
+
+    // Repeated scans hit the per-message cache and must return the same value
+    assert.equal(estimateSessionTokens(session), initial);
+
+    // Appending a message adds exactly that message's delta
+    session.addFunctionResponseMessage('read_file', { content: 'x'.repeat(400) });
+    const grown = estimateSessionTokens(session);
+    const lastMsg = session.getMessages().at(-1);
+    assert.equal(grown, initial + estimateTokens(lastMsg));
+
+    // Replacing history with fresh message objects must not serve stale estimates
+    session.setMessages(session.getMessages());
+    assert.equal(estimateSessionTokens(session), grown);
   });
 
   test('pruneMessages should leave conversation untouched if within token budget', () => {
