@@ -179,7 +179,7 @@ export function renderStatusLine(options = {}) {
   const iterations = options.iterations || 0;
   const maxIterations = options.maxIterations || 0;
 
-  // No usage-bearing response so far → the token figure is estimator-derived
+  // No usage-bearing response yet → total is not provider-reported; render as an estimate.
   const estimated = !usage.llmRequests;
   const tok = `${estimated ? '~' : ''}${formatCompactTokens(usage.totalTokens || 0)} tok`;
   const pct = contextBudget > 0 ? Math.floor((contextTokens / contextBudget) * 100) : 0;

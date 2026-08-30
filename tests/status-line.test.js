@@ -24,7 +24,7 @@ describe('renderStatusLine', () => {
   test('shows real usage without tilde, ctx percent and loop counts', () => {
     const line = renderStatusLine({
       usage: realUsage({ prompt: 5000, completion: 200, total: 5200 }),
-      contextTokens: 81600,
+      contextTokens: 85680,
       contextBudget: 680000,
       iterations: 7,
       maxIterations: 30,
@@ -43,6 +43,17 @@ describe('renderStatusLine', () => {
     assert.equal(stripAnsi(line), '─ ~0 tok │ ctx 0% │ loop 1/30 ─');
   });
 
+  test('zero-token usage-bearing response still renders without tilde', () => {
+    const line = renderStatusLine({
+      usage: realUsage({ prompt: 0, completion: 0, total: 0 }),
+      contextTokens: 0,
+      contextBudget: 680000,
+      iterations: 1,
+      maxIterations: 30,
+    });
+    assert.equal(stripAnsi(line), '─ 0 tok │ ctx 0% │ loop 1/30 ─');
+  });
+
   test('loop segment omitted before any turn ran', () => {
     const line = renderStatusLine({
       usage: createUsage(),
@@ -52,6 +63,8 @@ describe('renderStatusLine', () => {
       maxIterations: 30,
     });
     assert.equal(stripAnsi(line), '─ ~0 tok │ ctx 0% ─');
+    // Fail-soft: bare call (no arguments) renders the same not-yet-billed line
+    assert.equal(stripAnsi(renderStatusLine()), '─ ~0 tok │ ctx 0% ─');
   });
 
   test('large values use M formatting and over-budget ctx exceeds 100%', () => {
