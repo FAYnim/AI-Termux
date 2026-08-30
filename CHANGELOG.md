@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Context pruning now compresses instead of discarding: when `pruneMessages` drains older turns to fit the context window, they are folded into a bounded `[Context digest]` summary message placed ahead of the retained window (per-message one-liners, body capped at 4000 chars). Tool call/response pairs are never split across the drain boundary, and `compress: false` restores the previous hard cutoff (PERF-02).
 - Session token estimation is now incremental: per-message estimates are cached in a `WeakMap` keyed by message identity (`src/agent/pruner.js`), so `estimateSessionTokens` at the top of every ReAct iteration and `pruneMessages`' internal re-estimation only pay for newly appended messages instead of rescanning the full history (PERF-03).
 - `parseTextToolCalls` in `src/llm/openai.js` consolidated from seven ad-hoc regex passes into a structured pipeline: a declarative table of block constructs scanned in order, shared JSON-shape and parameter-tag helpers, and a single validation/dedup point. Extraction behavior is unchanged — the snapshot suite passes identically before and after the rewrite (MAINT-07).
 
