@@ -156,6 +156,116 @@ describe('Step 4: Token Estimator & Context Pruner', () => {
     assert.equal(pruned[pruned.length - 2].parts[0].text, 'Recent turn 1');
   });
 
+  test('pruneMessages compresses drained middle turns into a digest message instead of discarding them', () => {
+    const longText = 'B'.repeat(400);
+    const labels = ['Question about database schema', 'Follow-up about migration plan'];
+
+    const messages = [
+      { role: 'user', parts: [{ text: 'Initial user prompt' }] },
+      { role: 'user', parts: [{ text: `${labels[0]} ${longText}` }] },
+      { role: 'model', parts: [{ text: `Answer ${longText}` }] },
+      { role: 'user', parts: [{ text: `${labels[1]} ${longText}` }] },
+      { role: 'model', parts: [{ text: `Answer ${longText}` }] },
+      { role: 'user', parts: [{ text: 'Recent turn 1' }] },
+      { role: 'model', parts: [{ text: 'Recent turn 2' }] },
+    ];
+
+    const pruned = pruneMessages(messages, {
+      maxTokens: 250,
+      preserveRecentCount: 2,
+      keepFirst: true,
+    });
+
+    const digest = pruned.find((m) => m.parts?.[0]?.text?.startsWith('[Context digest]'));
+    assert.ok(digest, 'expected a digest message in the pruned history');
+    assert.ok(digest.parts[0].text.includes(labels[0]));
+    assert.ok(digest.parts[0].text.includes(labels[1]));
+    // Full original answers must be gone, replaced by the digest
+    assert.ok(!pruned.some((m) => m.parts?.[0]?.text?.includes(longText)));
+    // Most recent window still intact
+    assert.equal(pruned[pruned.length - 1].parts[0].text, 'Recent turn 2');
+  });
+
+  test('pruneMessages digest is size-capped with an omission note', () => {
+    const messages = [{ role: 'user', parts: [{ text: 'Initial user prompt' }] }];
+    for (let i = 0; i < 120; i++) {
+      messages.push({ role: 'user', parts: [{ text: `Turn ${i}: ${'C'.repeat(400)}` }] });
+    }
+    messages.push({ role: 'user', parts: [{ text: 'Recent turn 1' }] });
+    messages.push({ role: 'user', parts: [{ text: 'Recent turn 2' }] });
+
+    const pruned = pruneMessages(messages, { maxTokens: 5000, preserveRecentCount: 2 });
+
+    const digest = pruned.find((m) => m.parts?.[0]?.text?.startsWith('[Context digest]'));
+    assert.ok(digest, 'expected a digest message in the pruned history');
+    // Header + omission note + capped body (default 4000 chars)
+    assert.ok(digest.parts[0].text.length <= 4400);
+    assert.ok(digest.parts[0].text.includes('older digest lines omitted'));
+    assert.equal(pruned[pruned.length - 1].parts[0].text, 'Recent turn 2');
+  });
+
+  test('pruneMessages keeps tool call/response pairs intact across the drain boundary', () => {
+    const longText = 'D'.repeat(400);
+    const messages = [
+      { role: 'user', parts: [{ text: 'Initial user prompt' }] },
+      { role: 'model', parts: [{ text: `Working ${longText}` }] },
+      { role: 'user', parts: [{ text: `Ask ${longText}` }] },
+      {
+        role: 'model',
+        parts: [{ functionCall: { name: 'read_file', args: { filePath: 'a.js' } } }],
+      },
+      {
+        role: 'function',
+        parts: [{ functionResponse: { name: 'read_file', response: { content: 'file body' } } }],
+      },
+      { role: 'user', parts: [{ text: 'Recent turn 1' }] },
+      { role: 'model', parts: [{ text: 'Recent turn 2' }] },
+    ];
+
+    const pruned = pruneMessages(messages, { maxTokens: 150, preserveRecentCount: 2 });
+
+    const digest = pruned.find((m) => m.parts?.[0]?.text?.startsWith('[Context digest]'));
+    assert.ok(digest, 'expected a digest message in the pruned history');
+    // Both the call and its response must be summarized together
+    assert.ok(digest.parts[0].text.includes('calls read_file'));
+    assert.ok(digest.parts[0].text.includes('read_file result'));
+    // No live function response may be orphaned
+    for (let i = 0; i < pruned.length; i++) {
+      if (pruned[i].role === 'function') {
+        const prev = pruned[i - 1];
+        assert.ok(
+          prev?.role === 'model' && prev.parts.some((p) => p.functionCall),
+          'orphaned function response left in pruned history',
+        );
+      }
+    }
+    assert.equal(pruned[pruned.length - 1].parts[0].text, 'Recent turn 2');
+  });
+
+  test('pruneMessages supports compress:false for a hard cutoff without a digest', () => {
+    const longText = 'E'.repeat(400);
+    const messages = [
+      { role: 'user', parts: [{ text: 'Initial user prompt' }] },
+      { role: 'user', parts: [{ text: `Middle 1 ${longText}` }] },
+      { role: 'model', parts: [{ text: `Middle 2 ${longText}` }] },
+      { role: 'user', parts: [{ text: `Middle 3 ${longText}` }] },
+      { role: 'model', parts: [{ text: `Middle 4 ${longText}` }] },
+      { role: 'user', parts: [{ text: 'Recent turn 1' }] },
+      { role: 'model', parts: [{ text: 'Recent turn 2' }] },
+    ];
+
+    const pruned = pruneMessages(messages, {
+      maxTokens: 250,
+      preserveRecentCount: 2,
+      compress: false,
+    });
+
+    assert.ok(pruned.length < messages.length);
+    assert.ok(!pruned.some((m) => m.parts?.[0]?.text?.startsWith('[Context digest]')));
+    assert.equal(pruned[0].parts[0].text, 'Initial user prompt');
+    assert.equal(pruned[pruned.length - 1].parts[0].text, 'Recent turn 2');
+  });
+
   test('sanitizeConversationHistory should drop orphaned function responses', () => {
     const invalidHistory = [
       { role: 'user', parts: [{ text: 'Hi' }] },

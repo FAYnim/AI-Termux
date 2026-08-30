@@ -137,14 +137,137 @@ export function estimatePartTokens(part) {
 }
 
 /**
+ * Digest compression: when pruning drains older turns to fit the context
+ * window, they are folded into a compact digest message instead of being
+ * discarded outright, so earlier context survives in summary form.
+ */
+const DIGEST_HEADER =
+  '[Context digest] Earlier conversation turns were compressed to fit the context window. The lines below summarize the omitted messages:';
+const DIGEST_DEFAULT_MAX_CHARS = 4000;
+const DIGEST_LINE_MAX_CHARS = 160;
+const DIGEST_ROLE_PREFIX = { model: 'assistant', user: 'user', function: 'tool' };
+
+/**
+ * Collapses whitespace and truncates a string to maxChars with an ellipsis.
+ * @param {string} text
+ * @param {number} maxChars
+ * @returns {string}
+ */
+function truncateDigestText(text, maxChars) {
+  const collapsed = String(text).replace(/\s+/g, ' ').trim();
+  if (collapsed.length <= maxChars) return collapsed;
+  return `${collapsed.slice(0, maxChars - 1)}…`;
+}
+
+/**
+ * Compact JSON stringify with truncation; falls back to String() on cycles.
+ * @param {any} value
+ * @param {number} maxChars
+ * @returns {string}
+ */
+function stringifyDigestValue(value, maxChars) {
+  try {
+    return truncateDigestText(JSON.stringify(value) ?? '', maxChars);
+  } catch {
+    return truncateDigestText(String(value), maxChars);
+  }
+}
+
+/**
+ * Builds a single compact extractive digest line for one message.
+ * @param {object} message
+ * @returns {string} Digest line, or '' when nothing is describable
+ */
+function digestLineForMessage(message) {
+  if (!message || typeof message !== 'object') return '';
+
+  const rolePrefix = DIGEST_ROLE_PREFIX[message.role] || String(message.role || 'unknown');
+  const fragments = [];
+
+  if (typeof message.parts === 'string') {
+    fragments.push(message.parts);
+  } else if (Array.isArray(message.parts)) {
+    for (const part of message.parts) {
+      if (!part || typeof part !== 'object') continue;
+      if (typeof part.text === 'string' && part.text.trim() !== '') {
+        fragments.push(part.text.trim());
+      }
+      if (part.functionCall) {
+        fragments.push(
+          `calls ${part.functionCall.name}(${stringifyDigestValue(part.functionCall.args || {}, 80)})`,
+        );
+      }
+      if (part.functionResponse) {
+        fragments.push(
+          `${part.functionResponse.name} result: ${stringifyDigestValue(
+            part.functionResponse.response ?? '',
+            80,
+          )}`,
+        );
+      }
+    }
+  }
+
+  if (fragments.length === 0) return '';
+  return truncateDigestText(`${rolePrefix}: ${fragments.join(' | ')}`, DIGEST_LINE_MAX_CHARS);
+}
+
+/**
+ * Builds the user-role digest message that replaces drained older turns.
+ * Keeps the most recent lines (closest to the retained window) when the body
+ * exceeds maxChars; older lines collapse into an omission note.
+ *
+ * @param {Array<object>} droppedMessages
+ * @param {object} [options={}]
+ * @param {number} [options.maxChars=4000] - Max characters of the digest body
+ * @returns {object} Message shaped like `{ role: 'user', parts: [{ text }] }`
+ */
+export function buildSummaryMessage(droppedMessages, options = {}) {
+  const maxChars = options.maxChars || DIGEST_DEFAULT_MAX_CHARS;
+  const lines = [];
+  for (const message of droppedMessages || []) {
+    const line = digestLineForMessage(message);
+    if (line !== '') lines.push(line);
+  }
+
+  if (lines.length === 0) {
+    return { role: 'user', parts: [{ text: DIGEST_HEADER }] };
+  }
+
+  const kept = [];
+  let used = 0;
+  let omitted = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const cost = lines[i].length + 1;
+    if (used + cost > maxChars) {
+      omitted = i + 1;
+      break;
+    }
+    kept.unshift(lines[i]);
+    used += cost;
+  }
+
+  let text = DIGEST_HEADER;
+  if (omitted > 0) {
+    text += `\n(+${omitted} older digest lines omitted)`;
+  }
+  text += `\n${kept.join('\n')}`;
+  return { role: 'user', parts: [{ text }] };
+}
+
+/**
  * Prunes conversation message history using a sliding-window strategy if token threshold is exceeded.
  * Ensures the initial user prompt / system context and the most recent N turns are preserved.
+ * Drained middle turns are compressed into a bounded digest message rather than discarded, so
+ * earlier context survives in summary form inside the window.
  *
  * @param {Array<object>} messages - Gemini conversation messages array
  * @param {object} [options={}]
  * @param {number} [options.maxTokens=800000] - Token limit threshold to trigger pruning
  * @param {number} [options.preserveRecentCount=10] - Number of recent messages to preserve
  * @param {boolean} [options.keepFirst=true] - Whether to always preserve the very first message
+ * @param {boolean} [options.compress=true] - Fold drained turns into a digest message
+ * @param {number} [options.digestMaxChars=4000] - Max characters of the digest body
  * @returns {Array<object>} Pruned message list
  */
 export function pruneMessages(messages, options = {}) {
@@ -155,6 +278,7 @@ export function pruneMessages(messages, options = {}) {
   const maxTokens = options.maxTokens || DEFAULT_MAX_CONTEXT_TOKENS || 800000;
   const preserveRecentCount = Math.max(2, options.preserveRecentCount ?? 10);
   const keepFirst = options.keepFirst !== false;
+  const compress = options.compress !== false;
 
   const currentTokens = estimateMessagesTokens(messages);
   if (currentTokens <= maxTokens) {
@@ -167,29 +291,48 @@ export function pruneMessages(messages, options = {}) {
     return [...messages];
   }
 
-  const firstMsg = keepFirst ? messages[0] : null;
-  const startIndex = keepFirst ? 1 : 0;
+  let firstMsg = keepFirst ? messages[0] : null;
+  let middleStart = keepFirst ? 1 : 0;
+  const middleEnd = messages.length - preserveRecentCount;
+  const dropped = [];
 
-  // Slice candidates for pruning (the middle portion)
-  const candidateMiddle = messages.slice(startIndex, messages.length - preserveRecentCount);
-  const recentSlice = messages.slice(messages.length - preserveRecentCount);
+  // If the kept first turn is a tool call whose responses sit in the drain
+  // zone, compress the call alongside them instead of leaving it dangling.
+  if (firstMsg && messages[middleStart]?.role === 'function') {
+    firstMsg = null;
+    middleStart = 0;
+  }
 
-  // Iteratively remove from candidateMiddle until under token budget
-  while (candidateMiddle.length > 0) {
-    // Remove oldest item from middle
-    candidateMiddle.shift();
+  const assemble = () => {
+    const assembly = firstMsg ? [firstMsg] : [];
+    if (compress && dropped.length > 0) {
+      assembly.push(buildSummaryMessage(dropped, { maxChars: options.digestMaxChars }));
+    }
+    assembly.push(...messages.slice(middleStart));
+    return assembly;
+  };
 
-    const candidateAssembly = [...(firstMsg ? [firstMsg] : []), ...candidateMiddle, ...recentSlice];
+  // Slide the boundary forward one turn at a time until the assembly fits.
+  while (middleStart < middleEnd) {
+    dropped.push(messages[middleStart]);
+    middleStart++;
 
-    if (estimateMessagesTokens(candidateAssembly) <= maxTokens) {
-      return sanitizeConversationHistory(candidateAssembly);
+    // Never split a tool call from its responses at the drain boundary:
+    // if the boundary lands on function responses, compress them together
+    // with the call that was just drained.
+    while (middleStart < messages.length && messages[middleStart]?.role === 'function') {
+      dropped.push(messages[middleStart]);
+      middleStart++;
+    }
+
+    if (estimateMessagesTokens(assemble()) <= maxTokens) {
+      return sanitizeConversationHistory(assemble());
     }
   }
 
-  // If middle is completely drained and still over budget, return sanitized first + recent
-  const minimalAssembly = [...(firstMsg ? [firstMsg] : []), ...recentSlice];
-
-  return sanitizeConversationHistory(minimalAssembly);
+  // Middle fully drained and still over budget: return the compressed digest
+  // plus the most recent window (best-effort, mirrors the old hard cutoff).
+  return sanitizeConversationHistory(assemble());
 }
 
 /**
