@@ -5,10 +5,11 @@
 
 import readline from 'node:readline';
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
+import { contextBudgetLimit, getContextTokens, getUsage } from '../agent/usage.js';
 import { APP_NAME } from '../config/constants.js';
 import { ConfigManager } from '../config/manager.js';
 import { loadLocale, t } from '../i18n/index.js';
-import { renderBanner } from '../ui/box.js';
+import { renderBanner, renderStatusLine } from '../ui/box.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
@@ -83,6 +84,7 @@ export async function startRepl(options = {}) {
   let lastSigintTime = 0;
   let isClosing = false;
   let _wizardActive = false; // true while a sub-readline wizard owns stdin
+  let lastIterations = 0;
 
   // Handle SIGINT (Ctrl+C)
   rl.on('SIGINT', () => {
@@ -118,6 +120,22 @@ export async function startRepl(options = {}) {
         resolve(answer);
       });
     });
+  };
+
+  // Prints the one-line session status (tokens · context · loops) that the
+  // user sees above every new prompt. Reads fresh session state so it is
+  // correct on success, error, and abort paths alike.
+  const printStatusLine = () => {
+    const sess = orchestrator.getSession();
+    output.write(
+      `\n${renderStatusLine({
+        usage: getUsage(sess),
+        contextTokens: getContextTokens(sess),
+        contextBudget: contextBudgetLimit(orchestrator.maxContextTokens),
+        iterations: lastIterations,
+        maxIterations: orchestrator.maxIterations,
+      })}\n`,
+    );
   };
 
   // Main REPL Event Loop
@@ -173,6 +191,7 @@ export async function startRepl(options = {}) {
       const result = await orchestrator.runTurn(line, {
         signal: activeAbortController.signal,
         onIterationStart: (iter) => {
+          lastIterations = iter;
           if (iter > 1) {
             hasStreamedToken = false;
             spinner.start(t('thinkingTurn', { turn: iter }));
@@ -238,5 +257,6 @@ export async function startRepl(options = {}) {
       isBusy = false;
       activeAbortController = null;
     }
+    printStatusLine();
   }
 }
