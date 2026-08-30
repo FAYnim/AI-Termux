@@ -16,6 +16,7 @@ import {
   getContextTokens,
   getUsage,
   markRequestStart,
+  resetUsage,
 } from '../src/agent/usage.js';
 
 describe('Session Usage Accumulator', () => {
@@ -180,6 +181,53 @@ describe('Context Tokens & Budget', () => {
     session.metadata.usage.lastPromptTokens = 'abc';
     assert.equal(getContextTokens(session), estimateSessionTokens(session));
   });
+
+  test('getContextTokens falls back to the estimator on a negative lastPromptTokens anchor', () => {
+    const session = new Session({});
+    session.addUserMessage('Hello there, this is a test message.');
+    accumulateUsage(session, {
+      promptTokenCount: 5000,
+      candidatesTokenCount: 10,
+      totalTokenCount: 5010,
+    });
+    session.metadata.usage.lastPromptTokens = -500;
+    assert.equal(getContextTokens(session), estimateSessionTokens(session));
+  });
+
+  test('getContextTokens ignores a corrupt estTokensAtLastRequest baseline', () => {
+    const session = new Session({});
+    session.addUserMessage('First message content.');
+    markRequestStart(session);
+    accumulateUsage(session, {
+      promptTokenCount: 700000,
+      candidatesTokenCount: 10,
+      totalTokenCount: 700010,
+    });
+    session.addFunctionResponseMessage('read_file', { content: 'x'.repeat(400) });
+    session.metadata.usage.estTokensAtLastRequest = 'abc';
+
+    const usage = session.metadata.usage;
+    const result = getContextTokens(session);
+    assert.ok(Number.isFinite(result));
+    assert.ok(result >= usage.lastPromptTokens);
+    // Corrupt baseline degrades to the current estimate, so drift is zero.
+    assert.equal(result, usage.lastPromptTokens);
+  });
+
+  test('resetUsage zeroes the accumulator so a stale anchor cannot leak', () => {
+    const session = new Session({});
+    session.addUserMessage('First message content.');
+    markRequestStart(session);
+    accumulateUsage(session, {
+      promptTokenCount: 900000,
+      candidatesTokenCount: 10,
+      totalTokenCount: 900010,
+    });
+    resetUsage(session);
+
+    assert.deepEqual(session.metadata.usage, createUsage());
+    assert.equal(getContextTokens(session), estimateSessionTokens(session));
+  });
 });
 
 describe('formatCompactTokens', () => {
@@ -203,5 +251,10 @@ describe('formatCompactTokens', () => {
   test('clamps the 1M boundary instead of emitting 1000k', () => {
     assert.equal(formatCompactTokens(999950), '1M');
     assert.equal(formatCompactTokens(999999), '1M');
+  });
+
+  test('corrupt input falls back to "0"', () => {
+    assert.equal(formatCompactTokens('abc'), '0');
+    assert.equal(formatCompactTokens(undefined), '0');
   });
 });

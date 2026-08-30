@@ -99,10 +99,23 @@ export function accumulateUsage(session, usage) {
 }
 
 /**
+ * Zeroes the usage accumulator (for history clearing/replacement), so a
+ * stale real-usage anchor cannot leak into the next request's estimate.
+ * @param {object} session
+ */
+export function resetUsage(session) {
+  Object.assign(ensureUsage(session), createUsage());
+}
+
+/**
  * Estimates the context size of the NEXT request: the real prompt-token
  * count of the last request (ground truth) plus the estimated drift of
  * messages appended since it. Falls back to the pure estimator when no
- * real usage has been recorded. Never returns less than the real anchor.
+ * real usage has been recorded. Never returns less than the real anchor;
+ * a corrupt estTokensAtLastRequest degrades to pure estimator drift (the
+ * baseline falls back to the current estimate). After history is cleared
+ * or replaced without resetUsage(), the value intentionally pins at the
+ * stale anchor until the next request refreshes it — see resetUsage().
  * @param {object} session
  * @returns {number}
  */
@@ -110,22 +123,26 @@ export function getContextTokens(session) {
   const est = estimateSessionTokens(session);
   const usage = getUsage(session);
   if (
-    !usage.lastPromptTokens ||
     typeof usage.lastPromptTokens !== 'number' ||
-    !Number.isFinite(usage.lastPromptTokens)
+    !Number.isFinite(usage.lastPromptTokens) ||
+    usage.lastPromptTokens <= 0
   ) {
     return est;
   }
-  const delta = Math.max(0, est - usage.estTokensAtLastRequest);
-  // Belt-and-braces for corrupt metadata: never dips below the real anchor.
-  return Math.max(usage.lastPromptTokens, usage.lastPromptTokens + delta);
+  const baseline = Number.isFinite(usage.estTokensAtLastRequest)
+    ? usage.estTokensAtLastRequest
+    : est;
+  const delta = Math.max(0, est - baseline);
+  // delta >= 0, so the result can never dip below the real anchor.
+  return usage.lastPromptTokens + delta;
 }
 
 /**
  * Single source for the budget force-stop limit: 85% of the max context
  * tokens, with the 800k fallback the orchestrator has always used for a
- * falsy limit. Both the orchestrator check and the REPL display call this.
- * @param {number|undefined} maxContextTokens
+ * falsy limit. The orchestrator's budget check and the REPL status line
+ * both derive their limit from this function.
+ * @param {number|null|undefined} maxContextTokens
  * @returns {number}
  */
 export function contextBudgetLimit(maxContextTokens) {
@@ -135,7 +152,8 @@ export function contextBudgetLimit(maxContextTokens) {
 /**
  * Formats a token count compactly: <1000 → "950"; <1M → one decimal in k
  * with a trailing ".0" dropped ("23.4k", "1k"); ≥1M → same in M ("1.2M").
- * Rounds half-up at the one decimal.
+ * Rounds half-up at the one decimal; values from 999950 up to just below
+ * 1M round to 1000k and clamp to "1M".
  * @param {number} n
  * @returns {string}
  */
