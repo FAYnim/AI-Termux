@@ -632,35 +632,15 @@ export class ConfigManager {
   /**
    * Get available models for a provider.
    *
-   * @deprecated Since Phase 2.2 of the provider-model clarity refactor.
-   *   Use `getModelCatalog(providerId)` instead — it is the explicit,
-   *   intent-revealing alias. `getProviderModels()` remains 100%
-   *   backward-compatible and delegates to `getModelCatalog()`, so
-   *   existing call sites continue to work without any changes.
-   *   See the provider-model clarity refactor §2.2.
+   * Backward-compatible alias of `getModelCatalog(providerId)`. Kept as a
+   * plain delegation (no deprecation warning — the migration is complete;
+   * see BUG-02 in IMPROVEMENTS.md). New call sites should use
+   * `getModelCatalog()`.
    *
    * @param {string} providerId
    * @returns {string[]}
    */
   getProviderModels(providerId) {
-    // Emit a deprecation warning once per unique providerId so that
-    // developer-mode tooling (Node --no-deprecation, test harnesses) can
-    // suppress it, while still alerting the developer that they should
-    // migrate to getModelCatalog().
-    // Uses a static Set on ConfigManager to track which provider IDs
-    // have already been warned (avoids repeated log spam).
-    if (!ConfigManager._getProviderModelsWarned) {
-      ConfigManager._getProviderModelsWarned = new Set();
-    }
-    if (!ConfigManager._getProviderModelsWarned.has(providerId)) {
-      ConfigManager._getProviderModelsWarned.add(providerId);
-      process.emitWarning(
-        `ConfigManager.getProviderModels("${providerId}") is deprecated. ` +
-          'Use getModelCatalog() instead. ' +
-          'See the provider-model clarity refactor §2.2.',
-        { type: 'DeprecationWarning', code: 'TAI_DEPRECATED_GET_PROVIDER_MODELS' }
-      );
-    }
     return this.getModelCatalog(providerId);
   }
 
@@ -714,7 +694,7 @@ export class ConfigManager {
    *
    * This is the **canonical** read-side getter introduced in Phase 2.1 to
    * disambiguate `model` (active, single value) from `models[]` (catalog,
-   * many values). `getProviderModels()` is now a deprecated alias that
+   * many values). `getProviderModels()` is a backward-compatible alias that
    * delegates here — all new call sites should use `getModelCatalog()`.
    *
    * Precedence (all deduplicated, first occurrence wins):
