@@ -66,6 +66,10 @@ import {
 export class ConfigManager {
   constructor(customConfigDir = null) {
     this.customConfigDir = customConfigDir;
+    // BUG-03: in-memory cache of loaded config keyed by configPath so
+    // multiple ConfigManager instances (e.g. tests with customConfigDir)
+    // don't collide. Invalidated by saveConfig().
+    this._cache = new Map(); // configPath -> config object
   }
 
   /**
@@ -128,12 +132,25 @@ export class ConfigManager {
   }
 
   /**
-   * Load configuration from file, initializing with defaults if missing
+   * Load configuration from file, initializing with defaults if missing.
+   *
+   * BUG-03: in-memory cache invalidated on `saveConfig()`. External file
+   * writes (tests calling `fs.writeFileSync(config.json)`) bypass the
+   * cache, but those tests create fresh `ConfigManager` instances per
+   * case, so the per-instance Map gives them an empty cache and they
+   * re-read from disk. If a test mutates the file without going through
+   * saveConfig, instantiate a new ConfigManager.
+   *
    * @returns {object}
    */
   loadConfig() {
     this.ensureDirs();
     const configPath = this.getConfigPath();
+
+    // BUG-03: cache hit when no writes have happened on this instance
+    if (this._cache.has(configPath)) {
+      return this._cache.get(configPath);
+    }
 
     if (!fs.existsSync(configPath)) {
       const fresh = structuredClone(DEFAULT_CONFIG);
@@ -181,11 +198,13 @@ export class ConfigManager {
         if (Object.keys(provCfg).length > 0) {
           config.providers[act] = provCfg;
           config.activeProvider = act;
+          this._cache.delete(configPath);
           this.saveConfig(config);
         }
       }
     }
 
+    this._cache.set(configPath, config);
     return config;
   }
 
@@ -210,6 +229,11 @@ export class ConfigManager {
         fs.unlinkSync(tmpPath);
       } catch (_) {}
     }
+
+    // BUG-03: refresh cache eagerly so the next loadConfig() returns
+    // from cache without re-reading. Invalidate first so any concurrent
+    // reader doesn't see a stale entry during the write window.
+    this._cache.set(configPath, configData);
 
     return configData;
   }
