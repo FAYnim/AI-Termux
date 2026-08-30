@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs Biome on the whole tree before every commit.
+# Enable with: git config core.hooksPath .githooks
+npx biome check . || {
+  echo ""
+  echo "pre-commit: Biome check failed. Run 'npm run lint:fix' and re-stage."
+  exit 1
+}
