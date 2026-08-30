@@ -3,6 +3,7 @@
  * Zero-dependency, lightweight, ANSI-formatted.
  */
 
+import { formatCompactTokens } from '../agent/usage.js';
 import { ansi, stripAnsi } from '../utils/ansi.js';
 
 const BORDER_STYLES = {
@@ -157,4 +158,36 @@ export function renderStatusCard(title, data = {}, options = {}) {
     borderColor: 'yellow',
     ...options,
   });
+}
+
+/**
+ * Renders the one-line session status shown above each REPL prompt after
+ * every agent turn: tokens billed, context budget usage, loop iterations.
+ *
+ * @param {object} [options={}]
+ * @param {object} [options.usage] - session.metadata.usage accumulator (see agent/usage.js)
+ * @param {number} [options.contextTokens=0] - context size of the next request
+ * @param {number} [options.contextBudget=0] - budget force-stop limit (85%)
+ * @param {number} [options.iterations=0] - iterations used in the last turn
+ * @param {number} [options.maxIterations=0] - ReAct loop cap
+ * @returns {string} Single dim status line
+ */
+export function renderStatusLine(options = {}) {
+  const usage = options.usage || {};
+  const contextTokens = options.contextTokens || 0;
+  const contextBudget = options.contextBudget || 0;
+  const iterations = options.iterations || 0;
+  const maxIterations = options.maxIterations || 0;
+
+  // No usage-bearing response yet → total is not provider-reported; render as an estimate.
+  const estimated = !usage.llmRequests;
+  const tok = `${estimated ? '~' : ''}${formatCompactTokens(usage.totalTokens || 0)} tok`;
+  const pct = contextBudget > 0 ? Math.floor((contextTokens / contextBudget) * 100) : 0;
+
+  const segments = [tok, `ctx ${pct}%`];
+  if (iterations > 0 && maxIterations > 0) {
+    segments.push(`loop ${iterations}/${maxIterations}`);
+  }
+
+  return ansi.dim(`─ ${segments.join(' │ ')} ─`);
 }

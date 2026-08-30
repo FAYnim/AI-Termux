@@ -249,6 +249,18 @@ $ termuxai
   You › Buat REST API sederhana dengan Express.js
 ```
 
+#### Session Status Line
+
+After every agent turn, a one-line usage summary appears above the next prompt:
+
+```
+─ 23.4k tok │ ctx 12% │ loop 7/30 ─
+```
+
+- **tok** — cumulative API tokens billed this session (`~` prefix = estimate, shown when the provider does not report usage)
+- **ctx** — context size vs the 85% budget where the ReAct loop force-stops
+- **loop** — ReAct iterations used in the last turn vs the cap (default 30)
+
 #### Slash Commands (inside REPL)
 
 | Command | Description |

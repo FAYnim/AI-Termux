@@ -4,6 +4,7 @@
  */
 
 import { estimateSessionTokens } from '../agent/pruner.js';
+import { getUsage } from '../agent/usage.js';
 import { renderBox, renderStatusCard } from '../ui/box.js';
 import { showModelMenuFromConfig } from '../ui/model-menu.js';
 import { ansi } from '../utils/ansi.js';
@@ -454,6 +455,7 @@ export async function executeSlashCommand(input, context = {}) {
       const sess = orchestrator.session;
       const msgs = sess.getMessages ? sess.getMessages() : [];
       const tokenEst = estimateSessionTokens ? estimateSessionTokens(sess) : 0;
+      const usage = getUsage(sess);
 
       const card = renderStatusCard('Active Session Details', {
         'Session ID': sess.id || 'N/A',
@@ -461,6 +463,10 @@ export async function executeSlashCommand(input, context = {}) {
         'Working Dir': sess.workingDir || process.cwd(),
         'Message Turns': msgs.length,
         'Est. Tokens': `${tokenEst.toLocaleString()} tokens`,
+        'API Requests': usage.llmRequests,
+        'API Prompt Tokens': usage.promptTokens.toLocaleString(),
+        'API Completion Tokens': usage.completionTokens.toLocaleString(),
+        'API Total Tokens': usage.totalTokens.toLocaleString(),
         'Created At': sess.createdAt ? new Date(sess.createdAt).toLocaleString() : 'N/A',
       });
 
