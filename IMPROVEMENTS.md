@@ -125,6 +125,7 @@
 - **File**: `src/llm/openai.js:400-557`
 - **Why**: Extremely brittle. Each pattern is a separate regex pass with its own edge cases. New model output formats will break silently.
 - **Fix**: Consolidate into a single structured parser, or delegate to a lightweight library like `jsonrepair`. Add extensive snapshot tests for each model's output format.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Replaced the seven ad-hoc regex passes with a structured pipeline: a declarative table of block constructs (tagged containers, underscore XML blocks, `<function=…>` blocks, tagged JSON, fenced JSON) scanned in order, shared JSON-shape and parameter-tag helpers, ReAct `Action:` and bare `tool_name {…}` fallback scans, and a single validation/dedup point. 49 snapshot tests in `tests/parse-text-tool-calls.test.js` lock extraction behavior for every known model output format — including quirks like the container+tagged-JSON double-add and classification scanning inside fences — and pass unchanged against the rewrite. No new runtime dependency (`jsonrepair` was declined to keep the project zero-dep). Suite 494/503 (same 9 pre-existing wizard failures).
 
 ---
 
