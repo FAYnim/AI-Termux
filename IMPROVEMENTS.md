@@ -58,6 +58,7 @@
 - **File**: `src/config/manager.js:223,243,281,309,347,401,413,435,483,552,613,689,735,783,800`
 - **Pattern**: 16 calls to `loadConfig()` per method chain; each does `fs.readFileSync` + `JSON.parse`. In a busy REPL session or batch of slash commands, this is N disk reads per second.
 - **Fix**: Add an in-memory cache with TTL or invalidate-on-write pattern. `loadConfig()` should read once per "transaction", not per property access.
+- **Status**: ✅ **FIXED** (2026-08-30) — Per-instance `Map<configPath, config>` cache in `ConfigManager`. `loadConfig()` returns from cache when present; `saveConfig()` repopulates eagerly. Keyed by configPath so multiple instances (tests with `customConfigDir`) don't collide. Considered mtime-based invalidation but rejected: on Windows `statSync` is ~60% of `readFileSync+JSON.parse` cost, so mtime check was break-even; invalidate-on-write is sufficient because external writers (test files using `fs.writeFileSync`) already create fresh `ConfigManager` instances per case. Micro-benchmark: 1000 cached reads 302ms vs uncached 344ms. Full suite 422/431 pass (9 pre-existing wizard failures unrelated).
 
 ### BUG-04 — Blocking synchronous I/O on hot path
 - **Files**: `src/tools/read_file.js:53` (`readFileSync`), `src/tools/list_dir.js:65` (`readdirSync`), `src/tools/patch_file.js:41` (`readFileSync`), `src/security/path-validator.js:99` (`statSync`, `openSync`)
