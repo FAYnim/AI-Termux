@@ -101,6 +101,7 @@
 - **Files**: `src/cli/repl.js:86,95,103,165,172,188,194,198,200`; `src/cli/provider-wizard.js` (Indonesian prompts); `src/llm/retry.js:188` ("Jaringan sibuk")
 - **Why**: ~30 strings are in Indonesian. Non-Indonesian users see inconsistent locale. The project markets globally (README is English).
 - **Fix**: Extract all user-facing strings to a locale file (`locales/en.json`, `locales/id.json`) and default to English. Keep Indonesian as an optional locale.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Audit found the Indonesian surface is 9 strings in `src/cli/repl.js` + 1 in `src/llm/retry.js` (provider-wizard was already 100% English). Added `locales/en.json` + `locales/id.json` and a zero-dep loader in `src/i18n/index.js` (`loadLocale()` with caching + `en` fallback, sync `t(key, params)` with `{param}` interpolation). New `locale` config key (default `'en'`) — switch with `termuxai config set locale id`. repl.js and single-shot.js now share the same locale keys; retry warning locale is threaded `bin/tai.js` → orchestrator → LLM clients → `withRetry`. 8 new tests in `tests/i18n.test.js`; suite 430/439 (same 9 pre-existing wizard failures).
 
 ### MAINT-05 — Legacy `geminiClient` alias scattered across 4 files
 **Difficulty**: Easy
