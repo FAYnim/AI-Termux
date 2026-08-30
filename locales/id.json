@@ -1,0 +1,13 @@
+{
+  "cancelled": "⚠ [Operasi dibatalkan oleh pengguna]",
+  "goodbye": "👋 Sampai jumpa! Sesi tersimpan.",
+  "ctrlCExitHint": "(Tekan Ctrl+C sekali lagi dalam 1 detik untuk keluar)",
+  "contactingApi": "Menghubungi {provider} API...",
+  "thinkingTurn": "Berpikir (Turn {turn})...",
+  "runningTool": "Menjalankan tool [{tool}]...",
+  "toolError": "Tool [{tool}] error: {message}",
+  "failed": "Gagal",
+  "toolDone": "Tool [{tool}] selesai",
+  "analyzingResult": "Menganalisis hasil tool...",
+  "networkBusy": "Jaringan sibuk ({status}), mencoba kembali dalam {seconds}s (Percobaan {attempt}/{maxRetries})..."
+}

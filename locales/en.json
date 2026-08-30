@@ -1,0 +1,13 @@
+{
+  "cancelled": "⚠ [Operation cancelled by user]",
+  "goodbye": "👋 Goodbye! Session saved.",
+  "ctrlCExitHint": "(Press Ctrl+C again within 1 second to exit)",
+  "contactingApi": "Contacting {provider} API...",
+  "thinkingTurn": "Thinking (Turn {turn})...",
+  "runningTool": "Executing tool [{tool}]...",
+  "toolError": "Tool [{tool}] error: {message}",
+  "failed": "Failed",
+  "toolDone": "Tool [{tool}] finished",
+  "analyzingResult": "Analyzing tool result...",
+  "networkBusy": "Network busy ({status}), retrying in {seconds}s (attempt {attempt}/{maxRetries})..."
+}
