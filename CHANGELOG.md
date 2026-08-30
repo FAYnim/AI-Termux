@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/registry-args.test.js` covering alias mapping, precedence, fallbacks, and nullish-vs-falsy semantics (MAINT-06).
 - 49 snapshot tests in `tests/parse-text-tool-calls.test.js` locking `parseTextToolCalls` extraction behavior for every known model output format: tagged `<tool_calls>`/`<tool_call>` containers and JSON, `<tool_call><_action>`/`<_function_call>` XML blocks, `<function=name>` parameter blocks, fenced JSON, ReAct `Action:` lines, bare `tool_name {…}` pairs, `<think>` stripping, classification fallback, ordering, and dedup (MAINT-07).
 
+- Session status line above each REPL prompt (`─ 23.4k tok │ ctx 12% │ loop 7/30 ─`): real API usage accumulated into `session.metadata.usage` via the new pure module `src/agent/usage.js` (estimator fallback with `~` prefix), OpenAI-compatible streaming usage parsing (`stream_options.include_usage` with one 400-fallback retry), and the ReAct budget check switched to the real-usage-anchored `getContextTokens()` (FEATURE-01).
+
 ### Changed
 
 - Context pruning now compresses instead of discarding: when `pruneMessages` drains older turns to fit the context window, they are folded into a bounded `[Context digest]` summary message placed ahead of the retained window (per-message one-liners, body capped at 4000 chars). Tool call/response pairs are never split across the drain boundary, and `compress: false` restores the previous hard cutoff (PERF-02).
