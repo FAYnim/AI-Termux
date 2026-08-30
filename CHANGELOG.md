@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - i18n layer: `locales/en.json` + `locales/id.json` with a zero-dep loader in `src/i18n/index.js`; new `locale` config key (MAINT-04).
 - Data-driven `TOOL_ARG_ALIASES` map in `src/tools/registry.js` backing a branch-free `normalizeToolArgs`; adding a tool-argument alias is now a one-line map edit (MAINT-06).
 - `tests/registry-args.test.js` covering alias mapping, precedence, fallbacks, and nullish-vs-falsy semantics (MAINT-06).
+- 49 snapshot tests in `tests/parse-text-tool-calls.test.js` locking `parseTextToolCalls` extraction behavior for every known model output format: tagged `<tool_calls>`/`<tool_call>` containers and JSON, `<tool_call><_action>`/`<_function_call>` XML blocks, `<function=name>` parameter blocks, fenced JSON, ReAct `Action:` lines, bare `tool_name {…}` pairs, `<think>` stripping, classification fallback, ordering, and dedup (MAINT-07).
 
 ### Changed
+
+- `parseTextToolCalls` in `src/llm/openai.js` consolidated from seven ad-hoc regex passes into a structured pipeline: a declarative table of block constructs scanned in order, shared JSON-shape and parameter-tag helpers, and a single validation/dedup point. Extraction behavior is unchanged — the snapshot suite passes identically before and after the rewrite (MAINT-07).
 
 - Codebase formatted and lint-cleaned with Biome across `src/`, `tests/`, `scripts/`, and `bin/`.
 - **MAINT-04**: User-facing strings are now localized, default **English**. Indonesian REPL/spinner/retry messages are opt-in via `termuxai config set locale id`. Existing users who relied on the Indonesian defaults will see English after upgrading.

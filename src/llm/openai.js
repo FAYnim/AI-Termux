@@ -423,194 +423,238 @@ export class OpenAIClient extends BaseLlmClient {
   }
 }
 
+/** Tool names accepted when they are extracted from model text output. */
+const TEXT_TOOL_NAMES = ['read_file', 'write_file', 'patch_file', 'list_dir', 'execute_command'];
+const TEXT_TOOL_NAMES_SOURCE = TEXT_TOOL_NAMES.join('|');
+const TEXT_TOOL_NAME_PATTERN = new RegExp(`(${TEXT_TOOL_NAMES_SOURCE})`, 'i');
+
 /**
- * Extracts embedded XML or JSON tool calls from raw assistant text (e.g. from DeepSeek-R1 / Qwen models).
- * @param {string} text
+ * Key order in which a JSON payload may name the tool to call and its
+ * arguments (first present key wins). A string arguments value is parsed as
+ * JSON. The two shapes belong to the two JSON block constructs below.
+ */
+const TAGGED_JSON_SHAPE = {
+  nameKeys: ['name', 'tool', 'function'],
+  argsKeys: ['arguments', 'args', 'parameters'],
+};
+const FENCED_JSON_SHAPE = {
+  nameKeys: ['name', 'tool', 'function', 'tool_name', 'action'],
+  argsKeys: ['arguments', 'parameters', 'args', 'action_input'],
+};
+
+/** Removes reasoning segments and stray think tags from model text output. */
+function stripThinkSegments(rawText) {
+  return rawText
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/think>/gi, '')
+    .replace(/<think>/gi, '');
+}
+
+/** Parses the first {...last} JSON object found in `str`, or returns null. */
+function extractJsonLoose(str) {
+  if (!str) return null;
+  const firstBrace = str.indexOf('{');
+  const lastBrace = str.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(str.slice(firstBrace, lastBrace + 1));
+    } catch {}
+  }
+  return null;
+}
+
+/**
+ * Resolves `{ name, args }` from a parsed JSON payload. `nameKeys` and
+ * `argsKeys` are tried in order; a string arguments value is parsed as JSON.
+ * Returns null when the payload does not name a tool or the arguments are
+ * malformed.
+ */
+function resolveJsonCall(obj, shape) {
+  const name = shape.nameKeys.map((key) => obj[key]).find(Boolean);
+  if (!name) return null;
+  try {
+    const args =
+      typeof obj.arguments === 'string'
+        ? JSON.parse(obj.arguments)
+        : shape.argsKeys.map((key) => obj[key]).find(Boolean) || {};
+    return { name, args };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Collects `key: value` pairs from XML-style parameter tags inside `block`.
+ * The `path` key is mapped to `filePath` and values are trimmed, matching how
+ * tool arguments are consumed downstream.
+ */
+function extractParamTagArgs(block, tagPattern, { exclude = [] } = {}) {
+  const args = {};
+  for (const match of block.matchAll(tagPattern)) {
+    const key = match[1];
+    if (exclude.includes(key)) continue;
+    const mappedKey = key === 'path' ? 'filePath' : key;
+    args[mappedKey] = match[2].trim();
+  }
+  return args;
+}
+
+/**
+ * Block constructs that may carry an embedded tool call, scanned in order.
+ * Each `interpret` receives one `pattern` match plus the collector and pushes
+ * candidate calls onto it, so construct order fully determines call order.
+ */
+const BLOCK_EXTRACTORS = [
+  {
+    // <tool_calls>...</tool_calls> containers: the tool is named inside the
+    // block and the arguments are the first-to-last JSON object in it.
+    pattern: /<tool_calls?>([\s\S]*?)<\/tool_calls?>/gi,
+    interpret(match, addCall) {
+      const block = match[1];
+      const nameMatch = block.match(TEXT_TOOL_NAME_PATTERN);
+      if (!nameMatch) return;
+      const args = extractJsonLoose(block);
+      if (args) addCall(nameMatch[1], args);
+    },
+  },
+  {
+    // <tool_call><_function_call>/< _action> XML blocks: the tool comes from a
+    // <tool_name>/<action_name> tag, every remaining tag is a string argument.
+    pattern: /<(?:tool_call>)?<_(?:function_call|action)>([\s\S]*?)<\/(?:function_call|action)>/gi,
+    interpret(match, addCall) {
+      const block = match[1];
+      const nameMatch =
+        block.match(/<tool_name>([\s\S]*?)<\/tool_name>/i) ||
+        block.match(/<action_name>([\s\S]*?)<\/action_name>/i);
+      if (!nameMatch) return;
+      const args = extractParamTagArgs(block, /<([a-zA-Z0-9_]+)>([\s\S]*?)<\/\1>/g, {
+        exclude: ['tool_name', 'action_name'],
+      });
+      addCall(nameMatch[1].trim(), args);
+    },
+  },
+  {
+    // <function=tool_name> blocks: the tool is in the opener tag and the
+    // arguments come from <parameter> tags.
+    pattern: /<function=([a-zA-Z0-9_]+)>([\s\S]*?)<\/function>/gi,
+    interpret(match, addCall) {
+      const args = extractParamTagArgs(
+        match[2],
+        /<parameter(?:=|\s+name=)["']?([a-zA-Z0-9_]+)["']?>([\s\S]*?)<\/parameter>/gi,
+      );
+      addCall(match[1].trim(), args);
+    },
+  },
+  {
+    // <tool_call>/<function_call> tags wrapping a single JSON payload.
+    pattern: /<(?:tool_call|function_call)>\s*(\{[\s\S]*?\})\s*<\/(?:tool_call|function_call)>/gi,
+    interpret(match, addCall) {
+      try {
+        const call = resolveJsonCall(JSON.parse(match[1]), TAGGED_JSON_SHAPE);
+        if (call) addCall(call.name, call.args);
+      } catch {}
+    },
+  },
+  {
+    // Markdown code fences containing a single JSON payload.
+    pattern: /```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi,
+    interpret(match, addCall) {
+      try {
+        const call = resolveJsonCall(JSON.parse(match[1]), FENCED_JSON_SHAPE);
+        if (call) addCall(call.name, call.args);
+      } catch {}
+    },
+  },
+];
+
+/** Extracts the first `Action:` / `Action Input:` pair (ReAct-style output). */
+function extractActionLineCall(text, addCall) {
+  const actionMatch = text.match(
+    /Action:\s*([a-zA-Z0-9_]+)[\s\S]*?Action\s*Input:\s*(\{[\s\S]*?\})/i,
+  );
+  if (!actionMatch) return;
+  try {
+    addCall(actionMatch[1].trim(), JSON.parse(actionMatch[2]));
+  } catch {}
+}
+
+/** Extracts a bare tool name directly followed by a JSON object. */
+function extractInlineNameCalls(text, addCall) {
+  const inlinePattern = new RegExp(
+    `(?:^|\\n|\\s|<tool_call>)(${TEXT_TOOL_NAMES_SOURCE})[^\\w{]*(\\{[\\s\\S]*?\\})`,
+    'gi',
+  );
+  for (const match of text.matchAll(inlinePattern)) {
+    try {
+      addCall(match[1], JSON.parse(match[2]));
+    } catch {}
+  }
+}
+
+/** Classifies a standalone JSON object by its characteristic parameters. */
+function classifyStandaloneJson(text, addCall) {
+  for (const match of text.matchAll(/\{[\s\S]*?\}/g)) {
+    try {
+      const obj = JSON.parse(match[0]);
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+      if (obj.content !== undefined || (obj.filePath && obj.content) || (obj.path && obj.content)) {
+        addCall('write_file', obj);
+      } else if (obj.searchString || obj.replaceString || obj.search || obj.replace) {
+        addCall('patch_file', obj);
+      } else if (obj.command || obj.cmd) {
+        addCall('execute_command', obj);
+      } else if (obj.dirPath || obj.depth) {
+        addCall('list_dir', obj);
+      } else if (obj.filePath || obj.path) {
+        addCall('read_file', obj);
+      }
+    } catch {}
+  }
+}
+
+/**
+ * Extracts embedded XML or JSON tool calls from raw assistant text (e.g. from
+ * DeepSeek-R1 / Qwen models that answer in prose instead of using native tool
+ * calling).
+ *
+ * The parser is a small pipeline:
+ *   1. strip <think> reasoning segments
+ *   2. scan for every known block construct (tagged containers, underscore XML
+ *      blocks, <function=…> blocks, tagged JSON, fenced JSON), in order
+ *   3. scan for ReAct `Action:` lines, then bare `tool_name {…}` pairs
+ *   4. when nothing matched, classify standalone JSON objects by their
+ *      characteristic parameters
+ * Every candidate is validated against the known tool names and deduplicated
+ * in a single place.
+ *
+ * @param {string} rawText
  * @returns {Array<{ name: string, args: object }>}
  */
 export function parseTextToolCalls(rawText) {
   const calls = [];
   if (!rawText || typeof rawText !== 'string') return calls;
 
-  // Strip reasoning think tags if present
-  const text = rawText
-    .replace(/<think>[\s\S]*?<\/think>/gi, '')
-    .replace(/<\/think>/gi, '')
-    .replace(/<think>/gi, '');
-
-  const validTools = ['read_file', 'write_file', 'patch_file', 'list_dir', 'execute_command'];
-  const validToolsRegex = validTools.join('|');
-
-  // Helper to add call without duplicate
   const addCall = (name, args) => {
     if (!name || !args || typeof args !== 'object') return;
     const cleanName = name.trim();
-    if (validTools.includes(cleanName)) {
-      if (
-        !calls.some((c) => c.name === cleanName && JSON.stringify(c.args) === JSON.stringify(args))
-      ) {
-        calls.push({ name: cleanName, args });
-      }
+    if (!TEXT_TOOL_NAMES.includes(cleanName)) return;
+    if (
+      !calls.some((c) => c.name === cleanName && JSON.stringify(c.args) === JSON.stringify(args))
+    ) {
+      calls.push({ name: cleanName, args });
     }
   };
 
-  // Helper to extract JSON from a string
-  const extractJson = (str) => {
-    if (!str) return null;
-    const firstBrace = str.indexOf('{');
-    const lastBrace = str.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-      try {
-        return JSON.parse(str.slice(firstBrace, lastBrace + 1));
-      } catch {}
-    }
-    return null;
-  };
-
-  // Pattern 1: <tool_calls> ... <tool_call>write_file<tool_sep> ... { ... } ... </tool_calls>
-  const toolCallsBlocks = text.matchAll(/<tool_calls?>([\s\S]*?)<\/tool_calls?>/gi);
-  for (const match of toolCallsBlocks) {
-    const block = match[1];
-    const nameMatch = block.match(
-      new RegExp(`(?:<tool_name>|<tool_call>|name[:=]?\\s*)?(${validToolsRegex})`, 'i'),
-    );
-    if (nameMatch) {
-      const name = nameMatch[1];
-      const parsedArgs = extractJson(block);
-      if (parsedArgs) {
-        addCall(name, parsedArgs);
-      }
+  const text = stripThinkSegments(rawText);
+  for (const { pattern, interpret } of BLOCK_EXTRACTORS) {
+    for (const match of text.matchAll(pattern)) {
+      interpret(match, addCall);
     }
   }
-
-  // Pattern 2: XML tags <tool_call><_function_call>... or <function_call>...<tool_name>name</tool_name>...
-  const xmlMatches = text.matchAll(
-    /<(?:tool_call>)?<_(?:function_call|action)>([\s\S]*?)<\/(?:function_call|action)>/gi,
-  );
-  for (const match of xmlMatches) {
-    const block = match[1];
-    const nameMatch =
-      block.match(/<tool_name>([\s\S]*?)<\/tool_name>/i) ||
-      block.match(/<action_name>([\s\S]*?)<\/action_name>/i);
-    if (nameMatch) {
-      const name = nameMatch[1].trim();
-      const args = {};
-      const tagMatches = block.matchAll(/<([a-zA-Z0-9_]+)>([\s\S]*?)<\/\1>/g);
-      for (const tm of tagMatches) {
-        const key = tm[1];
-        if (key !== 'tool_name' && key !== 'action_name') {
-          const mappedKey = key === 'path' ? 'filePath' : key;
-          args[mappedKey] = tm[2].trim();
-        }
-      }
-      addCall(name, args);
-    }
-  }
-
-  // Pattern 2b: <function=write_file><parameter=filePath>...</parameter></function>
-  const fnParamMatches = text.matchAll(/<function=([a-zA-Z0-9_]+)>([\s\S]*?)<\/function>/gi);
-  for (const match of fnParamMatches) {
-    const name = match[1].trim();
-    const block = match[2];
-    const args = {};
-    const paramMatches = block.matchAll(
-      /<parameter(?:=|\s+name=)["']?([a-zA-Z0-9_]+)["']?>([\s\S]*?)<\/parameter>/gi,
-    );
-    for (const pm of paramMatches) {
-      const key = pm[1];
-      const mappedKey = key === 'path' ? 'filePath' : key;
-      args[mappedKey] = pm[2].trim();
-    }
-    addCall(name, args);
-  }
-
-  // Pattern 3: <tool_call> JSON </tool_call> or <function_call> JSON </function_call>
-  const jsonMatches = text.matchAll(
-    /<(?:tool_call|function_call)>\s*(\{[\s\S]*?\})\s*<\/(?:tool_call|function_call)>/gi,
-  );
-  for (const match of jsonMatches) {
-    try {
-      const parsed = JSON.parse(match[1]);
-      const name = parsed.name || parsed.tool || parsed.function;
-      if (name) {
-        const args =
-          typeof parsed.arguments === 'string'
-            ? JSON.parse(parsed.arguments)
-            : parsed.arguments || parsed.args || parsed.parameters || {};
-        addCall(name, args);
-      }
-    } catch {}
-  }
-
-  // Pattern 4: Markdown JSON code blocks
-  const mdMatches = text.matchAll(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/gi);
-  for (const match of mdMatches) {
-    try {
-      const parsed = JSON.parse(match[1]);
-      const name =
-        parsed.name || parsed.tool || parsed.function || parsed.tool_name || parsed.action;
-      if (name) {
-        const args =
-          typeof parsed.arguments === 'string'
-            ? JSON.parse(parsed.arguments)
-            : parsed.arguments || parsed.parameters || parsed.args || parsed.action_input || {};
-        addCall(name, args);
-      }
-    } catch {}
-  }
-
-  // Pattern 5: Action: tool \n Action Input: {...}
-  const actionMatch = text.match(
-    /Action:\s*([a-zA-Z0-9_]+)[\s\S]*?Action\s*Input:\s*(\{[\s\S]*?\})/i,
-  );
-  if (actionMatch) {
-    const name = actionMatch[1].trim();
-    try {
-      const args = JSON.parse(actionMatch[2]);
-      addCall(name, args);
-    } catch {}
-  }
-
-  // Pattern 6: Tool name followed by JSON object anywhere with arbitrary delimiter
-  // e.g. execute_command\nwrite_file\n{"path": "..."} or write_file<tool_sep>{"filePath": ...}
-  const plainRegex = new RegExp(
-    `(?:^|\\n|\\s|<tool_call>)(${validToolsRegex})[^\\w{]*(\\{[\\s\\S]*?\\})`,
-    'gi',
-  );
-  for (const match of text.matchAll(plainRegex)) {
-    const name = match[1];
-    try {
-      const args = JSON.parse(match[2]);
-      addCall(name, args);
-    } catch {}
-  }
-
-  // Pattern 7: Standalone JSON object with characteristic tool parameters
+  extractActionLineCall(text, addCall);
+  extractInlineNameCalls(text, addCall);
   if (calls.length === 0) {
-    const jsonObjectRegex = /\{[\s\S]*?\}/g;
-    for (const match of text.matchAll(jsonObjectRegex)) {
-      try {
-        const obj = JSON.parse(match[0]);
-        if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-          if (
-            obj.content !== undefined ||
-            (obj.filePath && obj.content) ||
-            (obj.path && obj.content)
-          ) {
-            addCall('write_file', obj);
-          } else if (obj.searchString || obj.replaceString || obj.search || obj.replace) {
-            addCall('patch_file', obj);
-          } else if (obj.command || obj.cmd) {
-            addCall('execute_command', obj);
-          } else if (obj.dirPath || obj.depth) {
-            addCall('list_dir', obj);
-          } else if (obj.filePath || obj.path) {
-            addCall('read_file', obj);
-          }
-        }
-      } catch {}
-    }
+    classifyStandaloneJson(text, addCall);
   }
-
   return calls;
 }
