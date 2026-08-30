@@ -163,6 +163,68 @@ export function getTool(name) {
 }
 
 /**
+ * Data-driven alias map used by normalizeToolArgs. Each tool lists rules that
+ * copy a model-emitted alias into the canonical argument name. Aliases are
+ * tried in order. By default a rule fires when the canonical value is falsy
+ * and picks the first truthy alias; rules with `nullish: true` fire when the
+ * canonical value is strictly undefined and pick the first non-nullish alias
+ * (so empty strings still count as provided content). `fallback` fills the
+ * canonical argument when no alias matches.
+ */
+export const TOOL_ARG_ALIASES = {
+  read_file: [
+    {
+      target: 'filePath',
+      aliases: [
+        'path',
+        'file',
+        'filepath',
+        'file_path',
+        'filename',
+        'fileName',
+        'target_file',
+        'destination',
+      ],
+    },
+  ],
+  write_file: [
+    {
+      target: 'filePath',
+      aliases: [
+        'path',
+        'file',
+        'filepath',
+        'file_path',
+        'filename',
+        'fileName',
+        'target_file',
+        'destination',
+      ],
+    },
+    { target: 'content', aliases: ['text', 'data', 'contents', 'body', 'code'], nullish: true },
+  ],
+  patch_file: [
+    {
+      target: 'filePath',
+      aliases: [
+        'path',
+        'file',
+        'filepath',
+        'file_path',
+        'filename',
+        'fileName',
+        'target_file',
+        'destination',
+      ],
+    },
+    { target: 'searchString', aliases: ['search', 'find', 'pattern', 'old_string', 'oldString'] },
+    { target: 'replaceString', aliases: ['replace', 'new_string', 'newString'] },
+  ],
+  list_dir: [{ target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' }],
+  execute_command: [{ target: 'command', aliases: ['cmd', 'script', 'exec'] }],
+};
+
+/**
  * Normalizes tool arguments to support model variations and aliases.
  * @param {string} name - Tool name
  * @param {object} rawArgs - Raw tool arguments
@@ -170,47 +232,20 @@ export function getTool(name) {
  */
 export function normalizeToolArgs(name, rawArgs = {}) {
   const args = { ...(rawArgs || {}) };
-
-  if (name === 'write_file' || name === 'read_file' || name === 'patch_file') {
-    if (!args.filePath) {
-      args.filePath =
-        args.path ||
-        args.file ||
-        args.filepath ||
-        args.file_path ||
-        args.filename ||
-        args.fileName ||
-        args.target_file ||
-        args.destination;
-    }
+  const rules = TOOL_ARG_ALIASES[name];
+  if (!rules) {
+    return args;
   }
 
-  if (name === 'write_file') {
-    if (args.content === undefined) {
-      args.content = args.text ?? args.data ?? args.contents ?? args.body ?? args.code;
+  for (const { target, aliases, fallback, nullish } of rules) {
+    const missing = nullish ? args[target] === undefined : !args[target];
+    if (!missing) {
+      continue;
     }
-  }
-
-  if (name === 'execute_command') {
-    if (!args.command) {
-      args.command = args.cmd || args.script || args.exec;
-    }
-  }
-
-  if (name === 'list_dir') {
-    if (!args.dirPath) {
-      args.dirPath = args.path || args.dir || args.directory || args.folder || '.';
-    }
-  }
-
-  if (name === 'patch_file') {
-    if (!args.searchString) {
-      args.searchString =
-        args.search || args.find || args.pattern || args.old_string || args.oldString;
-    }
-    if (!args.replaceString) {
-      args.replaceString = args.replace || args.new_string || args.newString;
-    }
+    const value = aliases
+      .map((alias) => args[alias])
+      .find((v) => (nullish ? v !== undefined && v !== null : Boolean(v)));
+    args[target] = value !== undefined ? value : fallback;
   }
 
   return args;

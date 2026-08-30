@@ -118,7 +118,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
   test('executeSlashCommand /model should view and switch active model', async () => {
     const output = new PassThrough();
     const mockOrchestrator = {
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -165,7 +165,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -222,7 +222,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -257,7 +257,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -283,7 +283,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const output = new PassThrough();
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -301,7 +301,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     });
     assert.strictEqual(res.action, 'model_changed');
     assert.strictEqual(res.message, 'gemini-2.5-pro');
-    assert.strictEqual(mockOrchestrator.geminiClient.getModel(), 'gemini-2.5-pro');
+    assert.strictEqual(mockOrchestrator.llmClient.getModel(), 'gemini-2.5-pro');
     assert.strictEqual(mockOrchestrator.session.model, 'gemini-2.5-pro');
   });
 
@@ -342,7 +342,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -372,7 +372,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     const res = await promise;
     assert.strictEqual(res.action, 'model_changed');
     assert.strictEqual(res.message, 'gemini-2.5-pro');
-    assert.strictEqual(mockOrchestrator.geminiClient.getModel(), 'gemini-2.5-pro');
+    assert.strictEqual(mockOrchestrator.llmClient.getModel(), 'gemini-2.5-pro');
     assert.strictEqual(mockOrchestrator.session.model, 'gemini-2.5-pro');
 
     try {
@@ -402,7 +402,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -425,7 +425,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
     // After cancellation, falls back to text box → action: 'model_info'
     assert.strictEqual(res.action, 'model_info');
     // Model unchanged
-    assert.strictEqual(mockOrchestrator.geminiClient.getModel(), 'gemini-2.5-flash');
+    assert.strictEqual(mockOrchestrator.llmClient.getModel(), 'gemini-2.5-flash');
     // Text-box content present in stream
     const plain = stripAnsi(written);
     assert.ok(plain.includes('Model (gemini)'), 'fallback text box should be rendered');
@@ -457,7 +457,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       provider: 'gemini',
-      geminiClient: {
+      llmClient: {
         model: 'gemini-2.5-flash',
         getModel() {
           return this.model;
@@ -525,7 +525,7 @@ describe('Step 5: REPL Slash Commands Handler', () => {
 
     const mockOrchestrator = {
       session,
-      geminiClient: { getModel: () => 'gemini-2.5-flash' },
+      llmClient: { getModel: () => 'gemini-2.5-flash' },
       workingDir: process.cwd(),
     };
 

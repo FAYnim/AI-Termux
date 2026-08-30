@@ -237,7 +237,7 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
 
     const session = sessionManager.createSession({ workingDir: tempDir });
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,

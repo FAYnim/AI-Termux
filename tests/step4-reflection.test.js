@@ -158,7 +158,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         autoApprove: true,
@@ -201,7 +201,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         autoApprove: true,
@@ -239,7 +239,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         autoApprove: true,
@@ -280,7 +280,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         autoApprove: true,
@@ -311,7 +311,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         maxIterations: 5,
@@ -346,7 +346,7 @@ describe('Step 4b: Reflection Checker', () => {
 
       const session = sessionManager.createSession({ workingDir: tempDir });
       const orchestrator = new AgentOrchestrator({
-        geminiClient: mockGemini,
+        llmClient: mockGemini,
         session,
         workingDir: tempDir,
         autoApprove: true,

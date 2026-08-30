@@ -237,7 +237,7 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
     };
 
     const orchestrator = new AgentOrchestrator({
-      geminiClient: mockGemini,
+      llmClient: mockGemini,
       session,
       workingDir: tempDir,
       autoApprove: true,

@@ -111,12 +111,14 @@
 - **Files**: `src/agent/orchestrator.js:71,342`; `src/cli/slash-commands.js:294,336-341,417-421,448`; `src/ui/model-menu.js:267`
 - **Why**: Confuses new contributors; suggests incomplete refactor. Every accessor needs a null-check fallback.
 - **Fix**: Remove the alias entirely. Update all call sites to use `orchestrator.llmClient`. Add a migration note.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Removed `options.geminiClient` fallback and the `this.geminiClient` alias from `AgentOrchestrator` (constructor + `setProvider`). `src/cli/slash-commands.js` and `src/ui/model-menu.js` now read only `orchestrator.llmClient`; the duplicate `setModel` branches are gone. All test call sites renamed to pass `llmClient`. Migration note added to CHANGELOG `[Unreleased]`. Suite 440/449 (same 9 pre-existing wizard failures).
 
 ### MAINT-06 — `normalizeToolArgs` switch-case is unmaintainable
 **Difficulty**: Medium
 - **File**: `src/tools/registry.js:167-204`
 - **Pattern**: 5-case switch mapping 20+ alias names per tool. Adding a new alias requires editing 5 branches.
 - **Fix**: Data-driven map: `{ read_file: { filePath: ['path','file',...] }, ... }`. One function, no branching.
+- **Status**: ✅ **FINISHED** (2026-08-30) — Replaced the switch with an exported `TOOL_ARG_ALIASES` map of per-tool rules (`{ target, aliases, fallback, nullish }`). `normalizeToolArgs` is now branch-free: missing canonical args are filled from the alias list (first-truthy, or first-non-nullish for `nullish` rules, which preserve `write_file.content`'s `??` semantics). Adding an alias is a one-line map edit. 10 new tests in `tests/registry-args.test.js` lock alias mapping, precedence, and fallbacks; suite 440/449.
 
 ### MAINT-07 — `parseTextToolCalls` is 158 lines with 7 heuristic regex pass-throughs
 **Difficulty**: Hard
