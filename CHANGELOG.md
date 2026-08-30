@@ -12,10 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Biome linter/formatter (`npm run lint`, `npm run lint:fix`, `npm run format`) with a pre-commit hook under `.githooks/` (MAINT-01).
 - GitHub Actions CI running lint and unit tests on Node 20 and 22 (MAINT-02).
 - `CHANGELOG.md` (this file), maintained manually per PR (MAINT-03).
+- i18n layer: `locales/en.json` + `locales/id.json` with a zero-dep loader in `src/i18n/index.js`; new `locale` config key (MAINT-04).
 
 ### Changed
 
 - Codebase formatted and lint-cleaned with Biome across `src/`, `tests/`, `scripts/`, and `bin/`.
+- **MAINT-04**: User-facing strings are now localized, default **English**. Indonesian REPL/spinner/retry messages are opt-in via `termuxai config set locale id`. Existing users who relied on the Indonesian defaults will see English after upgrading.
 
 ## [1.0.0] - 2026-08-30
 
