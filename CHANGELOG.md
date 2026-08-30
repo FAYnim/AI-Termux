@@ -13,11 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI running lint and unit tests on Node 20 and 22 (MAINT-02).
 - `CHANGELOG.md` (this file), maintained manually per PR (MAINT-03).
 - i18n layer: `locales/en.json` + `locales/id.json` with a zero-dep loader in `src/i18n/index.js`; new `locale` config key (MAINT-04).
+- Data-driven `TOOL_ARG_ALIASES` map in `src/tools/registry.js` backing a branch-free `normalizeToolArgs`; adding a tool-argument alias is now a one-line map edit (MAINT-06).
+- `tests/registry-args.test.js` covering alias mapping, precedence, fallbacks, and nullish-vs-falsy semantics (MAINT-06).
 
 ### Changed
 
 - Codebase formatted and lint-cleaned with Biome across `src/`, `tests/`, `scripts/`, and `bin/`.
 - **MAINT-04**: User-facing strings are now localized, default **English**. Indonesian REPL/spinner/retry messages are opt-in via `termuxai config set locale id`. Existing users who relied on the Indonesian defaults will see English after upgrading.
+- **MAINT-05 (breaking for embedders)**: Removed the legacy `geminiClient` alias. Pass `llmClient` instead of `geminiClient` when constructing `AgentOrchestrator`, and read `orchestrator.llmClient` instead of `orchestrator.geminiClient`. The CLI-facing behavior is unchanged.
 
 ## [1.0.0] - 2026-08-30
 
