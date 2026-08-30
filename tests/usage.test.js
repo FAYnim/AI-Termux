@@ -90,6 +90,44 @@ describe('Session Usage Accumulator', () => {
     assert.ok(snapshot > 0);
     assert.equal(session.metadata.usage.estTokensAtLastRequest, snapshot);
   });
+
+  test('getUsage returns the zeroed shape for corrupt metadata.usage without writing it back', () => {
+    const session = new Session({});
+    session.metadata.usage = 'bogus';
+    assert.deepEqual(getUsage(session), createUsage());
+    assert.equal(session.metadata.usage, 'bogus');
+  });
+
+  test('accumulateUsage replaces a corrupt metadata.usage and accumulates', () => {
+    const session = new Session({});
+    session.metadata.usage = 'bogus';
+    accumulateUsage(session, {
+      promptTokenCount: 100,
+      candidatesTokenCount: 10,
+      totalTokenCount: 110,
+    });
+    const usage = session.metadata.usage;
+    assert.equal(typeof usage, 'object');
+    assert.equal(usage.promptTokens, 100);
+    assert.equal(usage.completionTokens, 10);
+    assert.equal(usage.totalTokens, 110);
+    assert.equal(usage.llmRequests, 1);
+  });
+
+  test('accumulateUsage defaults missing counts to zero on partial usage', () => {
+    const session = new Session({});
+    accumulateUsage(session, { totalTokenCount: 42 });
+    const usage = session.metadata.usage;
+    assert.equal(usage.totalTokens, 42);
+    assert.equal(usage.promptTokens, 0);
+    assert.equal(usage.lastPromptTokens, 0);
+  });
+
+  test('getUsage is a pure read and does not create metadata.usage', () => {
+    const session = new Session({});
+    getUsage(session);
+    assert.equal(session.metadata.usage, undefined);
+  });
 });
 
 describe('Context Tokens & Budget', () => {
@@ -116,6 +154,9 @@ describe('Context Tokens & Budget', () => {
     const expected = 700000 + (estimateSessionTokens(session) - usage.estTokensAtLastRequest);
     assert.equal(getContextTokens(session), expected);
     assert.ok(getContextTokens(session) >= 700000);
+    // Estimator drops below the real anchor once history is pruned: clamp at the anchor.
+    session.setMessages([]);
+    assert.equal(getContextTokens(session), 700000);
   });
 
   test('contextBudgetLimit takes 85% of the given limit', () => {
@@ -127,6 +168,17 @@ describe('Context Tokens & Budget', () => {
     assert.equal(contextBudgetLimit(undefined), 680000);
     assert.equal(contextBudgetLimit(null), 680000);
     assert.equal(contextBudgetLimit(0), 680000);
+  });
+
+  test('getContextTokens falls back to the estimator on corrupt lastPromptTokens', () => {
+    const session = new Session({});
+    accumulateUsage(session, {
+      promptTokenCount: 5000,
+      candidatesTokenCount: 10,
+      totalTokenCount: 5010,
+    });
+    session.metadata.usage.lastPromptTokens = 'abc';
+    assert.equal(getContextTokens(session), estimateSessionTokens(session));
   });
 });
 
@@ -146,5 +198,10 @@ describe('formatCompactTokens', () => {
   test('millions use M with one decimal, trailing .0 dropped', () => {
     assert.equal(formatCompactTokens(1000000), '1M');
     assert.equal(formatCompactTokens(1234567), '1.2M');
+  });
+
+  test('clamps the 1M boundary instead of emitting 1000k', () => {
+    assert.equal(formatCompactTokens(999950), '1M');
+    assert.equal(formatCompactTokens(999999), '1M');
   });
 });

@@ -7,7 +7,12 @@
 
 import { estimateSessionTokens } from './pruner.js';
 
-/** Fallback context budget when no explicit maxContextTokens is configured. */
+/**
+ * Fallback context budget when no explicit maxContextTokens is configured.
+ * Intentionally mirrors the orchestrator's historical hardcoded `|| 800000`
+ * fallback — do NOT align this with DEFAULT_MAX_CONTEXT_TOKENS (1M) in
+ * src/config/constants.js.
+ */
 const FALLBACK_MAX_CONTEXT_TOKENS = 800000;
 
 /** Fraction of the context budget where the ReAct loop force-stops. */
@@ -104,10 +109,15 @@ export function accumulateUsage(session, usage) {
 export function getContextTokens(session) {
   const est = estimateSessionTokens(session);
   const usage = getUsage(session);
-  if (!usage.lastPromptTokens) {
+  if (
+    !usage.lastPromptTokens ||
+    typeof usage.lastPromptTokens !== 'number' ||
+    !Number.isFinite(usage.lastPromptTokens)
+  ) {
     return est;
   }
   const delta = Math.max(0, est - usage.estTokensAtLastRequest);
+  // Belt-and-braces for corrupt metadata: never dips below the real anchor.
   return Math.max(usage.lastPromptTokens, usage.lastPromptTokens + delta);
 }
 
@@ -136,6 +146,7 @@ export function formatCompactTokens(n) {
   }
   if (num < 1000000) {
     const k = Math.round((num / 1000) * 10) / 10;
+    if (k >= 1000) return '1M';
     return `${k % 1 === 0 ? String(k) : k.toFixed(1)}k`;
   }
   const m = Math.round((num / 1000000) * 10) / 10;
