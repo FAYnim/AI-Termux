@@ -185,11 +185,11 @@ export class GeminiClient {
    * @param {number} [options.timeoutMs] - Custom timeout in ms
    * @returns {Promise<{
    *   text: string,
-   *   functionCalls: Array<{ name: string, args: object }>,
+   *   functionCalls: Array<{ name: string, args: object, thoughtSignature?: string }>,
    *   finishReason: string|null,
    *   usage: object|null,
    *   rawCandidates: Array<object>
-   * }>}
+   * }>
    */
   async generateStream(options = {}) {
     this._validateApiKey();
@@ -252,11 +252,11 @@ export class GeminiClient {
    * @param {number} [options.timeoutMs] - Custom timeout in ms
    * @returns {Promise<{
    *   text: string,
-   *   functionCalls: Array<{ name: string, args: object }>,
+   *   functionCalls: Array<{ name: string, args: object, thoughtSignature?: string }>,
    *   finishReason: string|null,
    *   usage: object|null,
    *   raw: object
-   * }>}
+   * }>
    */
   async generate(options = {}) {
     this._validateApiKey();
@@ -411,10 +411,16 @@ export class GeminiClient {
             text += part.text;
           }
           if (part.functionCall) {
-            functionCalls.push({
+            const call = {
               name: part.functionCall.name,
               args: part.functionCall.args || {},
-            });
+            };
+            // Gemini 3+ signs function call parts with thoughtSignature and
+            // rejects the follow-up request with 400 if it is not echoed back.
+            if (part.thoughtSignature) {
+              call.thoughtSignature = part.thoughtSignature;
+            }
+            functionCalls.push(call);
           }
         }
       }
