@@ -29,17 +29,17 @@ import { OpenAIClient } from './openai.js';
  * @throws {Error} If provider is unknown and neither baseUrl nor adapter is specified
  */
 export function createLlmClient(options = {}) {
-  const { provider = 'gemini', model, apiKey, baseUrl, logger, signal, fetch } = options;
+  const { provider = 'gemini', model, apiKey, baseUrl, logger, signal, fetch, locale } = options;
   switch (provider) {
     case 'gemini':
-      return new GeminiClient({ model, apiKey, baseUrl, logger, signal, fetch });
+      return new GeminiClient({ model, apiKey, baseUrl, logger, signal, fetch, locale });
     case 'openai':
-      return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch });
+      return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch, locale });
     default:
       // Fallback: OpenAI-compatible custom endpoints (Groq, OpenRouter, DeepSeek, Ollama, etc.)
       // Any custom provider specifying a baseUrl or adapter: 'openai' reuses OpenAIClient.
       if (baseUrl || options.adapter === 'openai') {
-        return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch });
+        return new OpenAIClient({ model, apiKey, baseUrl, logger, signal, fetch, locale });
       }
       throw new Error(`Unknown provider: ${provider}`);
   }

@@ -4,6 +4,8 @@
  */
 
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
+import { ConfigManager } from '../config/manager.js';
+import { loadLocale, t } from '../i18n/index.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
@@ -22,6 +24,7 @@ import { logger as defaultLogger } from '../utils/logger.js';
  * @param {AbortSignal} [options.signal] - Abort controller signal
  * @param {NodeJS.WriteStream} [options.stream=process.stdout] - Output stream
  * @param {object} [options.logger] - Custom logger
+ * @param {ConfigManager} [options.configMgr] - Config source for the locale
  * @param {boolean} [options.streamTokens=true] - Stream tokens in real-time
  * @returns {Promise<{
  *   success: boolean,
@@ -36,6 +39,8 @@ export async function runSingleShot(prompt, options = {}) {
   const stream = options.stream || process.stdout;
   const logger = options.logger || defaultLogger;
   const streamTokens = options.streamTokens !== false;
+  const configMgr = options.configMgr || new ConfigManager();
+  await loadLocale(configMgr.get('locale'));
 
   const orchestrator =
     options.orchestrator ||
@@ -59,7 +64,7 @@ export async function runSingleShot(prompt, options = {}) {
       onIterationStart: (iter) => {
         if (iter > 1) {
           hasStreamedToken = false;
-          spinner.start(`Thinking (Turn ${iter})...`);
+          spinner.start(t('thinkingTurn', { turn: iter }));
         }
       },
       onToken: (token) => {
@@ -87,13 +92,13 @@ export async function runSingleShot(prompt, options = {}) {
         stream.write(
           `\n${ansi.magenta('⚡ [TOOL]')} ${ansi.bold(call.name)} ${ansi.dim(preview)}\n`,
         );
-        spinner.start(`Executing ${call.name}...`);
+        spinner.start(t('runningTool', { tool: call.name }));
       },
       onToolResult: (name, toolRes) => {
         if (toolRes?.error) {
-          spinner.warn(`Tool ${name} reported error: ${toolRes.message || 'Failed'}`);
+          spinner.warn(t('toolError', { tool: name, message: toolRes.message || t('failed') }));
         } else {
-          spinner.succeed(`Tool ${name} finished successfully`);
+          spinner.succeed(t('toolDone', { tool: name }));
         }
         spinner.start('Thinking...');
       },
@@ -124,7 +129,7 @@ export async function runSingleShot(prompt, options = {}) {
     }
 
     if (options.signal?.aborted) {
-      stream.write(`\n${ansi.yellow('⚠ [Operation cancelled by user]')}\n\n`);
+      stream.write(`\n${ansi.yellow(t('cancelled'))}\n\n`);
       return {
         success: false,
         text: streamedText,

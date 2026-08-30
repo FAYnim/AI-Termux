@@ -73,6 +73,5 @@ export const ansi = {
  */
 export function stripAnsi(str) {
   if (typeof str !== 'string') return '';
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences are control characters by definition
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }

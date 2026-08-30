@@ -194,7 +194,7 @@ export class OpenAIClient extends BaseLlmClient {
 
         return await this._parseOpenAISSE(response.body, options, parentSignal);
       },
-      { signal: parentSignal, logger: this.logger },
+      { signal: parentSignal, logger: this.logger, locale: this.locale },
     );
   }
 
@@ -346,7 +346,7 @@ export class OpenAIClient extends BaseLlmClient {
         const data = await response.json();
         return this._extractNonStreamResult(data);
       },
-      { signal: parentSignal, logger: this.logger },
+      { signal: parentSignal, logger: this.logger, locale: this.locale },
     );
   }
 

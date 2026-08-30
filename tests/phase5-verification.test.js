@@ -32,7 +32,6 @@ function makeTmpDir(label) {
 }
 
 function stripAnsi(str) {
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences are control characters by definition
   return String(str || '').replace(/\x1B\[[0-9;]*m/g, '');
 }
 

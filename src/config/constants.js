@@ -96,4 +96,5 @@ export const DEFAULT_CONFIG = {
   maxContextTokens: DEFAULT_MAX_CONTEXT_TOKENS,
   autoConfirm: false,
   verbose: false,
+  locale: 'en',
 };

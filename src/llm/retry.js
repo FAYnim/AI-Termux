@@ -3,6 +3,7 @@
  * Handles HTTP 429 (Rate Limit), 503 (Service Unavailable), and cellular network drops.
  */
 
+import { t } from '../i18n/index.js';
 import { logger } from '../utils/logger.js';
 
 export const RETRYABLE_HTTP_STATUSES = [429, 503];
@@ -135,6 +136,7 @@ export function calculateBackoffDelay(attempt, options = {}) {
  * @param {AbortSignal} [options.signal] - Abort signal to cancel retry loop
  * @param {Function} [options.onRetry] - Custom callback called before each retry
  * @param {object} [options.logger] - Custom logger (defaults to system logger)
+ * @param {string} [options.locale] - Locale for the retry warning message
  * @param {Function} [options.shouldRetry] - Custom predicate to determine retryability
  * @returns {Promise<T>}
  */
@@ -185,7 +187,11 @@ export async function withRetry(fn, options = {}) {
       } else if (log && typeof log.warn === 'function') {
         const sec = (delay / 1000).toFixed(1);
         log.warn(
-          `Jaringan sibuk (${statusDesc}), mencoba kembali dalam ${sec}s (Percobaan ${attemptNumber}/${maxRetries})...`,
+          t(
+            'networkBusy',
+            { status: statusDesc, seconds: sec, attempt: attemptNumber, maxRetries },
+            options.locale,
+          ),
         );
       }
 

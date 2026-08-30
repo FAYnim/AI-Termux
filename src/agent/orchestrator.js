@@ -44,6 +44,7 @@ export class AgentOrchestrator {
     this.maxContextTokens = options.maxContextTokens;
     this.reflectionInterval = options.reflectionInterval != null ? options.reflectionInterval : 3;
     this.logger = options.logger || defaultLogger;
+    this.locale = options.locale;
 
     // Security Guard
     this.securityGuard =
@@ -67,6 +68,7 @@ export class AgentOrchestrator {
         apiKey: options.apiKey,
         baseUrl: this.baseUrl,
         logger: this.logger,
+        locale: this.locale,
       });
     this.geminiClient = this.llmClient; // legacy alias
 
@@ -345,6 +347,7 @@ export class AgentOrchestrator {
       apiKey: overrides.apiKey || (this.llmClient ? this.llmClient.getApiKey() : undefined),
       baseUrl: overrides.baseUrl,
       logger: this.logger,
+      locale: this.locale,
     });
     this.geminiClient = this.llmClient;
     if (this.session) {

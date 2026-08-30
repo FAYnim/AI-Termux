@@ -11,6 +11,7 @@ export class BaseLlmClient {
     this.baseUrl = (options.baseUrl || '').replace(/\/+$/, '');
     this.timeoutMs = options.timeoutMs ?? 30000;
     this.logger = options.logger;
+    this.locale = options.locale;
     this.fetch = options.fetch || globalThis.fetch;
   }
 
