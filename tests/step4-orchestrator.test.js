@@ -353,3 +353,123 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     assert.equal(result.text, 'OpenAI answer');
   });
 });
+
+describe('Step 4: Orchestrator Usage Accumulation', () => {
+  let tempDir;
+  let sessionManager;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-usage-test-'));
+    sessionManager = new SessionManager({ sessionsDir: tempDir });
+  });
+
+  afterEach(() => {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  test('accumulates real usage across iterations into session metadata', async () => {
+    fs.writeFileSync(path.join(tempDir, 'hello.txt'), 'Content from file!', 'utf8');
+
+    let callCount = 0;
+    const mockGemini = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            text: 'Membaca file.',
+            functionCalls: [{ name: 'read_file', args: { filePath: 'hello.txt' } }],
+            finishReason: 'STOP',
+            usage: { promptTokenCount: 1000, candidatesTokenCount: 50, totalTokenCount: 1050 },
+          };
+        }
+        return {
+          text: 'Selesai.',
+          functionCalls: [],
+          finishReason: 'STOP',
+          usage: { promptTokenCount: 2000, candidatesTokenCount: 100, totalTokenCount: 2100 },
+        };
+      },
+    };
+
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mockGemini,
+      session,
+      workingDir: tempDir,
+      autoApprove: true,
+    });
+
+    await orchestrator.runTurn('Baca file hello.txt', {});
+
+    const usage = session.metadata.usage;
+    assert.equal(usage.llmRequests, 2);
+    assert.equal(usage.promptTokens, 3000);
+    assert.equal(usage.completionTokens, 150);
+    assert.equal(usage.totalTokens, 3150);
+    assert.equal(usage.lastPromptTokens, 2000);
+    assert.ok(usage.estTokensAtLastRequest > 0);
+    assert.ok(usage.updatedAt);
+  });
+
+  test('budget check stops the loop when real context exceeds the limit', async () => {
+    let callCount = 0;
+    const mockGemini = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => {
+        callCount++;
+        return {
+          text: 'loop attempt',
+          functionCalls: [{ name: 'read_file', args: { filePath: 'missing.txt' } }],
+          finishReason: 'STOP',
+          usage: { promptTokenCount: 700000, candidatesTokenCount: 10, totalTokenCount: 700010 },
+        };
+      },
+    };
+
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mockGemini,
+      session,
+      workingDir: tempDir,
+      autoApprove: true,
+    });
+
+    const result = await orchestrator.runTurn('keep going', {});
+
+    // Iteration 1 passes the estimator check (no usage yet), records 700k real
+    // usage; iteration 2's getContextTokens() exceeds the 680k budget → break.
+    assert.equal(callCount, 1);
+    assert.equal(result.iterations, 2);
+    assert.equal(result.loopLimitReached, false);
+    assert.equal(result.success, true);
+  });
+
+  test('no usage reported → metadata.usage exists but stays zeroed on totals', async () => {
+    const mockGemini = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => ({
+        text: 'Halo!',
+        functionCalls: [],
+        finishReason: 'STOP',
+      }),
+    };
+
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mockGemini,
+      session,
+      workingDir: tempDir,
+    });
+
+    await orchestrator.runTurn('Halo', {});
+
+    const usage = session.metadata.usage;
+    assert.ok(usage); // markRequestStart created the accumulator
+    assert.equal(usage.llmRequests, 0);
+    assert.equal(usage.totalTokens, 0);
+    assert.ok(usage.estTokensAtLastRequest > 0);
+  });
+});

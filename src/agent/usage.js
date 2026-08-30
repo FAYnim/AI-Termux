@@ -112,10 +112,11 @@ export function resetUsage(session) {
  * count of the last request (ground truth) plus the estimated drift of
  * messages appended since it. Falls back to the pure estimator when no
  * real usage has been recorded. Never returns less than the real anchor;
- * a corrupt estTokensAtLastRequest degrades to pure estimator drift (the
- * baseline falls back to the current estimate). After history is cleared
- * or replaced without resetUsage(), the value intentionally pins at the
- * stale anchor until the next request refreshes it — see resetUsage().
+ * a corrupt estTokensAtLastRequest degrades to the real anchor alone (the
+ * baseline falls back to the current estimate, so drift is zero). After
+ * history is cleared or replaced without resetUsage(), the value
+ * intentionally pins at the stale anchor until the next request refreshes
+ * it — see resetUsage().
  * @param {object} session
  * @returns {number}
  */
@@ -140,8 +141,9 @@ export function getContextTokens(session) {
 /**
  * Single source for the budget force-stop limit: 85% of the max context
  * tokens, with the 800k fallback the orchestrator has always used for a
- * falsy limit. The orchestrator's budget check and the REPL status line
- * both derive their limit from this function.
+ * falsy limit. The orchestrator's budget check uses this function, and
+ * the REPL status line (wired in a later task) will derive its limit
+ * from it.
  * @param {number|null|undefined} maxContextTokens
  * @returns {number}
  */

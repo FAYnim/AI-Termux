@@ -9,10 +9,16 @@ import { createLlmClient } from '../llm/registry.js';
 import { SecurityGuard } from '../security/guard.js';
 import { dispatchToolCall, getToolDeclarations } from '../tools/registry.js';
 import { logger as defaultLogger } from '../utils/logger.js';
-import { estimateSessionTokens, pruneMessages } from './pruner.js';
+import { pruneMessages } from './pruner.js';
 import { ReflectionChecker } from './reflection.js';
 import { createSession, Session } from './session.js';
 import { buildSystemPrompt } from './system-prompt.js';
+import {
+  accumulateUsage,
+  contextBudgetLimit,
+  getContextTokens,
+  markRequestStart,
+} from './usage.js';
 
 export const DEFAULT_MAX_ITERATIONS = 30;
 
@@ -163,9 +169,10 @@ export class AgentOrchestrator {
         options.onIterationStart(currentIteration);
       }
 
-      // Step 0: Token Budget Check — stop before context overflows
-      const currentTokens = estimateSessionTokens(this.session);
-      const budgetLimit = Math.floor((this.maxContextTokens || 800000) * 0.85);
+      // Step 0: Token Budget Check — stop before context overflows.
+      // Real API usage anchors the estimate when available (see usage.js).
+      const currentTokens = getContextTokens(this.session);
+      const budgetLimit = contextBudgetLimit(this.maxContextTokens);
       if (currentTokens > budgetLimit) {
         this.logger.warn(
           `Token budget exceeded (${currentTokens.toLocaleString()} / ${budgetLimit.toLocaleString()} tokens). ` +
@@ -179,6 +186,9 @@ export class AgentOrchestrator {
       const prunedContents = pruneMessages(rawMessages, {
         maxTokens: this.maxContextTokens,
       });
+
+      // Step 1.5: Snapshot the estimator baseline for real-usage anchoring
+      markRequestStart(this.session);
 
       // Step 2: Stream generation via LLM API
       let streamResult;
@@ -199,6 +209,9 @@ export class AgentOrchestrator {
         this.logger.error(`Generation error at turn ${currentIteration}: ${genErr.message}`);
         throw genErr;
       }
+
+      // Step 2.5: Accumulate real API usage into session metadata
+      accumulateUsage(this.session, streamResult.usage);
 
       let { text, functionCalls } = streamResult;
 
