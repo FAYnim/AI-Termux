@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No lockfile is committed, so install (not ci) is required.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      # tests/e2e spawns the real CLI against live provider APIs and needs
+      # TERMUXAI_* credentials, so it is intentionally not part of CI.
+      # Run it locally with: npm run test:e2e
+      - name: Unit tests
+        run: npm test
