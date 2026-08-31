@@ -463,7 +463,7 @@ Inside the REPL, `/model` (no args) opens a **zero-dependency** interactive pick
 
 ## 🛡️ Security System
 
-termuxai includes a multi-layer security guard for safe file and command execution:
+termuxai includes a multi-layer security guard for safe file and command execution. The defense-in-depth logic lives in [`src/security/rules.js`](src/security/rules.js), [`src/security/guard.js`](src/security/guard.js), and [`src/security/path-validator.js`](src/security/path-validator.js); see [SECURITY.md](SECURITY.md) for the disclosure policy and full threat model.
 
 ### Protection Layers
 
@@ -502,6 +502,15 @@ On Termux, termuxai automatically permits access to Android shared storage paths
 # Enable Android storage access in Termux (one-time setup)
 termux-setup-storage
 ```
+
+### What Is NOT Protected
+
+- **The command blacklist is bypassable.** It is a regex allowlist-of-denylist, not a sandbox boundary. Any novel or obfuscated command can slip past it.
+- **No OS-level sandboxing.** termuxai does not drop privileges, chroot/jail, or containerize. Treat it as capable of arbitrary code execution on your account.
+- **`security.allowTermuxStorage` is opt-in** (`termuxai config set security.allowTermuxStorage true`). Only enable it when you trust the model and the workspace contents.
+- **Path validation restricts writes to the safe workspace only.** Reads and commands can still reach outside it when you approve them.
+
+Run the CLI only in environments where you accept that the model has your privileges. For reporting vulnerabilities, see [SECURITY.md](SECURITY.md).
 
 ---
 
