@@ -2,7 +2,7 @@
 
 > **Autonomous AI Agent CLI — Optimized for Termux Android & Linux**
 
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0-green)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.0-green)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](./LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Termux%20%7C%20Linux%20%7C%20macOS-informational)](https://termux.dev/)
 [![PRD](https://img.shields.io/badge/Spec-PRD%20v1.0-orange)](./AI%20Termux.md)
@@ -62,7 +62,7 @@ cd ai-termux
 npm link
 ```
 
-> **Requirements:** Node.js >= 18.0.0
+> **Requirements:** Node.js >= 20.0.0
 
 ---
 
