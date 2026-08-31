@@ -221,6 +221,7 @@
 **Difficulty**: Easy
 - **Evidence**: `"node": ">=18.0.0"` allows Node 18 (EOL Sept 2025).
 - **Fix**: Recommend `>=20.0.0` or at least `>=18.18` for stable fetch.
+- **Status**: ✅ **FIXED** (2026-08-31) — Engine bumped to `>=20.0.0`; Node 18 is EOL.
 
 ---
 
