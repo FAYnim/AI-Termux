@@ -242,6 +242,7 @@
 - **File**: `package.json:14`
 - **Why**: `test` excludes `tests/e2e/`. `test:all` includes both.
 - **Fix**: Make `test` run all, or clearly document that e2e requires network.
+- **Status**: ✅ **FIXED** (2026-08-31) — README now documents `npm test` = unit-only and why e2e is excluded (live APIs, credentials).
 
 ---
 

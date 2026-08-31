@@ -631,6 +631,10 @@ node --test tests/*.test.js tests/e2e/*.test.js
 npm run benchmark
 ```
 
+`npm test` runs the unit suite only. `npm test:e2e` exercises the real CLI against live
+provider APIs and requires network + API credentials, so it is intentionally excluded
+from `npm test` and CI; run it locally.
+
 ---
 
 ## 📁 Project Structure
