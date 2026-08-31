@@ -190,6 +190,7 @@
 - **File**: `README.md:31`
 - **Why**: Stale claim. Misleads reviewers about test health.
 - **Fix**: Update to accurate count.
+- **Status**: ✅ **FIXED** (2026-08-31) — README test count updated from 324/324 to 547/556.
 
 ### DOC-02 — Security section absent from README
 **Difficulty**: Medium

@@ -27,7 +27,7 @@
 > **Latest on `feat/multi-model-phase1`:** Phase 1–4 of the multi-model plan landed — per-provider
 > `models[]` catalog, zero-dependency interactive `/model` picker, non-interactive `tai model
 > --list/--set` flags, and catalog CRUD (`--add` / `--remove` / `--clear`).
-> **324/324 tests pass, 0 regression.**
+> **547/556 tests pass** (9 pre-existing failures), 0 regressions.
 
 ---
 
