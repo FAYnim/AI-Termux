@@ -196,6 +196,7 @@
 **Difficulty**: Medium
 - **Why**: Users running an AI agent with shell access need to understand the threat model (regex blacklists are bypassable, paths are validated but Termux storage is auto-approved).
 - **Fix**: Add a Security section documenting what's protected and what isn't. Point to `src/security/rules.js`.
+- **Status**: ✅ **FIXED** (2026-08-31) — README Security System section now links the defense-in-depth modules and `SECURITY.md`, and adds a "What Is NOT Protected" caveat (bypassable blacklist, no OS sandbox, opt-in Termux storage).
 
 ### DOC-03 — No `SECURITY.md` for responsible disclosure
 **Difficulty**: Easy
