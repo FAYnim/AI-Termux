@@ -2,6 +2,7 @@
  * Shared LLM client base with timeout/retry helpers reused by adapters.
  */
 
+import { pooledFetch } from './http-pool.js';
 import { withRetry } from './retry.js';
 
 export class BaseLlmClient {
@@ -12,7 +13,7 @@ export class BaseLlmClient {
     this.timeoutMs = options.timeoutMs ?? 30000;
     this.logger = options.logger;
     this.locale = options.locale;
-    this.fetch = options.fetch || globalThis.fetch;
+    this.fetch = options.fetch || pooledFetch;
   }
 
   getModel() {

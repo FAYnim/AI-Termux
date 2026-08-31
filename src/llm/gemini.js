@@ -5,6 +5,7 @@
 
 import { DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TIMEOUT_MS } from '../config/constants.js';
 import { configManager } from '../config/manager.js';
+import { pooledFetch } from './http-pool.js';
 import { withRetry } from './retry.js';
 import { parseSSEStream } from './stream-parser.js';
 import {
@@ -47,7 +48,7 @@ export class GeminiClient {
     };
     this.systemInstruction = options.systemInstruction;
     this.retryOptions = options.retryOptions || {};
-    this.fetch = options.fetch || globalThis.fetch;
+    this.fetch = options.fetch || pooledFetch;
     this.logger = options.logger;
     this.locale = options.locale;
   }
