@@ -230,6 +230,7 @@
 **Difficulty**: Easy
 - Inconsistent line endings / indent styles across editors.
 - **Fix**: Add `.editorconfig` with `end_of_line = lf`, `insert_final_newline = true`, `trim_trailing_whitespace = true`.
+- **Status**: ✅ **FIXED** (2026-08-31) — Added `.editorconfig` (LF, final newline, 2-space, UTF-8; trailing-whitespace trimming disabled for markdown).
 
 ### CONFIG-02 — No `commitlint` / conventional commits enforcement
 **Difficulty**: Medium
