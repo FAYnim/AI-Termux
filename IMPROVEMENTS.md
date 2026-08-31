@@ -200,6 +200,7 @@
 ### DOC-03 — No `SECURITY.md` for responsible disclosure
 **Difficulty**: Easy
 - Standard open-source practice. Missing.
+- **Status**: ✅ **FIXED** (2026-08-31) — Added `SECURITY.md` with responsible-disclosure policy and honest threat model.
 
 ### DOC-04 — Inline JSDoc is thorough but some types are inaccurate
 **Difficulty**: Medium
