@@ -186,7 +186,7 @@ export function setModelCli({ configMgr, model, providerOverride = null } = {}) 
   if (!model || typeof model !== 'string' || !model.trim()) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name. Usage: termuxai model --set <model> [--provider <id>]\n`,
+      output: `${ansi.red('✖')} Missing model name. Usage: faycli model --set <model> [--provider <id>]\n`,
     };
   }
 
@@ -249,7 +249,7 @@ export function addModelsCli({ configMgr, models, providerOverride = null } = {}
   ) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --add <name[,name2,...]> [--provider <id>]\n`,
+      output: `${ansi.red('✖')} Missing model name(s). Usage: faycli model --add <name[,name2,...]> [--provider <id>]\n`,
     };
   }
 
@@ -317,7 +317,7 @@ export function removeModelCli({ configMgr, models, providerOverride = null } = 
   ) {
     return {
       exitCode: 1,
-      output: `${ansi.red('✖')} Missing model name(s). Usage: termuxai model --remove <name[,name2,...]> [--provider <id>]\n`,
+      output: `${ansi.red('✖')} Missing model name(s). Usage: faycli model --remove <name[,name2,...]> [--provider <id>]\n`,
     };
   }
 
