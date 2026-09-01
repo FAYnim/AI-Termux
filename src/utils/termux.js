@@ -63,15 +63,15 @@ export function getTermuxPrefix() {
 }
 
 /**
- * Resolve the termuxai configuration root directory.
- * On Termux: `~/.termuxai` under Termux home.
- * On other platforms: `~/.termuxai` under os.homedir().
+ * Resolve the faycli configuration root directory.
+ * On Termux: `~/.faycli` under Termux home.
+ * On other platforms: `~/.faycli` under os.homedir().
  *
  * @returns {string}
  */
 export function getConfigRoot() {
   const home = getTermuxHome();
-  return path.join(home, '.termuxai');
+  return path.join(home, '.faycli');
 }
 
 /**
