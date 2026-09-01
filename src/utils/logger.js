@@ -3,6 +3,23 @@
  * Zero-dependency, lightweight, ANSI-formatted
  */
 
+/**
+ * Logger interface used across the codebase. Every module accepts a logger
+ * via options (defaulting to the shared `logger` singleton here).
+ * @typedef {Object} Logger
+ * @property {(message: string, ...args: unknown[]) => void} info
+ * @property {(message: string, ...args: unknown[]) => void} success
+ * @property {(message: string, ...args: unknown[]) => void} warn
+ * @property {(message: string, ...args: unknown[]) => void} error
+ * @property {(message: string, ...args: unknown[]) => void} agent
+ * @property {(message: string, ...args: unknown[]) => void} step
+ * @property {(message: string, ...args: unknown[]) => void} debug
+ * @property {(message: string, ...args: unknown[]) => void} raw
+ * @property {(text: string, title?: string) => void} box
+ * @property {(enabled: boolean) => void} setVerbose
+ * @property {() => boolean} isVerbose
+ */
+
 import { ansi, stripAnsi } from './ansi.js';
 
 let verboseMode = false;
