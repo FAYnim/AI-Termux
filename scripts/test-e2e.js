@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`termuxai`) — E2E Test Runner
+ * FAY CLI (`faycli`) — E2E Test Runner
  *
  * Runs all End-to-End test suites and displays a formatted summary report.
  *
@@ -125,7 +125,7 @@ async function main() {
 
   if (!jsonMode) {
     console.log('');
-    console.log(A.bold(A.cyan('  🧪 Termux AI CLI — E2E Integration Test Suite')));
+    console.log(A.bold(A.cyan('  🧪 FAY CLI — E2E Integration Test Suite')));
     console.log(A.dim(`  ${testFiles.length} test suite(s) found`));
     console.log(`  ${hr()}`);
     console.log('');

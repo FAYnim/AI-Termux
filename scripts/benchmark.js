@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`termuxai`) — Performance Benchmark Script
+ * FAY CLI (`faycli`) — Performance Benchmark Script
  *
  * Measures startup latency and memory footprint against PRD Non-Functional Requirements:
  *   - Startup Time < 300 ms
@@ -191,7 +191,7 @@ async function main() {
 
   if (!jsonMode) {
     console.log('');
-    console.log(ANSI.bold(ANSI.cyan('  ⚡ Termux AI CLI — Performance Benchmark')));
+    console.log(ANSI.bold(ANSI.cyan('  ⚡ FAY CLI — Performance Benchmark')));
     console.log(ANSI.dim(`  PRD NFR Targets: Startup < 300 ms | Memory RSS < 50 MB`));
     console.log(`  ${hr()}`);
     console.log('');
@@ -305,7 +305,7 @@ async function main() {
   const allPass = startupPass && memoryPass;
   if (allPass) {
     console.log(
-      `  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — termuxai meets PRD performance targets.`,
+      `  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — faycli meets PRD performance targets.`,
     );
   } else {
     const failures = [];
