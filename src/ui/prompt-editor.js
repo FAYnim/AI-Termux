@@ -128,9 +128,13 @@ export function promptLine(opts = {}) {
       }
 
       // Erase everything from this line down, repaint, park the cursor.
+      // NOTE: never emit `\x1b[0A` — Windows conhost treats 0 as 1, parking
+      // the cursor one row too high so the next erase eats the line above.
       let out = `\x1b[J\r${prompt}${visible}`;
-      if (lines.length) out += `\n${lines.join('\n')}`;
-      out += `\x1b[${lines.length}A\x1b[${pw + cursor - winStart + 1}G`;
+      if (lines.length) {
+        out += `\n${lines.join('\n')}\x1b[${lines.length}A`;
+      }
+      out += `\x1b[${pw + cursor - winStart + 1}G`;
       output.write(out);
     };
 
