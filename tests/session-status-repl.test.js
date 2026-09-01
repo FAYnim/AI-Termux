@@ -10,6 +10,7 @@ import { Session } from '../src/agent/session.js';
 import { accumulateUsage } from '../src/agent/usage.js';
 import { startRepl } from '../src/cli/repl.js';
 import { executeSlashCommand } from '../src/cli/slash-commands.js';
+import { renderStatusLine } from '../src/ui/box.js';
 
 const silentLogger = { info() {}, warn() {}, error() {}, debug() {} };
 const stubConfigMgr = { get: () => undefined };
@@ -150,4 +151,15 @@ describe('/session usage rows', () => {
     );
     assert.ok(text.includes('API Total Tokens'), `missing API Total Tokens row:\n${text}`);
   });
+});
+
+test('status line renders infinity cap as ∞', () => {
+  const line = renderStatusLine({
+    usage: { totalTokens: 1234, llmRequests: 2 },
+    contextTokens: 100,
+    contextBudget: 920000,
+    iterations: 47,
+    maxIterations: Infinity,
+  });
+  assert.match(line, /loop 47\/∞/);
 });

@@ -3,11 +3,14 @@
  * Handles in-session commands (/help, /model, /session, /clear, /config, /exit)
  */
 
+import path from 'node:path';
+import { compactSession } from '../agent/compactor.js';
 import { estimateSessionTokens } from '../agent/pruner.js';
 import { getUsage } from '../agent/usage.js';
 import { renderBox, renderStatusCard } from '../ui/box.js';
 import { showModelMenuFromConfig } from '../ui/model-menu.js';
 import { ansi } from '../utils/ansi.js';
+import { logger as defaultLogger } from '../utils/logger.js';
 import { addModelsCli, clearModelsCli, removeModelCli } from './model-commands.js';
 import { runProviderAddWizard } from './provider-wizard.js';
 
@@ -26,6 +29,10 @@ export const SLASH_COMMANDS_HELP = [
   { cmd: '/model remove <name>', desc: 'Remove a model from provider catalog' },
   { cmd: '/model clear', desc: 'Reset provider catalog to builtin defaults' },
   { cmd: '/session', desc: 'Display current session ID, token usage & stats' },
+  {
+    cmd: '/compact',
+    desc: 'Summarize older context now to free space (agent loop does it automatically at 92%)',
+  },
   { cmd: '/clear', desc: 'Clear the terminal screen' },
   { cmd: '/config', desc: 'Display active CLI configuration settings' },
   { cmd: '/exit, /quit', desc: 'Exit interactive REPL session' },
@@ -77,6 +84,7 @@ export async function executeSlashCommand(input, context = {}) {
   const configMgr = context.configMgr;
   const orchestrator = context.orchestrator;
   const inputStream = context.input || process.stdin;
+  const logger = context.logger || defaultLogger;
 
   switch (command) {
     case 'help': {
@@ -472,6 +480,36 @@ export async function executeSlashCommand(input, context = {}) {
 
       stream.write(`\n${card}\n\n`);
       return { handled: true, action: 'session_info' };
+    }
+
+    case 'compact': {
+      if (!orchestrator?.session) {
+        stream.write(`\n${ansi.yellow('⚠')} No active session context found.\n\n`);
+        return { handled: true, action: 'compact', error: true };
+      }
+      const sess = orchestrator.session;
+      const result = await compactSession(sess, orchestrator.llmClient, {
+        archivePath: sess.sessionsDir
+          ? `${path.join(sess.sessionsDir, String(sess.id).replace(/[^a-zA-Z0-9_-]/g, ''))}.archive.jsonl`
+          : null,
+        logger,
+      });
+      if (!result.compacted) {
+        stream.write(
+          `\n${ansi.dim('Nothing to compact — recent window already fits. Context: ')}${ansi.white(result.tokensBefore.toLocaleString())} ${ansi.dim('tokens')}\n\n`,
+        );
+        return { handled: true, action: 'compact', method: 'noop' };
+      }
+      try {
+        sess.save();
+      } catch (e) {
+        logger.warn(`Failed to persist session after manual compact: ${e.message}`);
+      }
+      stream.write(
+        `\n${ansi.green('✔')} Context compacted (${ansi.cyan(result.method)}): ` +
+          `${ansi.white(result.tokensBefore.toLocaleString())} → ${ansi.white(result.tokensAfter.toLocaleString())} tokens\n\n`,
+      );
+      return { handled: true, action: 'compact', method: result.method };
     }
 
     case 'clear': {

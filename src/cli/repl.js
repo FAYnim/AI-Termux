@@ -185,6 +185,15 @@ export async function startRepl(options = {}) {
             spinner.start(t('thinkingTurn', { turn: iter }));
           }
         },
+        onCompactStart: () => spinner.start('Compacting context…'),
+        onCompactEnd: (r) => {
+          if (r.compacted) {
+            spinner.stop();
+            output.write(
+              `${ansi.dim(`[context compacted: ${r.method}, ${r.tokensBefore.toLocaleString()}→${r.tokensAfter.toLocaleString()} tok]`)}\n`,
+            );
+          }
+        },
         onToken: (token) => {
           const clean = token.replace(
             /<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi,
