@@ -80,7 +80,7 @@ faycli config set apiKey YOUR_GEMINI_API_KEY
 # Add to ~/.bashrc or ~/.zshrc
 export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 # Or use:
-export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
+export FAYCLI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
 > **Security tip (SEC-01):** by default the Gemini key is sent as a `key=` query
@@ -192,7 +192,7 @@ faycli --provider groq "analisis file package.json"
 
 | Provider | API Key | Base URL | Model |
 |---|---|---|---|
-| Gemini | `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, `T_AI_API_KEY` | — | — |
+| Gemini | `GEMINI_API_KEY`, `FAYCLI_API_KEY`, `T_AI_API_KEY` | — | — |
 | OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
 
 ### Developer Guide: Adding a Custom Native Adapter
@@ -346,7 +346,7 @@ faycli config reset
 
 | Key | Default | Description |
 |---|---|---|
-| `apiKey` | `""` | Gemini API key (env fallback: `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, or legacy `T_AI_API_KEY`) |
+| `apiKey` | `""` | Gemini API key (env fallback: `GEMINI_API_KEY`, `FAYCLI_API_KEY`, or legacy `T_AI_API_KEY`) |
 | `model` | `gemini-2.5-flash` | Default LLM model |
 | `timeoutMs` | `30000` | Shell command timeout (ms) |
 | `maxContextTokens` | `1000000` | Max tokens before context pruning |
@@ -772,8 +772,8 @@ ENVIRONMENT VARIABLES:
   OPENAI_API_KEY                    OpenAI API key
   OPENAI_BASE_URL                   Custom OpenAI endpoint base URL
   OPENAI_MODEL                      Default OpenAI model
-  TERMUXAI_API_KEY                  Fallback Gemini API key (legacy: T_AI_API_KEY)
-  TERMUXAI_CONFIG_DIR               Override config directory path (legacy: T_AI_CONFIG_DIR)
+  FAYCLI_API_KEY                  Fallback Gemini API key (legacy: T_AI_API_KEY)
+  FAYCLI_CONFIG_DIR               Override config directory path (legacy: T_AI_CONFIG_DIR)
 ```
 
 ---

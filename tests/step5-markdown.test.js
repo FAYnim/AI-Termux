@@ -200,14 +200,14 @@ describe('Step 5: Terminal Box & Banner UI', () => {
 
   test('should render application welcome banner', () => {
     const banner = renderBanner({
-      title: '⚡ termux-ai-cli',
+      title: '⚡ fay-cli',
       version: 'v1.0.0',
       subtitle: 'Autonomous AI Agent CLI for Termux',
       details: ['Model: gemini-2.5-flash', 'Session: sess_test123'],
     });
     const plain = stripAnsi(banner);
 
-    assert.ok(plain.includes('termux-ai-cli'));
+    assert.ok(plain.includes('fay-cli'));
     assert.ok(plain.includes('v1.0.0'));
     assert.ok(plain.includes('Model: gemini-2.5-flash'));
   });

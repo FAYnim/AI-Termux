@@ -59,7 +59,7 @@ export async function startRepl(options = {}) {
 
   // Display Welcome Banner
   const banner = renderBanner({
-    title: '⚡ termux-ai-cli',
+    title: '⚡ fay-cli',
     version: 'v1.0.0',
     subtitle: 'Autonomous AI Agent CLI for Termux Android',
     details: [

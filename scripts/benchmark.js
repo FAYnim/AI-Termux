@@ -73,7 +73,7 @@ function measureStartupTime(iterations = 5) {
     const start = performance.now();
     const result = spawnSync(process.execPath, [ENTRY, '--version'], {
       cwd: ROOT_DIR,
-      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, FAYCLI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 10000,
     });
@@ -121,7 +121,7 @@ function measureMemorySync(iterations = 3) {
     const result = spawnSync(process.execPath, ['--input-type=module'], {
       input: SYNC_MEMORY_PROBE,
       cwd: ROOT_DIR,
-      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, FAYCLI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 20000,
     });
