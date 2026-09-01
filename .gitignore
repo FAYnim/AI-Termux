@@ -9,7 +9,7 @@ coverage/
 .benchmark-tmp/
 tmp/
 .tmp/
-.termuxai/
+.faycli/
 nul
 .DS_Store
 Thumbs.db
