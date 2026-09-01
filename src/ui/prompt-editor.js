@@ -58,6 +58,9 @@ export function promptLine(opts = {}) {
       }
     }
     readline.emitKeypressEvents(input);
+    // emitKeypressEvents keeps a permanent 'data' listener on the stream;
+    // resume so the stream flows again after a previous finish() paused it.
+    if (typeof input.resume === 'function') input.resume();
 
     const recompute = () => {
       const s = getSuggestions(text, cursor);
@@ -85,6 +88,10 @@ export function promptLine(opts = {}) {
       done = true;
       input.removeListener('keypress', onKey);
       input.removeListener('close', onClose);
+      // Release stdin's 'data' listener (added by emitKeypressEvents) so a
+      // finished REPL can exit — a flowing stdin keeps the event loop alive.
+      // Mirrors what the old rl.close() did. Next promptLine resumes it.
+      if (typeof input.pause === 'function') input.pause();
       try {
         if (input.isTTY && typeof input.setRawMode === 'function') input.setRawMode(false);
       } catch {
