@@ -1,0 +1,13 @@
+#!/bin/sh
+# Enforces Conventional Commits on every commit message.
+# Enable with: git config core.hooksPath .githooks
+npx --no-install commitlint --edit "$1" || {
+  echo ""
+  echo "commit-msg: commitlint failed. Use Conventional Commits format:"
+  echo "  feat: add rate-limit backoff"
+  echo "  fix: pruner digest overflow"
+  echo "  docs: update README"
+  echo "  chore: bump engine"
+  echo "Run 'git commit --amend' to fix the message."
+  exit 1
+}

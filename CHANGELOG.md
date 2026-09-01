@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Biome linter/formatter (`npm run lint`, `npm run lint:fix`, `npm run format`) with a pre-commit hook under `.githooks/` (MAINT-01).
 - GitHub Actions CI running lint and unit tests on Node 20 and 22 (MAINT-02).
 - `CHANGELOG.md` (this file), maintained manually per PR (MAINT-03).
+- Commit message linting via `@commitlint/cli` + `@commitlint/config-conventional`, enforced by a `.githooks/commit-msg` hook and `npm run commitlint` / `npm run commitlint:check` (CONFIG-02).
 - i18n layer: `locales/en.json` + `locales/id.json` with a zero-dep loader in `src/i18n/index.js`; new `locale` config key (MAINT-04).
 - Data-driven `TOOL_ARG_ALIASES` map in `src/tools/registry.js` backing a branch-free `normalizeToolArgs`; adding a tool-argument alias is now a one-line map edit (MAINT-06).
 - `tests/registry-args.test.js` covering alias mapping, precedence, fallbacks, and nullish-vs-falsy semantics (MAINT-06).
