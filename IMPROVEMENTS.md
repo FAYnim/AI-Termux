@@ -217,6 +217,7 @@
 - **Evidence**: `package.json` has no `devDependencies` at all.
 - **Impact**: No test runner version pinning (relies on `node --test` built-in, which is fine for Node 18+), no linting, no type checking.
 - **Fix**: At minimum add `@biomejs/biome` (dev dep, formatter+linter) and optionally `typescript` for strict mode.
+- **Status**: ✅ **FIXED** (2026-09-01) — `@biomejs/biome` already added as devDep (MAINT-01). `typescript` declined: project is zero-dep JS, TS would add no runtime value without a type-check script. `package.json` now carries 3 devDeps (`@biomejs/biome`, `@commitlint/cli`, `@commitlint/config-conventional`).
 
 ### DEPS-02 — Engine requirement is broad
 **Difficulty**: Easy
