@@ -85,7 +85,7 @@ Compaction never fails hard: LLM → digest → noop. The only fatal path is use
 #### 3. `src/agent/orchestrator.js` (modified)
 
 - `DEFAULT_MAX_ITERATIONS = Infinity`. `options.maxIterations` (constructor and per-run) still overrides — `--max-iterations` path unchanged. `loopLimitReached` remains meaningful only when a cap is set.
-- Step 0 budget check: instead of `break`, call `await compactSession(...)` then `continue` the loop. The main request for this iteration has not been sent yet, so no API spend is wasted.
+- Step 0 budget check (top of every iteration, **including the first** — a resumed session plus a long prompt can already exceed 92% before any request goes out): instead of `break`, call `await compactSession(...)` then `continue` the loop. The main request for this iteration has not been sent yet, so no API spend is wasted.
 - New optional hooks `options.onCompactStart()` / `options.onCompactEnd({tokensBefore, tokensAfter, method})` for REPL UI.
 - Status line (`src/ui/box.js`): when `maxIterations` is `Infinity`, render `loop N/∞` (guard: current code checks `maxIterations > 0`; `Infinity > 0` is true, so only the formatting branch needs the `∞` case).
 
