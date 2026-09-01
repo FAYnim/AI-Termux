@@ -27,7 +27,7 @@ export class GeminiClient {
    * @param {string|object} [options.systemInstruction] - Default system instruction
    * @param {object} [options.retryOptions] - Custom retry settings
    * @param {Function} [options.fetch] - Custom fetch implementation (for testing)
-   * @param {object} [options.logger] - Logger instance
+   * @param {import('../utils/logger.js').Logger} [options.logger] - Logger instance
    */
   constructor(options = {}) {
     this.apiKey = options.apiKey !== undefined ? options.apiKey : configManager.getApiKey() || '';

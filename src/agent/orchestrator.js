@@ -39,7 +39,7 @@ export class AgentOrchestrator {
    * @param {Array<object>} [options.tools] - Tool declarations
    * @param {string} [options.systemInstruction] - Custom system prompt
    * @param {boolean} [options.autoApprove=false] - Auto-approve risky actions
-   * @param {object} [options.logger] - Logger instance
+   * @param {import('../utils/logger.js').Logger} [options.logger] - Logger instance
    * @param {number} [options.maxContextTokens] - Max context tokens before pruning
    * @param {number} [options.reflectionInterval=3] - Reflection check interval (0 = disabled)
    */

@@ -135,7 +135,7 @@ export function calculateBackoffDelay(attempt, options = {}) {
  * @param {number} [options.jitterMs=500] - Random jitter ceiling in ms
  * @param {AbortSignal} [options.signal] - Abort signal to cancel retry loop
  * @param {Function} [options.onRetry] - Custom callback called before each retry
- * @param {object} [options.logger] - Custom logger (defaults to system logger)
+ * @param {import('../utils/logger.js').Logger} [options.logger] - Custom logger (defaults to system logger)
  * @param {string} [options.locale] - Locale for the retry warning message
  * @param {Function} [options.shouldRetry] - Custom predicate to determine retryability
  * @returns {Promise<T>}

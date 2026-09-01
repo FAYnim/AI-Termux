@@ -30,7 +30,7 @@ export const REPL_PROMPT = `${ansi.cyan(APP_NAME)} ${ansi.bold('❯')} `;
  * @param {boolean} [options.autoApprove=false]
  * @param {NodeJS.ReadableStream} [options.input=process.stdin]
  * @param {NodeJS.WritableStream} [options.output=process.stdout]
- * @param {object} [options.logger]
+ * @param {import('../utils/logger.js').Logger} [options.logger]
  * @returns {Promise<void>}
  */
 export async function startRepl(options = {}) {

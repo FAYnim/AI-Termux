@@ -95,7 +95,7 @@ export class ReflectionChecker {
    * @param {object} [options={}]
    * @param {number} [options.interval=3] - Run reflection check every N iterations
    * @param {number} [options.windowSize=6] - Keep this many past iterations in history
-   * @param {object} [options.logger] - Logger instance
+   * @param {import('../utils/logger.js').Logger} [options.logger] - Logger instance
    */
   constructor(llmClient, options = {}) {
     this.llmClient = llmClient;

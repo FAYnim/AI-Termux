@@ -23,7 +23,7 @@ import { logger as defaultLogger } from '../utils/logger.js';
  * @param {boolean} [options.autoApprove=false] - Auto-approve risky actions
  * @param {AbortSignal} [options.signal] - Abort controller signal
  * @param {NodeJS.WriteStream} [options.stream=process.stdout] - Output stream
- * @param {object} [options.logger] - Custom logger
+ * @param {import('../utils/logger.js').Logger} [options.logger] - Custom logger
  * @param {ConfigManager} [options.configMgr] - Config source for the locale
  * @param {boolean} [options.streamTokens=true] - Stream tokens in real-time
  * @returns {Promise<{

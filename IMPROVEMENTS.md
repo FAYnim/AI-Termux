@@ -207,6 +207,7 @@
 **Difficulty**: Medium
 - **Example**: `options.logger` documented as `object` but callers pass specific logger instances with `.info/.warn/.error` methods.
 - **Fix**: Define a `Logger` interface type and use it consistently.
+- **Status**: ✅ **FIXED** (2026-09-01) — Added a `Logger` typedef to `src/utils/logger.js` documenting the full surface (`info`/`success`/`warn`/`error`/`agent`/`step`/`debug`/`raw`/`box`/`setVerbose`/`isVerbose`). The 7 `{object}` `options.logger` annotations now reference it via `import('../utils/logger.js').Logger` in `orchestrator.js`, `reflection.js`, `repl.js`, `single-shot.js`, `gemini.js`, `llm/registry.js`, and `retry.js`. `slash-commands.js` already used the typed form.
 
 ---
 

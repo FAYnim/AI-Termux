@@ -22,7 +22,7 @@ import { OpenAIClient } from './openai.js';
  * @param {string} [options.model] - Active model name to use
  * @param {string} [options.apiKey] - API key for authentication
  * @param {string} [options.baseUrl] - Base URL endpoint (used for OpenAI-compatible providers)
- * @param {Object} [options.logger] - Logger instance
+ * @param {import('../utils/logger.js').Logger} [options.logger] - Logger instance
  * @param {AbortSignal} [options.signal] - Cancellation abort signal
  * @param {Function} [options.fetch] - Custom fetch implementation (useful for testing)
  * @returns {GeminiClient|OpenAIClient} Instantiated LLM client
