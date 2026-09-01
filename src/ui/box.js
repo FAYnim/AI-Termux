@@ -186,7 +186,7 @@ export function renderStatusLine(options = {}) {
 
   const segments = [tok, `ctx ${pct}%`];
   if (iterations > 0 && maxIterations > 0) {
-    segments.push(`loop ${iterations}/${maxIterations}`);
+    segments.push(`loop ${iterations}/${Number.isFinite(maxIterations) ? maxIterations : '∞'}`);
   }
 
   return ansi.dim(`─ ${segments.join(' │ ')} ─`);

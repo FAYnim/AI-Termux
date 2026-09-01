@@ -424,7 +424,7 @@ describe('Step 4: Orchestrator Usage Accumulation', () => {
           text: 'loop attempt',
           functionCalls: [{ name: 'read_file', args: { filePath: 'missing.txt' } }],
           finishReason: 'STOP',
-          usage: { promptTokenCount: 700000, candidatesTokenCount: 10, totalTokenCount: 700010 },
+          usage: { promptTokenCount: 950000, candidatesTokenCount: 10, totalTokenCount: 950010 },
         };
       },
     };
@@ -439,10 +439,11 @@ describe('Step 4: Orchestrator Usage Accumulation', () => {
 
     const result = await orchestrator.runTurn('keep going', {});
 
-    // Iteration 1 passes the estimator check (no usage yet), records 700k real
-    // usage; iteration 2's getContextTokens() exceeds the 680k budget → break.
+    // Iteration 1 passes the estimator check (no usage yet), records 950k real
+    // usage; iteration 2's getContextTokens() exceeds the 736k trigger → compact.
+    // Head is empty (3 messages ≤ keep window) → noop ×2 → break at iteration 3.
     assert.equal(callCount, 1);
-    assert.equal(result.iterations, 2);
+    assert.equal(result.iterations, 3);
     assert.equal(result.loopLimitReached, false);
     assert.equal(result.success, true);
   });
@@ -471,5 +472,113 @@ describe('Step 4: Orchestrator Usage Accumulation', () => {
     assert.equal(usage.llmRequests, 0);
     assert.equal(usage.totalTokens, 0);
     assert.ok(usage.estTokensAtLastRequest > 0);
+  });
+});
+
+describe('Unlimited loop with auto-compact', () => {
+  let tempDir;
+  let sessionManager;
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-unlimited-test-'));
+    sessionManager = new SessionManager({ sessionsDir: tempDir });
+  });
+  afterEach(() => {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch {}
+  });
+
+  test('default maxIterations is Infinity and loop runs past 30', async () => {
+    let callCount = 0;
+    const mock = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => {
+        callCount++;
+        if (callCount >= 35) return { text: 'done', functionCalls: [] };
+        return { text: 'tick', functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }] };
+      },
+    };
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mock,
+      session,
+      workingDir: tempDir,
+      autoApprove: true,
+      reflectionInterval: 0, // reflection would stop the repetitive loop
+    });
+    assert.equal(orchestrator.maxIterations, Infinity);
+    const result = await orchestrator.runTurn('keep ticking');
+    assert.equal(result.iterations, 35);
+    assert.equal(result.loopLimitReached, false);
+    assert.equal(result.success, true);
+  });
+
+  test('budget exceeded triggers compact then continues (not break)', async () => {
+    let callCount = 0;
+    const mock = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => {
+        callCount++;
+        if (callCount >= 2) return { text: 'finished', functionCalls: [] };
+        return {
+          text: 'big turn',
+          functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }],
+          usage: { promptTokenCount: 950000, candidatesTokenCount: 10, totalTokenCount: 950010 },
+        };
+      },
+      generate: async () => ({ text: 'compact summary' }), // compactSession LLM call
+    };
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    // Pre-seed 12 turns so the session exceeds COMPACT_KEEP_RECENT (10) —
+    // otherwise splitForCompact returns an empty head and compact is a noop.
+    for (let i = 0; i < 12; i++) {
+      session.addMessage({
+        role: 'model',
+        parts: [{ functionCall: { name: 'list_dir', args: { dirPath: `d${i}` } } }],
+      });
+      session.addFunctionResponseMessage('list_dir', { content: `out ${i}` });
+    }
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mock,
+      session,
+      workingDir: tempDir,
+      autoApprove: true,
+      maxContextTokens: 1000000, // trigger = 920k; iter 1 records 950k real → over
+      reflectionInterval: 0,
+    });
+    const compactEvents = [];
+    const result = await orchestrator.runTurn('go', {
+      onCompactStart: () => compactEvents.push('start'),
+      onCompactEnd: (r) => compactEvents.push(['end', r.method]),
+    });
+    assert.equal(callCount, 2); // loop continued past the budget check
+    assert.equal(result.text, 'finished');
+    assert.deepEqual(compactEvents, ['start', ['end', 'llm']]);
+    assert.match(session.getMessages()[0].parts[0].text, /\[Compact summary\]/);
+  });
+
+  test('two consecutive noop compacts break the loop with warning', async () => {
+    const mock = {
+      getModel: () => 'gemini-2.5-flash',
+      generateStream: async () => ({
+        text: 'y'.repeat(400000),
+        functionCalls: [{ name: 'list_dir', args: { dirPath: '.' } }],
+      }),
+    };
+    const session = sessionManager.createSession({ workingDir: tempDir });
+    const warnings = [];
+    const orchestrator = new AgentOrchestrator({
+      llmClient: mock,
+      session,
+      workingDir: tempDir,
+      autoApprove: true,
+      maxContextTokens: 100000, // trigger 92k — first turn already over
+      reflectionInterval: 0,
+      logger: { warn: (m) => warnings.push(m), info: () => {}, error: () => {} },
+    });
+    const result = await orchestrator.runTurn('go');
+    assert.equal(result.loopLimitReached, false);
+    assert.ok(warnings.some((w) => /compaction could not reduce/i.test(w)));
+    assert.ok(result.iterations <= 5, `expected early break, got ${result.iterations}`);
   });
 });

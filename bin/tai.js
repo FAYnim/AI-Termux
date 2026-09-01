@@ -340,6 +340,7 @@ ${ansi.yellow('Or export as environment variable:')}
     baseUrl: sessionBaseUrl,
     session: activeSession,
     autoApprove,
+    maxIterations: parsed.flags.maxIterations || undefined,
     locale: configMgr.get('locale'),
     logger,
   });

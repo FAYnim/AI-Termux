@@ -15,6 +15,7 @@ import {
   estimateTokens,
   pruneMessages,
   sanitizeConversationHistory,
+  truncateOversizedToolResults,
 } from '../src/agent/pruner.js';
 import { generateSessionId, Session, SessionManager } from '../src/agent/session.js';
 import { buildSystemPrompt, detectEnvironment } from '../src/agent/system-prompt.js';
@@ -404,5 +405,33 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
     const loaded = sessionManager.loadSession(sess.id);
     assert.equal(loaded.provider, 'openai');
     assert.equal(loaded.model, 'gpt-4o');
+  });
+});
+
+describe('truncateOversizedToolResults', () => {
+  test('function response over 25% of budget is cut and marked', () => {
+    const big = 'x'.repeat(40000); // ~10k tokens, budget 1000 → cap 250 tokens = 1000 chars
+    const messages = [
+      { role: 'user', parts: [{ text: 'go' }] },
+      { role: 'model', parts: [{ functionCall: { name: 'read_file', args: {} } }] },
+      { role: 'function', parts: [{ functionResponse: { name: 'read_file', response: { content: big } } }] },
+    ];
+    const out = truncateOversizedToolResults(messages, 1000);
+    const resp = out[2].parts[0].functionResponse.response;
+    assert.equal(resp.truncated, true);
+    assert.ok(/\[truncated \d+ chars\]/.test(resp.note));
+    assert.ok(resp.content.length < big.length);
+    // Original message object untouched (sessions treat messages as immutable)
+    assert.equal(messages[2].parts[0].functionResponse.response.content.length, 40000);
+  });
+
+  test('small responses and non-function messages pass through unchanged', () => {
+    const messages = [
+      { role: 'user', parts: [{ text: 'hi' }] },
+      { role: 'function', parts: [{ functionResponse: { name: 't', response: { content: 'ok' } } }] },
+    ];
+    const out = truncateOversizedToolResults(messages, 100000);
+    assert.equal(out[0], messages[0]);
+    assert.equal(out[1], messages[1]);
   });
 });

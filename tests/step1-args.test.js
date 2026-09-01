@@ -128,3 +128,23 @@ describe('CLI Argument Parser (src/cli/args.js)', () => {
     assert.equal(res2.prompt, 'perbaiki test error');
   });
 });
+
+describe('--max-iterations', () => {
+  test('space-separated value', () => {
+    const { flags } = parseArgs(['--max-iterations', '5', 'hello']);
+    assert.equal(flags.maxIterations, 5);
+  });
+  test('equals form', () => {
+    const { flags } = parseArgs(['--max-iterations=12']);
+    assert.equal(flags.maxIterations, 12);
+  });
+  test('invalid or missing value → null', () => {
+    assert.equal(parseArgs(['--max-iterations', 'abc']).flags.maxIterations, null);
+    assert.equal(parseArgs(['--max-iterations']).flags.maxIterations, null);
+    assert.equal(parseArgs(['--max-iterations', '0']).flags.maxIterations, null);
+    assert.equal(parseArgs(['--max-iterations', '-3']).flags.maxIterations, null);
+  });
+  test('absent → null (orchestrator default Infinity applies)', () => {
+    assert.equal(parseArgs(['hi']).flags.maxIterations, null);
+  });
+});

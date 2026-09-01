@@ -241,6 +241,7 @@ describe('E2E Step 6: UNIX Stdin Piping & Analysis Workflow', () => {
       session,
       workingDir: tempDir,
       autoApprove: true,
+      maxIterations: 10, // bound the loop (default is now unlimited)
     });
 
     // Simulate piped stdin content (log) + user instruction

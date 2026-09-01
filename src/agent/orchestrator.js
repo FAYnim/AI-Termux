@@ -4,11 +4,13 @@
  * Local Tools Actuator, Security Guard, and Session Persistence.
  */
 
+import path from 'node:path';
 import { parseTextToolCalls } from '../llm/openai.js';
 import { createLlmClient } from '../llm/registry.js';
 import { SecurityGuard } from '../security/guard.js';
 import { dispatchToolCall, getToolDeclarations } from '../tools/registry.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { compactSession } from './compactor.js';
 import { pruneMessages } from './pruner.js';
 import { ReflectionChecker } from './reflection.js';
 import { createSession, Session } from './session.js';
@@ -20,7 +22,7 @@ import {
   markRequestStart,
 } from './usage.js';
 
-export const DEFAULT_MAX_ITERATIONS = 30;
+export const DEFAULT_MAX_ITERATIONS = Infinity;
 
 /**
  * Core ReAct Agent Orchestrator Class
@@ -35,7 +37,7 @@ export class AgentOrchestrator {
    * @param {string} [options.model] - Model name override
    * @param {string} [options.apiKey] - API key override
    * @param {string} [options.workingDir] - Active working directory
-   * @param {number} [options.maxIterations=15] - Maximum autonomous loop turns
+   * @param {number} [options.maxIterations=Infinity] - Maximum autonomous loop turns (default Infinity — the context window is the limit)
    * @param {Array<object>} [options.tools] - Tool declarations
    * @param {string} [options.systemInstruction] - Custom system prompt
    * @param {boolean} [options.autoApprove=false] - Auto-approve risky actions
@@ -48,6 +50,7 @@ export class AgentOrchestrator {
     this.maxIterations = options.maxIterations || DEFAULT_MAX_ITERATIONS;
     this.maxContextTokens = options.maxContextTokens;
     this.reflectionInterval = options.reflectionInterval != null ? options.reflectionInterval : 3;
+    this.compactTimeoutMs = options.compactTimeoutMs ?? 30000;
     this.logger = options.logger || defaultLogger;
     this.locale = options.locale;
 
@@ -103,6 +106,18 @@ export class AgentOrchestrator {
   }
 
   /**
+   * Archive file for replaced raw turns: <sessionsDir>/<id>.archive.jsonl.
+   * Null when the session has no storage dir (in-memory test sessions).
+   * @returns {string|null}
+   */
+  _archivePath() {
+    const dir = this.session?.sessionsDir;
+    const id = this.session?.id;
+    if (!dir || !id) return null;
+    return path.join(dir, `${String(id).replace(/[^a-zA-Z0-9_-]/g, '')}.archive.jsonl`);
+  }
+
+  /**
    * Sets or attaches a new session
    * @param {Session} session
    */
@@ -140,6 +155,7 @@ export class AgentOrchestrator {
     const executedToolCalls = [];
     let finalText = '';
     let loopLimitReached = false;
+    let noopCompacts = 0;
     let currentIteration = 0;
 
     // Reflection checker (0 means disabled)
@@ -169,16 +185,49 @@ export class AgentOrchestrator {
         options.onIterationStart(currentIteration);
       }
 
-      // Step 0: Token Budget Check — stop before context overflows.
+      // Step 0: Context pressure check — compact and keep going. The only
+      // hard stops left are: final text answer, abort, API error,
+      // reflection, an explicit cap, or the double-noop guard below.
       // Real API usage anchors the estimate when available (see usage.js).
       const currentTokens = getContextTokens(this.session);
       const budgetLimit = contextBudgetLimit(this.maxContextTokens);
       if (currentTokens > budgetLimit) {
-        this.logger.warn(
-          `Token budget exceeded (${currentTokens.toLocaleString()} / ${budgetLimit.toLocaleString()} tokens). ` +
-            `Stopping ReAct loop at iteration ${currentIteration} to avoid context overflow.`,
-        );
-        break;
+        if (typeof options.onCompactStart === 'function') options.onCompactStart();
+        let compactResult;
+        try {
+          compactResult = await compactSession(this.session, this.llmClient, {
+            archivePath: this._archivePath(),
+            logger: this.logger,
+            signal,
+            timeoutMs: this.compactTimeoutMs,
+          });
+        } catch (compactErr) {
+          // Abort during compaction propagates like any other abort.
+          throw compactErr;
+        }
+        if (typeof options.onCompactEnd === 'function') options.onCompactEnd(compactResult);
+
+        if (compactResult.compacted) {
+          noopCompacts = 0;
+          try {
+            this.session.save();
+          } catch (saveErr) {
+            this.logger.warn(`Failed to persist session after compaction: ${saveErr.message}`);
+          }
+        } else {
+          noopCompacts++;
+          if (noopCompacts >= 2) {
+            this.logger.warn(
+              `Context over budget (${currentTokens.toLocaleString()} / ${budgetLimit.toLocaleString()}) ` +
+                `but compaction could not reduce it (nothing left to compact). Stopping ReAct loop.`,
+            );
+            loopLimitReached = false;
+            break;
+          }
+        }
+        // Re-check budget next iteration; the real request for this
+        // iteration has not been sent yet, so nothing is wasted.
+        continue;
       }
 
       // Step 1: Context Pruning

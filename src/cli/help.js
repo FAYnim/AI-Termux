@@ -38,6 +38,7 @@ ${ansi.bold('OPTIONS:')}
   ${ansi.green('-h, --help')}               Show this help menu
   ${ansi.green('--verbose')}                Enable verbose debug logging
   ${ansi.green('--timeout <ms>')}           Command execution timeout in milliseconds
+  ${ansi.green('--max-iterations <n>')}     Cap autonomous loop turns ${ansi.dim('(default: unlimited, context window is the limit)')}
   ${ansi.green('--config-dir <dir>')}       Use custom configuration directory
 
 ${ansi.bold('PROVIDER COMMANDS:')}

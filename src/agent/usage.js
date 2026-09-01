@@ -15,8 +15,11 @@ import { estimateSessionTokens } from './pruner.js';
  */
 const FALLBACK_MAX_CONTEXT_TOKENS = 800000;
 
-/** Fraction of the context budget where the ReAct loop force-stops. */
-const BUDGET_STOP_RATIO = 0.85;
+/** Fraction of the context budget where auto-compaction triggers. */
+const BUDGET_STOP_RATIO = 0.92;
+
+/** Fraction of the context budget that compaction aims to return to. */
+const COMPACT_TARGET_RATIO = 0.6;
 
 /**
  * Creates a zeroed usage accumulator object
@@ -139,7 +142,7 @@ export function getContextTokens(session) {
 }
 
 /**
- * Single source for the budget force-stop limit: 85% of the max context
+ * Single source for the compact trigger: 92% of the max context
  * tokens, with the 800k fallback the orchestrator has always used for a
  * falsy limit. The orchestrator's budget check uses this function, and
  * the REPL status line (wired in a later task) will derive its limit
@@ -149,6 +152,17 @@ export function getContextTokens(session) {
  */
 export function contextBudgetLimit(maxContextTokens) {
   return Math.floor((maxContextTokens || FALLBACK_MAX_CONTEXT_TOKENS) * BUDGET_STOP_RATIO);
+}
+
+/**
+ * Token level compaction aims to reach after replacing old turns with a
+ * summary. Kept well under contextBudgetLimit() so the next large tool
+ * result still fits before the following iteration's trigger check.
+ * @param {number|null|undefined} maxContextTokens
+ * @returns {number}
+ */
+export function compactTargetLimit(maxContextTokens) {
+  return Math.floor((maxContextTokens || FALLBACK_MAX_CONTEXT_TOKENS) * COMPACT_TARGET_RATIO);
 }
 
 /**

@@ -256,6 +256,59 @@ export function buildSummaryMessage(droppedMessages, options = {}) {
 }
 
 /**
+ * A single tool result may never exceed this fraction of the context budget;
+ * anything larger is cut so one giant read_file cannot blow past the
+ * 92%-trigger / 60%-target compact margin between iterations.
+ */
+const MAX_SINGLE_RESPONSE_RATIO = 0.25;
+
+/**
+ * Returns a copy of `messages` with any functionResponse whose estimate
+ * exceeds maxTokens * MAX_SINGLE_RESPONSE_RATIO replaced by a truncated
+ * variant carrying a `[truncated N chars]` note. Message objects are never
+ * mutated — replaced messages are fresh copies (session immutability rule).
+ *
+ * @param {Array<object>} messages
+ * @param {number} maxTokens - context budget in tokens (not the 92% trigger)
+ * @returns {Array<object>}
+ */
+export function truncateOversizedToolResults(messages, maxTokens) {
+  if (!Array.isArray(messages) || !(maxTokens > 0)) return messages || [];
+  const maxChars = Math.floor(maxTokens * MAX_SINGLE_RESPONSE_RATIO) * CHARS_PER_TOKEN;
+
+  return messages.map((msg) => {
+    if (!msg || msg.role !== 'function' || !Array.isArray(msg.parts)) return msg;
+    if (estimateTokens(msg) <= maxTokens * MAX_SINGLE_RESPONSE_RATIO) return msg;
+
+    return {
+      ...msg,
+      parts: msg.parts.map((part) => {
+        const fr = part?.functionResponse;
+        if (!fr) return part;
+        let json;
+        try {
+          json = JSON.stringify(fr.response ?? '');
+        } catch {
+          json = String(fr.response ?? '');
+        }
+        if (json.length <= maxChars) return part;
+        return {
+          ...part,
+          functionResponse: {
+            ...fr,
+            response: {
+              content: json.slice(0, maxChars),
+              truncated: true,
+              note: `[truncated ${json.length - maxChars} chars]`,
+            },
+          },
+        };
+      }),
+    };
+  });
+}
+
+/**
  * Prunes conversation message history using a sliding-window strategy if token threshold is exceeded.
  * Ensures the initial user prompt / system context and the most recent N turns are preserved.
  * Drained middle turns are compressed into a bounded digest message rather than discarded, so
@@ -276,6 +329,8 @@ export function pruneMessages(messages, options = {}) {
   }
 
   const maxTokens = options.maxTokens || DEFAULT_MAX_CONTEXT_TOKENS || 800000;
+  // ponytail: reassigning param for the smallest diff; rename to `working` if this function ever grows.
+  messages = truncateOversizedToolResults(messages, maxTokens);
   const preserveRecentCount = Math.max(2, options.preserveRecentCount ?? 10);
   const keepFirst = options.keepFirst !== false;
   const compress = options.compress !== false;
