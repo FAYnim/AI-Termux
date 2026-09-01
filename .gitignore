@@ -19,3 +19,15 @@ Thumbs.db
 !.env.example
 .cache/
 .zcode/
+
+# Local editor & AI configs
+.claude/
+
+# Development & linting tools
+.githooks/
+commitlint.config.js
+biome.json
+.editorconfig
+
+# Tests (opsional jika pengguna tidak butuh pengujian)
+tests/
