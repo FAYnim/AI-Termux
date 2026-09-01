@@ -1,5 +1,5 @@
 /**
- * LLM Client Module for Termux AI CLI
+ * LLM Client Module for FAY CLI
  * Google Gemini API Client, SSE Stream Parser, Retry Engine & Message Types
  */
 

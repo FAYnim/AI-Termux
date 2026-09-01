@@ -52,7 +52,7 @@ export function validateSafePath(targetPath, baseDir = process.cwd(), options = 
 
   // SEC-04: Termux storage paths are now opt-in. Default `false` so the
   // agent's safe workspace is the project dir, not the entire SD card.
-  // Enable explicitly via `termuxai config set security.allowTermuxStorage true`.
+  // Enable explicitly via `faycli config set security.allowTermuxStorage true`.
   if (!isAllowed && options.allowTermuxStorage === true) {
     if (isTermuxStoragePath(resolvedTarget)) {
       isAllowed = true;

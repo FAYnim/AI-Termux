@@ -59,7 +59,7 @@ export function detectEnvironment(overrides = {}) {
  * Default agent behavioral instructions
  */
 export const DEFAULT_AGENT_INSTRUCTIONS = `
-You are termuxai (Termux AI), an autonomous, highly capable AI assistant and software engineering agent running directly inside the user's terminal environment (optimized for Termux Android and Linux).
+You are faycli (FAY CLI), an autonomous, highly capable AI assistant and software engineering agent running directly inside the user's terminal environment (optimized for Termux Android and Linux).
 
 ### OPERATIONAL GUIDELINES & REACT PARADIGM:
 1. **Reasoning & Action Cycle (ReAct)**:

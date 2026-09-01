@@ -388,7 +388,7 @@ export class OpenAIClient extends BaseLlmClient {
   _validateApiKey() {
     if (!this.apiKey || typeof this.apiKey !== 'string' || this.apiKey.trim() === '') {
       throw new Error(
-        "OpenAI API key is not configured. Set OPENAI_API_KEY or run 'termuxai provider add openai'.",
+        "OpenAI API key is not configured. Set OPENAI_API_KEY or run 'faycli provider add openai'.",
       );
     }
   }
