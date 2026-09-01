@@ -58,6 +58,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       llmClient: mockGemini,
       session,
       workingDir: tempDir,
+      maxIterations: 10, // bound the loop (default is now unlimited)
     });
 
     const result = await orchestrator.runTurn(
@@ -107,6 +108,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       llmClient: mockGemini1,
       session: session1,
       workingDir: tempDir,
+      maxIterations: 10, // bound the loop (default is now unlimited)
     });
 
     await orchestrator1.runTurn(
@@ -149,6 +151,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       llmClient: mockGemini2,
       session: loadedSession, // resumed session
       workingDir: tempDir,
+      maxIterations: 10, // bound the loop (default is now unlimited)
     });
 
     const result2 = await orchestrator2.runTurn(
@@ -208,6 +211,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
       session,
       workingDir: tempDir,
       autoApprove: true,
+      maxIterations: 10, // bound the loop (default is now unlimited)
     });
 
     await orchestrator.runTurn('Buat file config.json untuk proyek saya.');
