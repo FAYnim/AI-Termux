@@ -53,3 +53,74 @@ describe('autocomplete: command suggestions', () => {
     assert.deepEqual(names, [...names].sort());
   });
 });
+
+// ── File-suggestion fixtures ─────────────────────────────────────────
+const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tai-ac-'));
+fs.mkdirSync(path.join(tmpRoot, 'src', 'cli'), { recursive: true });
+fs.mkdirSync(path.join(tmpRoot, 'node_modules'), { recursive: true });
+fs.mkdirSync(path.join(tmpRoot, '.git'), { recursive: true });
+fs.writeFileSync(path.join(tmpRoot, 'README.md'), 'x');
+fs.writeFileSync(path.join(tmpRoot, '.hidden'), 'x');
+fs.writeFileSync(path.join(tmpRoot, 'src', 'index.js'), 'x');
+fs.writeFileSync(path.join(tmpRoot, 'src', 'cli', 'repl.js'), 'x');
+fs.writeFileSync(path.join(tmpRoot, 'node_modules', 'dep.js'), 'x');
+
+after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }));
+
+const fileCtx = { workingDir: tmpRoot };
+
+describe('autocomplete: file suggestions', () => {
+  test('@ at start of empty token lists working dir', () => {
+    const s = getSuggestions('@', 1, fileCtx);
+    assert.equal(s.kind, 'file');
+    const labels = s.items.map((i) => i.label);
+    assert.ok(labels.includes('README.md'));
+    assert.ok(labels.includes('src/'));
+    assert.ok(!labels.includes('node_modules'));
+    assert.ok(!labels.includes('.hidden'));
+    assert.ok(!labels.includes('.git'));
+    assert.equal(s.replaceStart, 0);
+    assert.equal(s.replaceEnd, 1);
+    assert.equal(s.dir, '');
+  });
+
+  test('@ after space triggers; email@host does not', () => {
+    const s = getSuggestions('lihat @RE', 7, fileCtx);
+    assert.equal(s.kind, 'file');
+    assert.deepEqual(
+      s.items.map((i) => i.value),
+      ['@README.md'],
+    );
+    assert.equal(s.replaceStart, 6);
+    assert.equal(s.replaceEnd, 9);
+    assert.equal(getSuggestions('email@host', 10, fileCtx), null);
+  });
+
+  test('trailing slash drills into directory', () => {
+    const s = getSuggestions('@src/', 5, fileCtx);
+    assert.equal(s.kind, 'file');
+    assert.deepEqual(
+      s.items.map((i) => i.label),
+      ['cli/', 'index.js'],
+    );
+    assert.equal(s.dir, 'src');
+  });
+
+  test('partial segment filters by prefix, dirs first', () => {
+    const s = getSuggestions('@src/c', 6, fileCtx);
+    assert.deepEqual(
+      s.items.map((i) => i.value),
+      ['@src/cli/'],
+    );
+  });
+
+  test('nonexistent path yields empty items, no throw', () => {
+    const s = getSuggestions('@no/such/xyz', 12, fileCtx);
+    assert.equal(s.kind, 'file');
+    assert.deepEqual(s.items, []);
+  });
+
+  test('cursor past token end (whitespace follows) is not a trigger', () => {
+    assert.equal(getSuggestions('@README.md ', 11, fileCtx), null);
+  });
+});
