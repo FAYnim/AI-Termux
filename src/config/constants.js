@@ -11,16 +11,16 @@
 
 /**
  * Application Constants & Default Configuration Values
- * Termux AI CLI (`termuxai`)
+ * FAY CLI (`faycli`)
  */
 
-export const APP_NAME = 'termuxai';
-export const APP_FULL_NAME = 'termux-ai-cli';
+export const APP_NAME = 'faycli';
+export const APP_FULL_NAME = 'fay-cli';
 export const APP_VERSION = '1.0.0';
 export const APP_DESCRIPTION = 'Autonomous AI Agent CLI optimized for Termux Android environment';
 
 // Configuration Paths
-export const DEFAULT_CONFIG_DIR_NAME = '.termuxai';
+export const DEFAULT_CONFIG_DIR_NAME = '.faycli';
 export const DEFAULT_CONFIG_FILE_NAME = 'config.json';
 export const DEFAULT_SESSIONS_DIR_NAME = 'sessions';
 
@@ -71,7 +71,7 @@ export const BUILTIN_PROVIDERS = {
       'gemini-1.5-pro',
       'gemini-2.0-flash',
     ],
-    envVars: ['GEMINI_API_KEY', 'TERMUXAI_API_KEY', 'T_AI_API_KEY'],
+    envVars: ['GEMINI_API_KEY', 'FAYCLI_API_KEY', 'T_AI_API_KEY'],
     envBaseUrlVars: [],
     envModelVars: [],
   },
