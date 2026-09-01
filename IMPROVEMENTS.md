@@ -238,6 +238,7 @@
 **Difficulty**: Medium
 - Git history shows reasonable convention (`feat:`, `fix:`, `docs:`), but nothing enforces it.
 - **Fix**: Add `commitlint` + husky pre-commit hook.
+- **Status**: ✅ **FIXED** (2026-09-01) — Added `@commitlint/cli` + `@commitlint/config-conventional` (devDeps) with `commitlint.config.js` (ESM, `export default`). New `.githooks/commit-msg` hook enforces Conventional Commits on every commit (enable with `git config core.hooksPath .githooks`, same mechanism as MAINT-01). New scripts `commitlint` (check commits since `origin/main`) and `commitlint:check` (check the pending commit message). Kept husky out: repo already has a working `.githooks` dir, adding husky would double the hook tooling.
 
 ### CONFIG-03 — `scripts/test` runs only unit tests, not e2e
 **Difficulty**: Easy
