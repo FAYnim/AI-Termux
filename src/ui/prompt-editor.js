@@ -153,7 +153,10 @@ export function promptLine(opts = {}) {
       switch (key.name) {
         case 'return':
         case 'enter':
-          if (sug) {
+          // Enter completes only while the token is still partial.
+          // Exact match (typed "/exit" in full) → Enter submits, like Tab
+          // would have done one keystroke earlier.
+          if (sug && text.slice(sug.replaceStart, sug.replaceEnd) !== sug.items[sel]?.value) {
             insertSelected();
             render();
             return;
