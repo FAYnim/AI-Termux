@@ -10,6 +10,7 @@ import { estimateSessionTokens } from '../src/agent/pruner.js';
 import { Session } from '../src/agent/session.js';
 import {
   accumulateUsage,
+  compactTargetLimit,
   contextBudgetLimit,
   createUsage,
   formatCompactTokens,
@@ -160,15 +161,15 @@ describe('Context Tokens & Budget', () => {
     assert.equal(getContextTokens(session), 700000);
   });
 
-  test('contextBudgetLimit takes 85% of the given limit', () => {
-    assert.equal(contextBudgetLimit(1000000), 850000);
-    assert.equal(contextBudgetLimit(800000), 680000);
+  test('contextBudgetLimit takes 92% of the given limit', () => {
+    assert.equal(contextBudgetLimit(1000000), 920000);
+    assert.equal(contextBudgetLimit(800000), 736000);
   });
 
   test('contextBudgetLimit falls back to the 800k default on falsy input', () => {
-    assert.equal(contextBudgetLimit(undefined), 680000);
-    assert.equal(contextBudgetLimit(null), 680000);
-    assert.equal(contextBudgetLimit(0), 680000);
+    assert.equal(contextBudgetLimit(undefined), 736000);
+    assert.equal(contextBudgetLimit(null), 736000);
+    assert.equal(contextBudgetLimit(0), 736000);
   });
 
   test('getContextTokens falls back to the estimator on corrupt lastPromptTokens', () => {
@@ -227,6 +228,19 @@ describe('Context Tokens & Budget', () => {
 
     assert.deepEqual(session.metadata.usage, createUsage());
     assert.equal(getContextTokens(session), estimateSessionTokens(session));
+  });
+});
+
+describe('compact ratios', () => {
+  test('trigger is 92% of budget, target is 60%, target < trigger', () => {
+    assert.equal(contextBudgetLimit(1000000), 920000);
+    assert.equal(compactTargetLimit(1000000), 600000);
+    assert.ok(compactTargetLimit(1000000) < contextBudgetLimit(1000000));
+  });
+
+  test('compactTargetLimit uses the same 800k fallback as contextBudgetLimit', () => {
+    assert.equal(compactTargetLimit(undefined), Math.floor(800000 * 0.6));
+    assert.equal(compactTargetLimit(null), Math.floor(800000 * 0.6));
   });
 });
 
