@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Termux AI CLI (`termuxai`) — One-Command Installer
+# FAY CLI (`faycli`) — One-Command Installer
 # Supports: Android Termux, Linux (Debian/Ubuntu/Arch), macOS
 #
 # Usage:
@@ -49,7 +49,7 @@ print_banner() {
   echo -e "${BOLD}${CYAN}     ██║         ██║  ██║██║${RESET}"
   echo -e "${BOLD}${CYAN}     ╚═╝         ╚═╝  ╚═╝╚═╝${RESET}"
   echo ""
-  echo -e "${BOLD}  Termux AI CLI (termuxai) — Installer${RESET}"
+  echo -e "${BOLD}  FAY CLI (faycli) — Installer${RESET}"
   echo -e "${CYAN}  Autonomous AI Agent for Termux Android & Linux${RESET}"
   echo ""
 }
@@ -114,18 +114,18 @@ install_node() {
 
 # ── Setup Directories ────────────────────────────────────────────
 setup_directories() {
-  log_step "Setting up termuxai directories"
+  log_step "Setting up faycli directories"
 
-  TERMUXAI_DIR="$HOME/.termuxai"
-  SESSIONS_DIR="$TERMUXAI_DIR/sessions"
+  FAYCLI_DIR="$HOME/.faycli"
+  SESSIONS_DIR="$FAYCLI_DIR/sessions"
 
-  mkdir -p "$TERMUXAI_DIR"
-  chmod 700 "$TERMUXAI_DIR"
+  mkdir -p "$FAYCLI_DIR"
+  chmod 700 "$FAYCLI_DIR"
 
   mkdir -p "$SESSIONS_DIR"
   chmod 700 "$SESSIONS_DIR"
 
-  log_success "Config directory: $TERMUXAI_DIR"
+  log_success "Config directory: $FAYCLI_DIR"
   log_success "Sessions directory: $SESSIONS_DIR"
 
   # Termux storage setup reminder
@@ -133,14 +133,14 @@ setup_directories() {
     if [ ! -d "$HOME/storage" ]; then
       echo ""
       log_warn "Termux storage access not configured."
-      log_info "To allow termuxai to access /sdcard, run: termux-setup-storage"
+      log_info "To allow faycli to access /sdcard, run: termux-setup-storage"
     fi
   fi
 }
 
-# ── Install termuxai ─────────────────────────────────────────────
-install_termuxai() {
-  log_step "Installing termuxai CLI"
+# ── Install faycli ─────────────────────────────────────────────
+install_faycli() {
+  log_step "Installing faycli CLI"
 
   # Determine install directory (where this script lives)
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -162,15 +162,15 @@ install_termuxai() {
   log_success "Set executable permission on bin/tai.js"
 
   # Install globally using npm link or npm install -g
-  log_info "Linking termuxai globally via npm..."
+  log_info "Linking faycli globally via npm..."
   cd "$SCRIPT_DIR"
 
   if npm link 2>/dev/null; then
-    log_success "termuxai linked globally via npm link"
+    log_success "faycli linked globally via npm link"
   else
     log_warn "npm link failed, trying npm install -g ..."
     if npm install -g . 2>/dev/null; then
-      log_success "termuxai installed globally via npm install -g"
+      log_success "faycli installed globally via npm install -g"
     else
       # Fallback: create manual symlink in ~/.local/bin or $PREFIX/bin (Termux)
       log_warn "npm global install failed. Creating manual symlink..."
@@ -196,8 +196,8 @@ create_symlink() {
     LINK_DIR="$HOME/.local/bin"
   fi
 
-  # Create symlink for termuxai command
-  ln -sf "$TAI_BIN" "$LINK_DIR/termuxai" 2>/dev/null || true
+  # Create symlink for faycli command
+  ln -sf "$TAI_BIN" "$LINK_DIR/faycli" 2>/dev/null || true
   log_success "Symlink created in $LINK_DIR"
 }
 
@@ -207,11 +207,11 @@ post_install() {
 
   sleep 0.5
 
-  if command -v termuxai &>/dev/null; then
-    TERMUXAI_VERSION=$(termuxai --version 2>/dev/null || echo "unknown")
-    log_success "termuxai command is available: termuxai $TERMUXAI_VERSION"
+  if command -v faycli &>/dev/null; then
+    FAYCLI_VERSION=$(faycli --version 2>/dev/null || echo "unknown")
+    log_success "faycli command is available: faycli $FAYCLI_VERSION"
   else
-    log_warn "Could not find termuxai in PATH. You may need to restart your terminal."
+    log_warn "Could not find faycli in PATH. You may need to restart your terminal."
     log_info "Try: hash -r  (to reload PATH)"
   fi
 
@@ -221,24 +221,24 @@ post_install() {
   echo -e "${BOLD}  Next Steps:${RESET}"
   echo ""
   echo -e "  1. ${BOLD}Set your Gemini API key:${RESET}"
-  echo -e "     ${CYAN}termuxai config set apiKey YOUR_GEMINI_API_KEY${RESET}"
+  echo -e "     ${CYAN}faycli config set apiKey YOUR_GEMINI_API_KEY${RESET}"
   echo -e "     ${CYAN}# Or export as environment variable:${RESET}"
   echo -e "     ${CYAN}export GEMINI_API_KEY=\"YOUR_GEMINI_API_KEY\"${RESET}"
   echo ""
   echo -e "     Get a free API key at: ${CYAN}https://aistudio.google.com/${RESET}"
   echo ""
   echo -e "  2. ${BOLD}Start the interactive REPL:${RESET}"
-  echo -e "     ${CYAN}termuxai${RESET}"
+  echo -e "     ${CYAN}faycli${RESET}"
   echo ""
   echo -e "  3. ${BOLD}Run a single task:${RESET}"
-  echo -e "     ${CYAN}termuxai \"Buat fungsi add(a, b) di JavaScript\"${RESET}"
+  echo -e "     ${CYAN}faycli \"Buat fungsi add(a, b) di JavaScript\"${RESET}"
   echo ""
   echo -e "  4. ${BOLD}Use with UNIX pipes:${RESET}"
-  echo -e "     ${CYAN}cat error.log | termuxai \"Analisis IP mencurigakan\"${RESET}"
-  echo -e "     ${CYAN}git diff | termuxai \"Buat pesan commit\"${RESET}"
+  echo -e "     ${CYAN}cat error.log | faycli \"Analisis IP mencurigakan\"${RESET}"
+  echo -e "     ${CYAN}git diff | faycli \"Buat pesan commit\"${RESET}"
   echo ""
   echo -e "  5. ${BOLD}Get help:${RESET}"
-  echo -e "     ${CYAN}termuxai --help${RESET}"
+  echo -e "     ${CYAN}faycli --help${RESET}"
   echo ""
 }
 
@@ -257,7 +257,7 @@ main() {
 
   check_node
   setup_directories
-  install_termuxai
+  install_faycli
   post_install
 }
 
