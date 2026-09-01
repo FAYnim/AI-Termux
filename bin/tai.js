@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`termuxai`)
+ * FAY CLI (`faycli`)
  * Executable Entrypoint
  */
 
@@ -56,7 +56,7 @@ async function main() {
 
     if (sub === 'get') {
       if (!key) {
-        logger.error('Missing configuration key. Usage: termuxai config get <key>');
+        logger.error('Missing configuration key. Usage: faycli config get <key>');
         process.exit(1);
       }
       const val = configMgr.get(key);
@@ -71,7 +71,7 @@ async function main() {
 
     if (sub === 'set') {
       if (!key || val === undefined) {
-        logger.error('Missing key or value. Usage: termuxai config set <key> <val>');
+        logger.error('Missing key or value. Usage: faycli config set <key> <val>');
         process.exit(1);
       }
       configMgr.set(key, val);
@@ -83,7 +83,7 @@ async function main() {
 
     if (sub === 'delete') {
       if (!key) {
-        logger.error('Missing configuration key. Usage: termuxai config delete <key>');
+        logger.error('Missing configuration key. Usage: faycli config delete <key>');
         process.exit(1);
       }
       configMgr.delete(key);
@@ -126,7 +126,7 @@ async function main() {
 
     if (sub === 'delete') {
       if (!sessId) {
-        logger.error('Missing session ID. Usage: termuxai session delete <session-id>');
+        logger.error('Missing session ID. Usage: faycli session delete <session-id>');
         process.exit(1);
       }
       defaultSessionManager.deleteSession(sessId);
@@ -164,7 +164,7 @@ async function main() {
 
     if (sub === 'use') {
       if (!pid) {
-        logger.error('Missing provider id. Usage: termuxai provider use <id>');
+        logger.error('Missing provider id. Usage: faycli provider use <id>');
         process.exit(1);
       }
       configMgr.set('activeProvider', pid);
@@ -175,7 +175,7 @@ async function main() {
     if (sub === 'add') {
       const id = pid;
       if (!id) {
-        logger.error('Missing provider id. Usage: termuxai provider add <id>');
+        logger.error('Missing provider id. Usage: faycli provider add <id>');
         process.exit(1);
       }
       const upsert = {};
@@ -205,7 +205,7 @@ async function main() {
 
     if (sub === 'remove') {
       if (!pid) {
-        logger.error('Missing provider id. Usage: termuxai provider remove <id>');
+        logger.error('Missing provider id. Usage: faycli provider remove <id>');
         process.exit(1);
       }
       try {
@@ -261,7 +261,7 @@ async function main() {
 Select: `);
       if (!process.stdin.isTTY) {
         logger.error(
-          "No API key configured. Set GEMINI_API_KEY or OPENAI_API_KEY, or run 'termuxai provider add <id>'.",
+          "No API key configured. Set GEMINI_API_KEY or OPENAI_API_KEY, or run 'faycli provider add <id>'.",
         );
         process.exit(1);
       }
@@ -296,7 +296,7 @@ Select: `);
     );
     console.log(`
 ${ansi.yellow('To set your API key, run:')}
-  ${ansi.green(`termuxai provider add ${effectiveProvider} --api-key <key>`)}
+  ${ansi.green(`faycli provider add ${effectiveProvider} --api-key <key>`)}
 
 ${ansi.yellow('Or export as environment variable:')}
   ${ansi.green(`export ${envVars.split(',')[0]}="<key>"`)}
