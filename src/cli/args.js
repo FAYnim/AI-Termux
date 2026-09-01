@@ -30,6 +30,7 @@ export function parseArgs(rawArgs = []) {
     modelAdd: null, // --add <m[,m2,...]>  : add model(s) to a provider's catalog
     modelRemove: null, // --remove <m[,m2,...]> : remove model(s) from a provider's catalog
     modelClear: false, // --clear             : reset catalog to builtin defaults
+    maxIterations: null, // --max-iterations <n> : cap ReAct loop (default unlimited)
   };
 
   const positional = [];
@@ -95,6 +96,14 @@ export function parseArgs(rawArgs = []) {
       if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
         const num = Number(args[++i]);
         if (!Number.isNaN(num)) flags.timeout = num;
+      }
+    } else if (arg.startsWith('--max-iterations=')) {
+      const num = Number(arg.slice(17));
+      if (Number.isInteger(num) && num > 0) flags.maxIterations = num;
+    } else if (arg === '--max-iterations') {
+      if (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        const num = Number(args[++i]);
+        if (Number.isInteger(num) && num > 0) flags.maxIterations = num;
       }
     } else if (arg === '--list') {
       // Phase 3: used by `tai model --list`
