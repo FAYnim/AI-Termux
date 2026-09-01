@@ -3,7 +3,6 @@
  * Multi-turn terminal interface with slash commands and SIGINT handling.
  */
 
-import readline from 'node:readline';
 import { AgentOrchestrator, createAgentOrchestrator } from '../agent/orchestrator.js';
 import { contextBudgetLimit, getContextTokens, getUsage } from '../agent/usage.js';
 import { APP_NAME } from '../config/constants.js';
@@ -11,9 +10,11 @@ import { ConfigManager } from '../config/manager.js';
 import { loadLocale, t } from '../i18n/index.js';
 import { renderBanner, renderStatusLine } from '../ui/box.js';
 import { renderMarkdown } from '../ui/markdown.js';
+import { closePromptLine, pausePrompt, promptLine, resumePrompt } from '../ui/prompt-editor.js';
 import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { getSuggestions } from './autocomplete.js';
 import { executeSlashCommand, isSlashCommand } from './slash-commands.js';
 
 export const REPL_PROMPT = `${ansi.cyan(APP_NAME)} ${ansi.bold('❯')} `;
@@ -72,13 +73,6 @@ export async function startRepl(options = {}) {
 
   output.write(`\n${banner}\n\n`);
 
-  const rl = readline.createInterface({
-    input,
-    output,
-    prompt: REPL_PROMPT,
-    terminal: Boolean(output.isTTY),
-  });
-
   let isBusy = false;
   let activeAbortController = null;
   let lastSigintTime = 0;
@@ -86,41 +80,31 @@ export async function startRepl(options = {}) {
   let _wizardActive = false; // true while a sub-readline wizard owns stdin
   let lastIterations = 0;
 
-  // Handle SIGINT (Ctrl+C)
-  rl.on('SIGINT', () => {
+  // Ctrl+C while a turn is running aborts it. While idle, the prompt editor
+  // owns raw mode and routes Ctrl+C to handleCtrlC below instead.
+  const onProcessSigint = () => {
     if (isBusy && activeAbortController) {
       output.write(`\n${ansi.yellow(t('cancelled'))}\n`);
       activeAbortController.abort();
-      return;
     }
+  };
+  process.on('SIGINT', onProcessSigint);
 
-    // Remove early return for wizardActive – Ctrl+C should always trigger REPL exit flow.
-
+  // Double Ctrl+C within 1s exits; mirrors the old rl.on('SIGINT') idle path.
+  const handleCtrlC = () => {
     const now = Date.now();
     if (now - lastSigintTime < 1000) {
       output.write(`\n${ansi.cyan(t('goodbye'))}\n\n`);
       isClosing = true;
-      rl.close();
-      return;
+      return 'exit';
     }
-
     lastSigintTime = now;
     output.write(`\n${ansi.dim(t('ctrlCExitHint'))}\n`);
-    rl.prompt();
-  });
-
-  // Prompt reader helper
-  const askQuestion = () => {
-    return new Promise((resolve) => {
-      if (isClosing) {
-        resolve(null);
-        return;
-      }
-      rl.question(REPL_PROMPT, (answer) => {
-        resolve(answer);
-      });
-    });
+    return 'continue';
   };
+
+  const promptSuggestions = (text, cursor) =>
+    getSuggestions(text, cursor, { workingDir: orchestrator.workingDir });
 
   // Prints the one-line session status (tokens · context · loops) that the
   // user sees above every new prompt. Reads fresh session state so it is
@@ -140,7 +124,13 @@ export async function startRepl(options = {}) {
 
   // Main REPL Event Loop
   while (!isClosing) {
-    const rawInput = await askQuestion();
+    const rawInput = await promptLine({
+      input,
+      output,
+      prompt: REPL_PROMPT,
+      getSuggestions: promptSuggestions,
+      onCtrlC: handleCtrlC,
+    });
     if (rawInput === null || isClosing) {
       break;
     }
@@ -152,10 +142,11 @@ export async function startRepl(options = {}) {
 
     // Intercept Slash Commands
     if (isSlashCommand(line)) {
-      // Pause the outer REPL readline so the wizard (a child readline on
+      // Pause the fallback readline so the wizard (a child readline on
       // the same input stream) can read raw ESC bytes without them leaking
       // back to the REPL and being interpreted as SIGINT/exit.
-      if (typeof rl.pause === 'function') rl.pause();
+      // No-op in TTY mode, where the prompt editor owns stdin.
+      pausePrompt(input);
       const slashResult = await executeSlashCommand(line, {
         orchestrator,
         configMgr,
@@ -166,13 +157,10 @@ export async function startRepl(options = {}) {
           _wizardActive = active;
         },
       });
-      // Resume the REPL readline and force a fresh prompt so any stale
-      // buffer is cleared before the user types the next line.
-      if (typeof rl.resume === 'function') rl.resume();
+      resumePrompt(input);
 
       if (slashResult.action === 'exit') {
         isClosing = true;
-        rl.close();
         break;
       }
       continue;
@@ -259,4 +247,7 @@ export async function startRepl(options = {}) {
     }
     printStatusLine();
   }
+
+  process.removeListener('SIGINT', onProcessSigint);
+  closePromptLine(input);
 }
