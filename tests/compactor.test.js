@@ -27,7 +27,7 @@ function sessionWith(count) {
 
 let tempDir;
 beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-compact-test-'));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-compact-test-'));
 });
 afterEach(() => {
   try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}

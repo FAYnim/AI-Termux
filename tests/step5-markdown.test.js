@@ -185,7 +185,7 @@ describe('Step 5: Terminal Box & Banner UI', () => {
   });
 
   test('should render box with custom border style and title', () => {
-    const box = renderBox('Hello from Termux AI CLI', {
+    const box = renderBox('Hello from FAY CLI', {
       title: 'Status',
       borderStyle: 'round',
       borderColor: 'cyan',
@@ -194,7 +194,7 @@ describe('Step 5: Terminal Box & Banner UI', () => {
 
     assert.ok(plain.includes('╭'));
     assert.ok(plain.includes('Status'));
-    assert.ok(plain.includes('Hello from Termux AI CLI'));
+    assert.ok(plain.includes('Hello from FAY CLI'));
     assert.ok(plain.includes('╰'));
   });
 
@@ -286,7 +286,7 @@ describe('Step 5: Live Spinner & Status Indicator', () => {
 
   test('REPL_PROMPT should include APP_NAME constant', () => {
     assert.ok(REPL_PROMPT.includes(APP_NAME));
-    assert.equal(APP_NAME, 'termuxai');
-    assert.ok(REPL_PROMPT.includes('termuxai'));
+    assert.equal(APP_NAME, 'faycli');
+    assert.ok(REPL_PROMPT.includes('faycli'));
   });
 });

@@ -17,7 +17,7 @@ describe('Step 1: Provider config constants & manager helpers', { concurrency: 1
   beforeEach(() => {
     tmpDir = path.join(
       os.tmpdir(),
-      `termuxai-prov-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `faycli-prov-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     fs.mkdirSync(tmpDir, { recursive: true });
     manager = new ConfigManager(tmpDir);

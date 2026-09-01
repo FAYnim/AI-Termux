@@ -40,10 +40,10 @@ function runTai(args, tmpDir, extraEnv = {}) {
     env: {
       ...process.env,
       T_AI_CONFIG_DIR: tmpDir,
-      TERMUXAI_CONFIG_DIR: tmpDir,
+      FAYCLI_CONFIG_DIR: tmpDir,
       GEMINI_API_KEY: '',
       OPENAI_API_KEY: '',
-      TERMUXAI_API_KEY: '',
+      FAYCLI_API_KEY: '',
       T_AI_API_KEY: '',
       ...extraEnv,
     },

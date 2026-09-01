@@ -12,7 +12,7 @@ describe('Step 3: Backward compatibility', { concurrency: 1 }, () => {
   beforeEach(() => {
     tmpDir = path.join(
       os.tmpdir(),
-      `termuxai-bc-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `faycli-bc-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     fs.mkdirSync(tmpDir, { recursive: true });
     manager = new ConfigManager(tmpDir);

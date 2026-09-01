@@ -53,7 +53,7 @@ describe('Step 4: System Prompt & Environment Detection', () => {
       customInstructions: 'Please write all responses in Indonesian language.',
     });
 
-    assert.ok(prompt.includes('termuxai (Termux AI)'));
+    assert.ok(prompt.includes('faycli (FAY CLI)'));
     assert.ok(prompt.includes('### OPERATIONAL GUIDELINES & REACT PARADIGM'));
     assert.ok(prompt.includes('### ACTIVE ENVIRONMENT CONTEXT'));
     assert.ok(prompt.includes('/test/dir'));
@@ -289,7 +289,7 @@ describe('Step 4: Session Manager & Atomic File Persistence', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-session-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-session-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

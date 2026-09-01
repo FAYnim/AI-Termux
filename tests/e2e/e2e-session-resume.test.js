@@ -26,7 +26,7 @@ describe('E2E Step 6: Session Persistence & Multi-Turn Resume', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-e2e-session-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-e2e-session-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

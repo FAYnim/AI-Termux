@@ -337,11 +337,11 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
         ...process.env,
         // Force a sandboxed config dir; never touch the real one
         T_AI_CONFIG_DIR: tmpDir,
-        TERMUXAI_CONFIG_DIR: tmpDir,
+        FAYCLI_CONFIG_DIR: tmpDir,
         // Make sure no real key leaks in
         GEMINI_API_KEY: '',
         OPENAI_API_KEY: '',
-        TERMUXAI_API_KEY: '',
+        FAYCLI_API_KEY: '',
       },
       encoding: 'utf8',
       timeout: 15000,

@@ -13,7 +13,7 @@ describe('Config Manager (src/config/manager.js)', () => {
   beforeEach(() => {
     tmpDir = path.join(
       os.tmpdir(),
-      `termuxai-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `faycli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     manager = new ConfigManager(tmpDir);
   });
@@ -90,13 +90,13 @@ describe('Config Manager (src/config/manager.js)', () => {
       // 2. GEMINI_API_KEY env takes second priority
       assert.equal(manager.getApiKey(), 'env-gemini-key');
 
-      // 3. TERMUXAI_API_KEY takes priority over T_AI_API_KEY
+      // 3. FAYCLI_API_KEY takes priority over T_AI_API_KEY
       delete process.env.GEMINI_API_KEY;
-      process.env.TERMUXAI_API_KEY = 'env-termuxai-key';
-      assert.equal(manager.getApiKey(), 'env-termuxai-key');
+      process.env.FAYCLI_API_KEY = 'env-faycli-key';
+      assert.equal(manager.getApiKey(), 'env-faycli-key');
 
       // 4. T_AI_API_KEY env takes fallback priority
-      delete process.env.TERMUXAI_API_KEY;
+      delete process.env.FAYCLI_API_KEY;
       process.env.T_AI_API_KEY = 'env-tai-key';
       assert.equal(manager.getApiKey(), 'env-tai-key');
 
@@ -113,60 +113,60 @@ describe('Config Manager (src/config/manager.js)', () => {
     }
   });
 
-  test('should prefer TERMUXAI_API_KEY over legacy T_AI_API_KEY', () => {
+  test('should prefer FAYCLI_API_KEY over legacy T_AI_API_KEY', () => {
     const originalEnv = { ...process.env };
     try {
       delete process.env.GEMINI_API_KEY;
-      process.env.TERMUXAI_API_KEY = 'env-termuxai-key';
+      process.env.FAYCLI_API_KEY = 'env-faycli-key';
       process.env.T_AI_API_KEY = 'env-tai-key';
-      assert.equal(manager.getApiKey(), 'env-termuxai-key');
+      assert.equal(manager.getApiKey(), 'env-faycli-key');
 
       // Drop new var, confirm legacy still works
-      delete process.env.TERMUXAI_API_KEY;
+      delete process.env.FAYCLI_API_KEY;
       assert.equal(manager.getApiKey(), 'env-tai-key');
     } finally {
-      delete process.env.TERMUXAI_API_KEY;
+      delete process.env.FAYCLI_API_KEY;
       delete process.env.T_AI_API_KEY;
       process.env = originalEnv;
     }
   });
 
-  test('should prefer TERMUXAI_CONFIG_DIR over legacy T_AI_CONFIG_DIR', () => {
+  test('should prefer FAYCLI_CONFIG_DIR over legacy T_AI_CONFIG_DIR', () => {
     const originalEnv = { ...process.env };
     try {
-      const newDir = path.join(os.tmpdir(), `termuxai-cfg-${Date.now()}`);
+      const newDir = path.join(os.tmpdir(), `faycli-cfg-${Date.now()}`);
       const legacyDir = path.join(os.tmpdir(), `legacy-cfg-${Date.now()}`);
       fs.mkdirSync(newDir, { recursive: true });
       fs.mkdirSync(legacyDir, { recursive: true });
 
-      process.env.TERMUXAI_CONFIG_DIR = newDir;
+      process.env.FAYCLI_CONFIG_DIR = newDir;
       process.env.T_AI_CONFIG_DIR = legacyDir;
       const m = new ConfigManager();
       assert.equal(m.getConfigDir(), path.resolve(newDir));
 
       // Drop new var, confirm legacy still works
-      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.FAYCLI_CONFIG_DIR;
       assert.equal(m.getConfigDir(), path.resolve(legacyDir));
     } finally {
-      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.FAYCLI_CONFIG_DIR;
       delete process.env.T_AI_CONFIG_DIR;
       process.env = originalEnv;
     }
   });
 
-  test('should fall back to legacy ~/.t-ai directory when ~/.termuxai does not exist', () => {
+  test('should fall back to legacy ~/.t-ai directory when ~/.faycli does not exist', () => {
     const originalEnv = { ...process.env };
     const originalHome = process.env.HOME;
     const originalUserProfile = process.env.USERPROFILE;
-    const sandboxHome = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-home-'));
+    const sandboxHome = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-home-'));
     const legacyDir = path.join(sandboxHome, '.t-ai');
     fs.mkdirSync(legacyDir, { recursive: true });
-    // Intentionally do NOT create .termuxai — this is the migration scenario.
+    // Create only .t-ai; no .faycli and no .termuxai so t-ai fallback triggers.
 
     try {
       process.env.HOME = sandboxHome;
       process.env.USERPROFILE = sandboxHome;
-      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.FAYCLI_CONFIG_DIR;
       delete process.env.T_AI_CONFIG_DIR;
 
       const m = new ConfigManager();
@@ -174,7 +174,7 @@ describe('Config Manager (src/config/manager.js)', () => {
     } finally {
       process.env.HOME = originalHome;
       process.env.USERPROFILE = originalUserProfile;
-      delete process.env.TERMUXAI_CONFIG_DIR;
+      delete process.env.FAYCLI_CONFIG_DIR;
       delete process.env.T_AI_CONFIG_DIR;
       try {
         fs.rmSync(sandboxHome, { recursive: true, force: true });

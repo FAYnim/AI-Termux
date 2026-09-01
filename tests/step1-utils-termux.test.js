@@ -7,7 +7,7 @@ describe('Utils: termux.getConfigRoot', () => {
   test('should join home directory with default config dir name constant', () => {
     const root = getConfigRoot();
     assert.ok(root.endsWith(DEFAULT_CONFIG_DIR_NAME));
-    assert.equal(DEFAULT_CONFIG_DIR_NAME, '.termuxai');
+    assert.equal(DEFAULT_CONFIG_DIR_NAME, '.faycli');
   });
 
   test('should not contain the legacy .t-ai directory name', () => {

@@ -17,7 +17,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-orchestrator-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-orchestrator-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 
@@ -31,7 +31,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     const mockGemini = {
       getModel: () => 'gemini-2.5-flash',
       generateStream: async () => ({
-        text: 'Halo! Saya asisten termuxai siap membantu Anda di Termux.',
+        text: 'Halo! Saya asisten faycli siap membantu Anda di Termux.',
         functionCalls: [],
         finishReason: 'STOP',
       }),
@@ -52,7 +52,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     assert.equal(result.success, true);
     assert.equal(result.iterations, 1);
     assert.equal(result.toolCalls.length, 0);
-    assert.equal(result.text, 'Halo! Saya asisten termuxai siap membantu Anda di Termux.');
+    assert.equal(result.text, 'Halo! Saya asisten faycli siap membantu Anda di Termux.');
 
     // Verify session contains user and model message
     const messages = session.getMessages();
@@ -62,7 +62,7 @@ describe('Step 4: ReAct Agent Orchestrator', () => {
     assert.equal(messages[1].role, 'model');
     assert.equal(
       messages[1].parts[0].text,
-      'Halo! Saya asisten termuxai siap membantu Anda di Termux.',
+      'Halo! Saya asisten faycli siap membantu Anda di Termux.',
     );
   });
 
@@ -359,7 +359,7 @@ describe('Step 4: Orchestrator Usage Accumulation', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-usage-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-usage-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 
@@ -479,7 +479,7 @@ describe('Unlimited loop with auto-compact', () => {
   let tempDir;
   let sessionManager;
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-unlimited-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-unlimited-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
   afterEach(() => {
