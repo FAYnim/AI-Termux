@@ -93,7 +93,14 @@ export class ConfigManager {
     // copy old data in (implicit backup — old dir left intact).
     const legacyTermuxaiDir = path.join(homeDir, '.termuxai');
     if (!fs.existsSync(primaryDir) && fs.existsSync(legacyTermuxaiDir)) {
-      fs.cpSync(legacyTermuxaiDir, primaryDir, { recursive: true });
+      try {
+        fs.cpSync(legacyTermuxaiDir, primaryDir, { recursive: true });
+        fs.chmodSync(primaryDir, 0o700);
+      } catch (_err) {
+        if (!fs.existsSync(primaryDir)) {
+          return legacyTermuxaiDir;
+        }
+      }
     }
     // Legacy t-ai fallback: only when neither new nor migrated dir exists
     const legacyTaiDir = path.join(homeDir, '.t-ai');
