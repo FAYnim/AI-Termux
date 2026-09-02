@@ -5,7 +5,7 @@
 #
 # Usage:
 #   bash install.sh
-#   curl -fsSL https://raw.githubusercontent.com/FAYnim/ai-termux/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/FAYnim/FAY-CLI/main/install.sh | bash
 # ============================================================================
 
 set -e
@@ -145,10 +145,10 @@ install_faycli() {
   # Determine install directory (where this script lives)
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-  # Verify this looks like the ai-termux project directory
+  # Verify this looks like the FAY-CLI project directory
   if [ ! -f "$SCRIPT_DIR/package.json" ]; then
     log_error "package.json not found in $SCRIPT_DIR"
-    log_error "Please run this script from the ai-termux project root directory."
+    log_error "Please run this script from the FAY-CLI project root directory."
     exit 1
   fi
 

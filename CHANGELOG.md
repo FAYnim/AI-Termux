@@ -54,5 +54,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BUG-03**: `ConfigManager` now caches `loadConfig()` per config path with invalidate-on-write instead of re-reading the file on every access.
 - **BUG-04**: `read_file`, `list_dir`, and `patch_file` migrated to `node:fs/promises`, unblocking the event loop on the tool hot path.
 
-[Unreleased]: https://github.com/FAYnim/AI-Termux/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/FAYnim/AI-Termux/releases/tag/v1.0.0
+[Unreleased]: https://github.com/FAYnim/FAY-CLI/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/FAYnim/FAY-CLI/releases/tag/v1.0.0

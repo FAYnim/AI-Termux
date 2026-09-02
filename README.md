@@ -37,28 +37,28 @@
 
 ```bash
 # Option 1: One-command installer
-curl -fsSL https://raw.githubusercontent.com/FAYnim/ai-termux/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/FAYnim/FAY-CLI/main/install.sh | bash
 
 # Option 2: Manual install from source
 pkg update && pkg install nodejs git
-git clone https://github.com/FAYnim/ai-termux
-cd ai-termux
+git clone https://github.com/FAYnim/FAY-CLI
+cd FAY-CLI
 npm link
 ```
 
 ### Linux / macOS
 
 ```bash
-git clone https://github.com/FAYnim/ai-termux
-cd ai-termux
+git clone https://github.com/FAYnim/FAY-CLI
+cd FAY-CLI
 npm link
 ```
 
 ### Windows (for development)
 
 ```bash
-git clone https://github.com/FAYnim/ai-termux
-cd ai-termux
+git clone https://github.com/FAYnim/FAY-CLI
+cd FAY-CLI
 npm link
 ```
 
@@ -649,7 +649,7 @@ from `npm test` and CI; run it locally.
 ## 📁 Project Structure
 
 ```
-ai-termux/
+FAY-CLI/
 ├── bin/
 │   └── faycli.js                    # CLI executable entry point
 ├── src/
