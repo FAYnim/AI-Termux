@@ -152,14 +152,14 @@ install_faycli() {
     exit 1
   fi
 
-  if [ ! -f "$SCRIPT_DIR/bin/tai.js" ]; then
-    log_error "bin/tai.js not found. The project may be incomplete."
+  if [ ! -f "$SCRIPT_DIR/bin/faycli.js" ]; then
+    log_error "bin/faycli.js not found. The project may be incomplete."
     exit 1
   fi
 
   # Make binary executable
-  chmod +x "$SCRIPT_DIR/bin/tai.js"
-  log_success "Set executable permission on bin/tai.js"
+  chmod +x "$SCRIPT_DIR/bin/faycli.js"
+  log_success "Set executable permission on bin/faycli.js"
 
   # Install globally using npm link or npm install -g
   log_info "Linking faycli globally via npm..."
@@ -174,7 +174,7 @@ install_faycli() {
     else
       # Fallback: create manual symlink in ~/.local/bin or $PREFIX/bin (Termux)
       log_warn "npm global install failed. Creating manual symlink..."
-      create_symlink "$SCRIPT_DIR/bin/tai.js"
+      create_symlink "$SCRIPT_DIR/bin/faycli.js"
     fi
   fi
 }

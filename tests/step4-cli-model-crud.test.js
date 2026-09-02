@@ -1,7 +1,7 @@
 /**
- * Step 4: `tai model add/remove/clear` — catalog CRUD for a single provider
+ * Step 4: `faycli model add/remove/clear` — catalog CRUD for a single provider
  *
- * Verifies (src/config/manager.js + src/cli/args.js + src/cli/model-commands.js + bin/tai.js):
+ * Verifies (src/config/manager.js + src/cli/args.js + src/cli/model-commands.js + bin/faycli.js):
  *  - args.js: --add, --add=, --remove, --remove=, --clear flags
  *  - args.js: subcommand routing for add/remove/clear
  *  - manager.addProviderModels: single + bulk, dedupe, init from builtin
@@ -11,7 +11,7 @@
  *  - removeModelCli: success / refuse-active / empty input
  *  - clearModelsCli: success
  *  - handleModelCommand: dispatcher routes add/remove/clear
- *  - bin/tai.js: end-to-end via subprocess
+ *  - bin/faycli.js: end-to-end via subprocess
  */
 
 import assert from 'node:assert/strict';
@@ -32,7 +32,7 @@ import {
 import { ConfigManager } from '../src/config/manager.js';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
-const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
+const TAI_BIN = path.join(REPO_ROOT, 'bin', 'faycli.js');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -570,10 +570,10 @@ describe('handleModelCommand: Phase 4 dispatcher routes', () => {
 });
 
 // ---------------------------------------------------------------------------
-// bin/tai.js — end-to-end subprocess tests
+// bin/faycli.js — end-to-end subprocess tests
 // ---------------------------------------------------------------------------
 
-describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
+describe('bin/faycli.js: end-to-end `faycli model add/remove/clear`', () => {
   let tmpDir;
 
   before(() => {
@@ -599,7 +599,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     });
   }
 
-  test('`tai model --add <name>` adds model to gemini and exits 0', () => {
+  test('`faycli model --add <name>` adds model to gemini and exits 0', () => {
     const result = runTai(['model', '--add', 'gemini-e2e-foo']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(
@@ -614,7 +614,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     assert.ok(cfg.providers.gemini.models.includes('gemini-e2e-foo'));
   });
 
-  test('`tai model --add <a,b,c>` bulk-adds three models to openai', () => {
+  test('`faycli model --add <a,b,c>` bulk-adds three models to openai', () => {
     const result = runTai(['model', '--add', 'gpt-4.1,gpt-4.1-mini,gpt-5', '--provider', 'openai']);
     const _clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
@@ -626,7 +626,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     assert.ok(openaiModels.includes('gpt-5'));
   });
 
-  test('`tai model --remove <name>` removes a non-active model', () => {
+  test('`faycli model --remove <name>` removes a non-active model', () => {
     // First add a custom model we can safely remove
     runTai(['model', '--add', 'gemini-removable-1', '--provider', 'gemini']);
     const result = runTai(['model', '--remove', 'gemini-removable-1', '--provider', 'gemini']);
@@ -641,7 +641,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     );
   });
 
-  test('`tai model --remove <active>` exits 1 (refuses to remove active)', () => {
+  test('`faycli model --remove <active>` exits 1 (refuses to remove active)', () => {
     const result = runTai(['model', '--remove', 'gemini-2.5-flash']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 1, 'should refuse to remove the active model');
@@ -651,7 +651,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     );
   });
 
-  test('`tai model --clear` resets catalog to builtin defaults', () => {
+  test('`faycli model --clear` resets catalog to builtin defaults', () => {
     // First, wreck the catalog
     runTai(['model', '--add', 'will-be-cleared', '--provider', 'gemini']);
     const result = runTai(['model', '--clear', '--provider', 'gemini']);
@@ -669,7 +669,7 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
     );
   });
 
-  test('`tai model --add` without value exits 1', () => {
+  test('`faycli model --add` without value exits 1', () => {
     // --add with no value should not parse to subcommand=add
     const result = runTai(['model', '--add']);
     // Without a value, --add is skipped, subcommand defaults to list → exit 0

@@ -22,10 +22,10 @@
 - 🔧 **5 Local Tools** — `read_file`, `write_file`, `patch_file`, `list_dir`, `execute_command`
 - 🎨 **Rich Terminal UI** — ANSI Markdown renderer, live spinner, syntax highlighting
 - 🌐 **Multi-Provider** — 2 native adapters (Gemini, OpenAI) + unlimited OpenAI-compatible endpoints (Groq, OpenRouter, DeepSeek, Ollama, custom)
-- 🧩 **Multi-Model Catalog** — per-provider model lists with interactive TUI picker & CLI CRUD (`tai model`)
+- 🧩 **Multi-Model Catalog** — per-provider model lists with interactive TUI picker & CLI CRUD (`faycli model`)
 
 > **Latest on `feat/multi-model-phase1`:** Phase 1–4 of the multi-model plan landed — per-provider
-> `models[]` catalog, zero-dependency interactive `/model` picker, non-interactive `tai model
+> `models[]` catalog, zero-dependency interactive `/model` picker, non-interactive `faycli model
 > --list/--set` flags, and catalog CRUD (`--add` / `--remove` / `--clear`).
 > **547/556 tests pass** (9 pre-existing failures), 0 regressions.
 
@@ -118,10 +118,10 @@ faycli provider show gemini                  # Dump provider configuration as JS
 
 | Cara | Perintah | Simpan ke config? | Berlaku untuk |
 |------|----------|:-----------------:|---------------|
-| **One-shot CLI flag** | `tai --model gpt-4o "prompt"` | ❌ Tidak | Hanya run ini |
-| **One-shot provider** | `tai --provider openai "prompt"` | ❌ Tidak | Hanya run ini |
-| **Persistent model** | `tai model --set gpt-4o` | ✅ Ya | Semua run berikutnya |
-| **Persistent provider** | `tai provider use openai` | ✅ Ya | Semua run berikutnya |
+| **One-shot CLI flag** | `faycli --model gpt-4o "prompt"` | ❌ Tidak | Hanya run ini |
+| **One-shot provider** | `faycli --provider openai "prompt"` | ❌ Tidak | Hanya run ini |
+| **Persistent model** | `faycli model --set gpt-4o` | ✅ Ya | Semua run berikutnya |
+| **Persistent provider** | `faycli provider use openai` | ✅ Ya | Semua run berikutnya |
 
 ### Three "Model" Concepts (Don't Mix Them Up)
 
@@ -357,7 +357,7 @@ faycli config reset
 ### Supported Models — Per Provider Catalog
 
 > Source of truth: `BUILTIN_PROVIDERS` in [`src/config/constants.js`](./src/config/constants.js).
-> These models ship by default; use `tai model --add` to extend any provider's catalog.
+> These models ship by default; use `faycli model --add` to extend any provider's catalog.
 
 #### Gemini (native `GeminiClient`)
 
@@ -379,9 +379,9 @@ faycli config reset
 | `gpt-3.5-turbo` | Legacy, fast and affordable |
 
 > **OpenAI-compatible providers** (Groq, OpenRouter, DeepSeek, Ollama) use `OpenAIClient`
-> but their models are **not** pre-loaded — manage them with `tai model --add / --set`.
+> but their models are **not** pre-loaded — manage them with `faycli model --add / --set`.
 
-### Model Management (`tai model`)
+### Model Management (`faycli model`)
 
 Manage models from the command line without entering the REPL:
 
@@ -418,7 +418,7 @@ faycli model --add gpt-4-turbo
 # Add multiple models at once (comma-, semicolon-, or newline-separated)
 faycli model --add gpt-4-turbo,gpt-4o,gpt-3.5-turbo --provider openai
 
-# Top-level shortcut — equivalent to `tai model --add`
+# Top-level shortcut — equivalent to `faycli model --add`
 faycli add gpt-4-turbo --provider openai
 
 # Remove a model from the catalog
@@ -651,7 +651,7 @@ from `npm test` and CI; run it locally.
 ```
 ai-termux/
 ├── bin/
-│   └── tai.js                    # CLI executable entry point
+│   └── faycli.js                    # CLI executable entry point
 ├── src/
 │   ├── cli/
 │   │   ├── args.js               # Argument parser
@@ -740,9 +740,9 @@ MODEL COMMANDS:
   faycli model --add <name[,..]>  Add model(s) to a provider's catalog (no switch)
   faycli model --remove <name>    Remove a model from the catalog
   faycli model --clear            Reset a provider's catalog to builtin defaults
-  faycli add <name>               Shortcut for `tai model --add`
-  faycli remove <name>            Shortcut for `tai model --remove`
-  faycli clear                    Shortcut for `tai model --clear`
+  faycli add <name>               Shortcut for `faycli model --add`
+  faycli remove <name>            Shortcut for `faycli model --remove`
+  faycli clear                    Shortcut for `faycli model --clear`
   (in REPL) /model                  Interactive picker (TTY) or static box (non-TTY)
   (in REPL) /model <name>           Set the active model from the REPL
 
@@ -790,10 +790,10 @@ faycli config set apiKey YOUR_KEY
 export GEMINI_API_KEY="YOUR_KEY"
 ```
 
-### "Permission denied" on bin/tai.js
+### "Permission denied" on bin/faycli.js
 
 ```bash
-chmod +x bin/tai.js
+chmod +x bin/faycli.js
 ```
 
 ### "faycli command not found" after install
@@ -815,7 +815,7 @@ ls $PREFIX/bin/faycli
 Termux Node.js startup can be slow on older devices. This is a system limitation. To improve:
 ```bash
 # Use node with optimizations
-node --jitless bin/tai.js  # Reduces JIT warmup time on ARM
+node --jitless bin/faycli.js  # Reduces JIT warmup time on ARM
 ```
 
 ### Rate limit errors (HTTP 429)

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "faycli": "./bin/tai.js"
+    "faycli": "./bin/faycli.js"
   },
   "engines": {
     "node": ">=20.0.0"

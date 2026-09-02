@@ -20,7 +20,7 @@ import { BUILTIN_PROVIDERS, DEFAULT_CONFIG, DEFAULT_MODEL } from '../src/config/
 import { ConfigManager } from '../src/config/manager.js';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
-const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
+const TAI_BIN = path.join(REPO_ROOT, 'bin', 'faycli.js');
 
 function makeTmpDir(label) {
   const dir = path.join(

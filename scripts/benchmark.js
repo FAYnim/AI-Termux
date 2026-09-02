@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
-const ENTRY = path.join(ROOT_DIR, 'bin', 'tai.js');
+const ENTRY = path.join(ROOT_DIR, 'bin', 'faycli.js');
 
 // -------------------------------------------------------------------
 // Helpers
@@ -64,7 +64,7 @@ function statusBadge(pass) {
 
 // -------------------------------------------------------------------
 // Benchmark: Startup Time
-// Spawns `node bin/tai.js --version` and measures wall-clock time
+// Spawns `node bin/faycli.js --version` and measures wall-clock time
 // -------------------------------------------------------------------
 
 function measureStartupTime(iterations = 5) {

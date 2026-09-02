@@ -1,10 +1,10 @@
 /**
- * Phase 3 — Non-interactive `tai model ...` CLI commands
+ * Phase 3 — Non-interactive `faycli model ...` CLI commands
  *
  * Provides:
- *   - listModelsCli()       → for `tai model --list [--provider <id>|--all]`
- *   - setModelCli()         → for `tai model --set <model> [--provider <id>]`
- *   - handleModelCommand()  → dispatcher used by bin/tai.js
+ *   - listModelsCli()       → for `faycli model --list [--provider <id>|--all]`
+ *   - setModelCli()         → for `faycli model --set <model> [--provider <id>]`
+ *   - handleModelCommand()  → dispatcher used by bin/faycli.js
  *
  * Each function returns a result object describing what should be printed
  * and which exit code to use, so the CLI can stay a thin wrapper.
@@ -297,7 +297,7 @@ export function addModelsCli({ configMgr, models, providerOverride = null } = {}
 
 /**
  * Remove one or more models from a provider's catalog.
- * Will NOT remove the active model (use `tai model --set <other>` first).
+ * Will NOT remove the active model (use `faycli model --set <other>` first).
  *
  * @param {object} options
  * @param {object} options.configMgr
@@ -328,7 +328,7 @@ export function removeModelCli({ configMgr, models, providerOverride = null } = 
   if (removed.length === 0 && skipped.length > 0) {
     return {
       exitCode: 1,
-      output: `\n${ansi.red('✖')} Could not remove ${skipped.length} model(s) from ${ansi.bold(target)} — they include the active model. Switch first with ${ansi.cyan(`tai model --set <other>`)}.\n`,
+      output: `\n${ansi.red('✖')} Could not remove ${skipped.length} model(s) from ${ansi.bold(target)} — they include the active model. Switch first with ${ansi.cyan(`faycli model --set <other>`)}.\n`,
       removed,
       skipped,
       provider: target,
@@ -395,7 +395,7 @@ export function clearModelsCli({ configMgr, providerOverride = null } = {}) {
 }
 
 /**
- * Dispatcher for `tai model ...`. Called by bin/tai.js.
+ * Dispatcher for `faycli model ...`. Called by bin/faycli.js.
  *
  * @param {object} parsed - result of parseArgs()
  * @param {object} configMgr

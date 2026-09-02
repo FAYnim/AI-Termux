@@ -1,6 +1,6 @@
 /**
- * Step 3: Non-interactive `tai model ...` CLI Commands
- * Verifies (src/cli/args.js + src/cli/model-commands.js + bin/tai.js):
+ * Step 3: Non-interactive `faycli model ...` CLI Commands
+ * Verifies (src/cli/args.js + src/cli/model-commands.js + bin/faycli.js):
  *  - args.js: --list, --all, --set flags + `model` command routing
  *  - listModelsCli: list for active provider
  *  - listModelsCli: --all groups all providers
@@ -11,7 +11,7 @@
  *  - setModelCli: custom model (not in catalog) is still saved
  *  - setModelCli: missing model arg returns exit code 1
  *  - handleModelCommand: dispatcher routes list/set correctly
- *  - bin/tai.js: model command end-to-end via subprocess
+ *  - bin/faycli.js: model command end-to-end via subprocess
  */
 
 import assert from 'node:assert/strict';
@@ -27,7 +27,7 @@ import { handleModelCommand, listModelsCli, setModelCli } from '../src/cli/model
 import { ConfigManager } from '../src/config/manager.js';
 
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
-const TAI_BIN = path.join(REPO_ROOT, 'bin', 'tai.js');
+const TAI_BIN = path.join(REPO_ROOT, 'bin', 'faycli.js');
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -216,7 +216,7 @@ describe('setModelCli', () => {
     // The user picked a model that was NOT in the builtin catalog.
     // The setModelCli flow goes through setProviderField, which (per the
     // ⭐ ideal patch) auto-injects the new value into `providers[pid].models[]`
-    // so that listings like `tai model --list` and `/model` can never lose it.
+    // so that listings like `faycli model --list` and `/model` can never lose it.
     const res = setModelCli({ configMgr, model: 'my-custom-finetune-v1' });
     assert.equal(res.exitCode, 0);
     // After auto-include, the model IS in the catalog (the inCatalog check
@@ -317,10 +317,10 @@ describe('handleModelCommand (dispatcher)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// bin/tai.js — end-to-end subprocess tests
+// bin/faycli.js — end-to-end subprocess tests
 // ---------------------------------------------------------------------------
 
-describe('bin/tai.js: end-to-end `tai model`', () => {
+describe('bin/faycli.js: end-to-end `faycli model`', () => {
   let tmpDir;
 
   before(() => {
@@ -348,7 +348,7 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
     });
   }
 
-  test('`tai model --list` prints the gemini catalog and exits 0', () => {
+  test('`faycli model --list` prints the gemini catalog and exits 0', () => {
     const result = runTai(['model', '--list']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(
@@ -360,7 +360,7 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
     assert.ok(clean.includes('gemini-2.5-flash'), 'should list default model');
   });
 
-  test('`tai model --list --all` includes both builtin providers', () => {
+  test('`faycli model --list --all` includes both builtin providers', () => {
     const result = runTai(['model', '--list', '--all']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
@@ -368,7 +368,7 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
     assert.ok(clean.includes('openai'), 'should mention openai');
   });
 
-  test('`tai model --list --provider openai` targets openai', () => {
+  test('`faycli model --list --provider openai` targets openai', () => {
     const result = runTai(['model', '--list', '--provider', 'openai']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
@@ -376,7 +376,7 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
     assert.ok(clean.includes('gpt-4o-mini'), 'should list openai default');
   });
 
-  test('`tai model --set <m>` persists model and exits 0', () => {
+  test('`faycli model --set <m>` persists model and exits 0', () => {
     const result = runTai(['model', '--set', 'gemini-2.5-pro']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(
@@ -392,14 +392,14 @@ describe('bin/tai.js: end-to-end `tai model`', () => {
     assert.equal(cfg.providers.gemini.model, 'gemini-2.5-pro', 'model should be persisted');
   });
 
-  test('`tai model` (bare) defaults to listing', () => {
+  test('`faycli model` (bare) defaults to listing', () => {
     const result = runTai(['model']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 0);
-    assert.ok(clean.includes('Model ('), 'bare `tai model` should list models');
+    assert.ok(clean.includes('Model ('), 'bare `faycli model` should list models');
   });
 
-  test('`tai model --list --provider bogus` exits 1 with error', () => {
+  test('`faycli model --list --provider bogus` exits 1 with error', () => {
     const result = runTai(['model', '--list', '--provider', 'bogus-xyz']);
     const clean = stripAnsi(result.stdout + result.stderr);
     assert.equal(result.status, 1);
