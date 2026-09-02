@@ -107,7 +107,7 @@ describe('thought_signature end-to-end (orchestrator)', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-thought-sig-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-thought-sig-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

@@ -4,7 +4,7 @@ import { OpenAIClient } from './openai.js';
 /**
  * Factory to create an LLM Client instance based on provider and adapter options.
  *
- * Termux AI CLI features 2 native LLM client adapters:
+ * FAY CLI features 2 native LLM client adapters:
  *   1. `GeminiClient` - Native Google Generative Language API (`provider: 'gemini'`).
  *   2. `OpenAIClient` - Native OpenAI API (`provider: 'openai'`) AND all OpenAI-compatible
  *      endpoints (e.g., Groq, OpenRouter, DeepSeek, Ollama, Together, vLLM, LM Studio, etc.).

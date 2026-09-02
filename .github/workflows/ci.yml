@@ -27,7 +27,7 @@ jobs:
         run: npm run lint
 
       # tests/e2e spawns the real CLI against live provider APIs and needs
-      # TERMUXAI_* credentials, so it is intentionally not part of CI.
+      # FAYCLI_* credentials, so it is intentionally not part of CI.
       # Run it locally with: npm run test:e2e
       - name: Unit tests
         run: npm test

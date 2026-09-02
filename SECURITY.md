@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-termuxai grants an LLM shell access. If you find a security vulnerability, report it
+faycli grants an LLM shell access. If you find a security vulnerability, report it
 privately — do not open a public issue. Open a private security advisory on GitHub or
 contact the maintainers directly.
 
@@ -21,7 +21,7 @@ Protection lives in `src/security/rules.js`, `src/security/guard.js`, and
 - `OBFUSCATION_PATTERNS`: hex escapes, base64-to-shell, eval
 - `PROTECTED_PATH_PATTERNS`: blocks `/`, `~`, `/etc`, `/boot`, `/var/lib`
 - Path validation restricts writes to the safe workspace; `security.allowTermuxStorage`
-  is opt-in (`termuxai config set security.allowTermuxStorage true`)
+  is opt-in (`faycli config set security.allowTermuxStorage true`)
 
 OS-level sandboxing (privilege drop, chroot/jail) is **not** implemented. Treat the agent
 as capable of arbitrary code execution on your account.

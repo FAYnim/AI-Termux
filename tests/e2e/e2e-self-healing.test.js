@@ -35,7 +35,7 @@ describe('E2E Step 6: Autonomous Self-Healing Bug Fix Loop', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-e2e-selfheal-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-e2e-selfheal-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

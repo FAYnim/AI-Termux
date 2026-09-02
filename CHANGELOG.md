@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `parseTextToolCalls` in `src/llm/openai.js` consolidated from seven ad-hoc regex passes into a structured pipeline: a declarative table of block constructs scanned in order, shared JSON-shape and parameter-tag helpers, and a single validation/dedup point. Extraction behavior is unchanged — the snapshot suite passes identically before and after the rewrite (MAINT-07).
 
 - Codebase formatted and lint-cleaned with Biome across `src/`, `tests/`, `scripts/`, and `bin/`.
-- **MAINT-04**: User-facing strings are now localized, default **English**. Indonesian REPL/spinner/retry messages are opt-in via `termuxai config set locale id`. Existing users who relied on the Indonesian defaults will see English after upgrading.
+- **MAINT-04**: User-facing strings are now localized, default **English**. Indonesian REPL/spinner/retry messages are opt-in via `faycli config set locale id`. Existing users who relied on the Indonesian defaults will see English after upgrading.
 - **MAINT-05 (breaking for embedders)**: Removed the legacy `geminiClient` alias. Pass `llmClient` instead of `geminiClient` when constructing `AgentOrchestrator`, and read `orchestrator.llmClient` instead of `orchestrator.geminiClient`. The CLI-facing behavior is unchanged.
 
 ### Fixed

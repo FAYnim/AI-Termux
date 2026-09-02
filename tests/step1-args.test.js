@@ -77,13 +77,13 @@ describe('CLI Argument Parser (src/cli/args.js)', () => {
   });
 
   test('should parse timeout and config-dir flags', () => {
-    const res1 = parseArgs(['--timeout', '45000', '--config-dir', '/tmp/test-termuxai']);
+    const res1 = parseArgs(['--timeout', '45000', '--config-dir', '/tmp/test-faycli']);
     assert.equal(res1.flags.timeout, 45000);
-    assert.equal(res1.flags.configDir, '/tmp/test-termuxai');
+    assert.equal(res1.flags.configDir, '/tmp/test-faycli');
 
-    const res2 = parseArgs(['--timeout=60000', '--config-dir=/tmp/other-termuxai']);
+    const res2 = parseArgs(['--timeout=60000', '--config-dir=/tmp/other-faycli']);
     assert.equal(res2.flags.timeout, 60000);
-    assert.equal(res2.flags.configDir, '/tmp/other-termuxai');
+    assert.equal(res2.flags.configDir, '/tmp/other-faycli');
   });
 
   test('should parse config subcommands', () => {

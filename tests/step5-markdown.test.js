@@ -185,7 +185,7 @@ describe('Step 5: Terminal Box & Banner UI', () => {
   });
 
   test('should render box with custom border style and title', () => {
-    const box = renderBox('Hello from Termux AI CLI', {
+    const box = renderBox('Hello from FAY CLI', {
       title: 'Status',
       borderStyle: 'round',
       borderColor: 'cyan',
@@ -194,20 +194,20 @@ describe('Step 5: Terminal Box & Banner UI', () => {
 
     assert.ok(plain.includes('╭'));
     assert.ok(plain.includes('Status'));
-    assert.ok(plain.includes('Hello from Termux AI CLI'));
+    assert.ok(plain.includes('Hello from FAY CLI'));
     assert.ok(plain.includes('╰'));
   });
 
   test('should render application welcome banner', () => {
     const banner = renderBanner({
-      title: '⚡ termux-ai-cli',
+      title: '⚡ fay-cli',
       version: 'v1.0.0',
       subtitle: 'Autonomous AI Agent CLI for Termux',
       details: ['Model: gemini-2.5-flash', 'Session: sess_test123'],
     });
     const plain = stripAnsi(banner);
 
-    assert.ok(plain.includes('termux-ai-cli'));
+    assert.ok(plain.includes('fay-cli'));
     assert.ok(plain.includes('v1.0.0'));
     assert.ok(plain.includes('Model: gemini-2.5-flash'));
   });
@@ -286,7 +286,7 @@ describe('Step 5: Live Spinner & Status Indicator', () => {
 
   test('REPL_PROMPT should include APP_NAME constant', () => {
     assert.ok(REPL_PROMPT.includes(APP_NAME));
-    assert.equal(APP_NAME, 'termuxai');
-    assert.ok(REPL_PROMPT.includes('termuxai'));
+    assert.equal(APP_NAME, 'faycli');
+    assert.ok(REPL_PROMPT.includes('faycli'));
   });
 });

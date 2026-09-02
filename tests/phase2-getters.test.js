@@ -26,13 +26,13 @@ import { ConfigManager } from '../src/config/manager.js';
 
 // ---------------------------------------------------------------------------
 // Test isolation: setiap test pakai config dir sementara supaya tidak
-// men-touch ~/.termuxai/config.json milik user.
+// men-touch ~/.faycli/config.json milik user.
 // ---------------------------------------------------------------------------
 const tmpDirs = [];
 function makeManager(label = '2.1') {
   const dir = path.join(
     os.tmpdir(),
-    `termuxai-phase21-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    `faycli-phase21-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   tmpDirs.push(dir);
   return new ConfigManager(dir);

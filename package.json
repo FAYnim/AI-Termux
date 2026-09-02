@@ -1,11 +1,11 @@
 {
-  "name": "termux-ai-cli",
+  "name": "faycli",
   "version": "1.0.0",
   "description": "Autonomous AI Agent CLI optimized for Termux Android environment",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "termuxai": "./bin/tai.js"
+    "faycli": "./bin/tai.js"
   },
   "engines": {
     "node": ">=20.0.0"

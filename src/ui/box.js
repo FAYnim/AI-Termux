@@ -99,14 +99,14 @@ export function renderBox(text, options = {}) {
  * Renders an attractive startup banner for CLI / REPL
  *
  * @param {object} [options={}]
- * @param {string} [options.title='⚡ termux-ai-cli']
+ * @param {string} [options.title='⚡ fay-cli']
  * @param {string} [options.version='v1.0.0']
  * @param {string} [options.subtitle='Autonomous AI Agent CLI for Termux']
  * @param {Array<string>} [options.details=[]]
  * @returns {string}
  */
 export function renderBanner(options = {}) {
-  const title = options.title || '⚡ termux-ai-cli';
+  const title = options.title || '⚡ fay-cli';
   const version = options.version || 'v1.0.0';
   const subtitle = options.subtitle || 'Autonomous AI Agent CLI for Termux Android';
   const details = options.details || [];

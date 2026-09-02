@@ -1,5 +1,5 @@
 /**
- * Terminal Help Screen & Version Display for Termux AI CLI
+ * Terminal Help Screen & Version Display for FAY CLI
  */
 
 import {

@@ -15,7 +15,7 @@ describe('Local Actuator Tools (src/tools/)', () => {
   let tempBaseDir;
 
   beforeEach(() => {
-    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-tools-test-'));
+    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-tools-test-'));
   });
 
   afterEach(() => {

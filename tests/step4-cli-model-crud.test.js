@@ -589,10 +589,10 @@ describe('bin/tai.js: end-to-end `tai model add/remove/clear`', () => {
       env: {
         ...process.env,
         T_AI_CONFIG_DIR: tmpDir,
-        TERMUXAI_CONFIG_DIR: tmpDir,
+        FAYCLI_CONFIG_DIR: tmpDir,
         GEMINI_API_KEY: '',
         OPENAI_API_KEY: '',
-        TERMUXAI_API_KEY: '',
+        FAYCLI_API_KEY: '',
       },
       encoding: 'utf8',
       timeout: 15000,

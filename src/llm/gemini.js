@@ -310,7 +310,7 @@ export class GeminiClient {
   _validateApiKey() {
     if (!this.apiKey || typeof this.apiKey !== 'string' || this.apiKey.trim() === '') {
       throw new Error(
-        'Gemini API key is not configured. Please set it using `termuxai config set apiKey <key>` or set GEMINI_API_KEY environment variable.',
+        'Gemini API key is not configured. Please set it using `faycli config set apiKey <key>` or set GEMINI_API_KEY environment variable.',
       );
     }
   }

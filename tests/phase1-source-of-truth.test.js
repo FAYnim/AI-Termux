@@ -124,7 +124,7 @@ describe('Phase 1.4-C — getProviderModels() backward-compatibility', () => {
   const makeManager = () => {
     const tmpDir = path.join(
       os.tmpdir(),
-      `termuxai-ssot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      `faycli-ssot-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
     return new ConfigManager(tmpDir);
   };
@@ -198,7 +198,7 @@ describe('Phase 1.4-D — getProviderNames() single source of truth', () => {
   const makeManager = (tmpSuffix = '') => {
     const tmpDir = path.join(
       os.tmpdir(),
-      `termuxai-pnames-${Date.now()}-${tmpSuffix}-${Math.random().toString(36).slice(2)}`,
+      `faycli-pnames-${Date.now()}-${tmpSuffix}-${Math.random().toString(36).slice(2)}`,
     );
     return new ConfigManager(tmpDir);
   };

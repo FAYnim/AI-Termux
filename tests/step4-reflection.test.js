@@ -18,7 +18,7 @@ describe('Step 4b: Reflection Checker', () => {
   let sessionManager;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-reflection-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-reflection-test-'));
     sessionManager = new SessionManager({ sessionsDir: tempDir });
   });
 

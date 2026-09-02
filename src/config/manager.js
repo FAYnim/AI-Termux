@@ -1,5 +1,5 @@
 /**
- * Configuration Manager for Termux AI CLI
+ * Configuration Manager for FAY CLI
  * Manages configuration loading, atomic persistence, and API key resolution
  */
 
@@ -71,15 +71,15 @@ export class ConfigManager {
 
   /**
    * Resolve root configuration directory
-   * Priority: customConfigDir > process.env.TERMUXAI_CONFIG_DIR > process.env.T_AI_CONFIG_DIR > os.homedir()/.termuxai > fallback
+   * Priority: customConfigDir > process.env.FAYCLI_CONFIG_DIR > process.env.T_AI_CONFIG_DIR > os.homedir()/.faycli (auto-migrate from ~/.termuxai) > ~/.t-ai > fallback
    * @returns {string}
    */
   getConfigDir() {
     if (this.customConfigDir) {
       return path.resolve(this.customConfigDir);
     }
-    if (process.env.TERMUXAI_CONFIG_DIR) {
-      return path.resolve(process.env.TERMUXAI_CONFIG_DIR);
+    if (process.env.FAYCLI_CONFIG_DIR) {
+      return path.resolve(process.env.FAYCLI_CONFIG_DIR);
     }
     // Legacy env-var fallback for users upgrading from t-ai
     if (process.env.T_AI_CONFIG_DIR) {
@@ -89,11 +89,23 @@ export class ConfigManager {
     const homeDir =
       process.env.HOME || process.env.USERPROFILE || os.homedir() || TERMUX_HOME_FALLBACK;
     const primaryDir = path.join(homeDir, DEFAULT_CONFIG_DIR_NAME);
-    // Legacy directory fallback: if ~/.termuxai doesn't exist but ~/.t-ai does,
-    // use the legacy dir so existing users' configs and sessions still load.
-    const legacyDir = path.join(homeDir, '.t-ai');
-    if (!fs.existsSync(primaryDir) && fs.existsSync(legacyDir)) {
-      return legacyDir;
+    // One-time migration: if ~/.faycli doesn't exist but ~/.termuxai does,
+    // copy old data in (implicit backup — old dir left intact).
+    const legacyTermuxaiDir = path.join(homeDir, '.termuxai');
+    if (!fs.existsSync(primaryDir) && fs.existsSync(legacyTermuxaiDir)) {
+      try {
+        fs.cpSync(legacyTermuxaiDir, primaryDir, { recursive: true });
+        fs.chmodSync(primaryDir, 0o700);
+      } catch (_err) {
+        if (!fs.existsSync(primaryDir)) {
+          return legacyTermuxaiDir;
+        }
+      }
+    }
+    // Legacy t-ai fallback: only when neither new nor migrated dir exists
+    const legacyTaiDir = path.join(homeDir, '.t-ai');
+    if (!fs.existsSync(primaryDir) && fs.existsSync(legacyTaiDir)) {
+      return legacyTaiDir;
     }
     return primaryDir;
   }

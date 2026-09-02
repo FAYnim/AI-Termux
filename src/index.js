@@ -1,5 +1,5 @@
 /**
- * Termux AI CLI (`termuxai`) - Library Entrypoint
+ * FAY CLI (`faycli`) - Library Entrypoint
  */
 
 export * from './agent/index.js';

@@ -1,5 +1,5 @@
 /**
- * Leveled Console Logger for Termux AI CLI
+ * Leveled Console Logger for FAY CLI
  * Zero-dependency, lightweight, ANSI-formatted
  */
 

@@ -1,5 +1,5 @@
 /**
- * Security Rules & Pattern Definitions for Termux AI CLI (`termuxai`)
+ * Security Rules & Pattern Definitions for FAY CLI (`faycli`)
  */
 
 /**
@@ -107,7 +107,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   'build',
   'out',
   '.cache',
-  '.termuxai',
+  '.faycli',
   '.next',
   '.nuxt',
   '__pycache__',

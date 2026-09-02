@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Termux AI CLI (`termuxai`) — Performance Benchmark Script
+ * FAY CLI (`faycli`) — Performance Benchmark Script
  *
  * Measures startup latency and memory footprint against PRD Non-Functional Requirements:
  *   - Startup Time < 300 ms
@@ -73,7 +73,7 @@ function measureStartupTime(iterations = 5) {
     const start = performance.now();
     const result = spawnSync(process.execPath, [ENTRY, '--version'], {
       cwd: ROOT_DIR,
-      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, FAYCLI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 10000,
     });
@@ -121,7 +121,7 @@ function measureMemorySync(iterations = 3) {
     const result = spawnSync(process.execPath, ['--input-type=module'], {
       input: SYNC_MEMORY_PROBE,
       cwd: ROOT_DIR,
-      env: { ...process.env, TERMUXAI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
+      env: { ...process.env, FAYCLI_CONFIG_DIR: path.join(ROOT_DIR, '.benchmark-tmp') },
       encoding: 'utf8',
       timeout: 20000,
     });
@@ -191,7 +191,7 @@ async function main() {
 
   if (!jsonMode) {
     console.log('');
-    console.log(ANSI.bold(ANSI.cyan('  ⚡ Termux AI CLI — Performance Benchmark')));
+    console.log(ANSI.bold(ANSI.cyan('  ⚡ FAY CLI — Performance Benchmark')));
     console.log(ANSI.dim(`  PRD NFR Targets: Startup < 300 ms | Memory RSS < 50 MB`));
     console.log(`  ${hr()}`);
     console.log('');
@@ -305,7 +305,7 @@ async function main() {
   const allPass = startupPass && memoryPass;
   if (allPass) {
     console.log(
-      `  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — termuxai meets PRD performance targets.`,
+      `  ${ANSI.bold(ANSI.green('✔ ALL BENCHMARKS PASSED'))} — faycli meets PRD performance targets.`,
     );
   } else {
     const failures = [];

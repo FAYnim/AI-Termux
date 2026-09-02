@@ -1,4 +1,4 @@
-# Termux AI CLI (`termuxai`)
+# FAY CLI (`faycli`)
 
 > **Autonomous AI Agent CLI — Optimized for Termux Android & Linux**
 
@@ -11,7 +11,7 @@
 
 ## 📋 Overview
 
-**Termux AI CLI (`termuxai`)** is a lightweight, zero-native-dependency autonomous AI agent designed specifically for **Android Termux** environments. It uses Google's Gemini API as its reasoning engine while performing file I/O, directory exploration, and shell command execution directly on your local Termux filesystem.
+**FAY CLI (`faycli`)** is a lightweight, zero-native-dependency autonomous AI agent designed specifically for **Android Termux** environments. It uses Google's Gemini API as its reasoning engine while performing file I/O, directory exploration, and shell command execution directly on your local Termux filesystem.
 
 ### Key Highlights
 
@@ -72,7 +72,7 @@ Get a free Gemini API key at **[aistudio.google.com](https://aistudio.google.com
 
 **Option A: Store in config (recommended)**
 ```bash
-termuxai config set apiKey YOUR_GEMINI_API_KEY
+faycli config set apiKey YOUR_GEMINI_API_KEY
 ```
 
 **Option B: Environment variable**
@@ -80,21 +80,21 @@ termuxai config set apiKey YOUR_GEMINI_API_KEY
 # Add to ~/.bashrc or ~/.zshrc
 export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 # Or use:
-export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
+export FAYCLI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
 > **Security tip (SEC-01):** by default the Gemini key is sent as a `key=` query
 > parameter (which can leak into proxy/DevTools logs). Send it via the
 > `Authorization: Bearer` header instead:
 > ```bash
-> termuxai config set gemini.useHeaderAuth true
+> faycli config set gemini.useHeaderAuth true
 > ```
 
 ---
 
 ## 🌐 Multi-Provider Support
 
-`termuxai` has **2 native LLM adapters** and supports unlimited **OpenAI-compatible** endpoints:
+`faycli` has **2 native LLM adapters** and supports unlimited **OpenAI-compatible** endpoints:
 
 | Adapter | Provider(s) | Notes |
 |---------|-------------|-------|
@@ -102,14 +102,14 @@ export TERMUXAI_API_KEY="YOUR_GEMINI_API_KEY"
 | `OpenAIClient` | `openai` + any OpenAI-compatible URL | Default adapter for custom providers |
 
 > **Groq, OpenRouter, DeepSeek, Ollama** are **not** separate adapters — they reuse
-> `OpenAIClient` with a different `--base-url`. This means `termuxai` can speak to any
+> `OpenAIClient` with a different `--base-url`. This means `faycli` can speak to any
 > OpenAI-compatible endpoint out of the box.
 
 ```bash
-termuxai provider list                         # Show configured providers
-termuxai provider use openai                   # Switch active provider (persists)
-termuxai provider add openai --api-key "$KEY"  # Configure OpenAI
-termuxai provider show gemini                  # Dump provider configuration as JSON
+faycli provider list                         # Show configured providers
+faycli provider use openai                   # Switch active provider (persists)
+faycli provider add openai --api-key "$KEY"  # Configure OpenAI
+faycli provider show gemini                  # Dump provider configuration as JSON
 ```
 
 ### Persistent vs One-Shot — Know the Difference
@@ -137,45 +137,45 @@ All of these reuse the `OpenAIClient` adapter with a custom `--base-url` (`--ada
 
 #### 1. Groq (Ultra-Fast Inference)
 ```bash
-termuxai provider add groq \
+faycli provider add groq \
   --adapter openai \
   --api-key "gsk_..." \
   --base-url "https://api.groq.com/openai/v1" \
   --model "llama-3.3-70b-versatile"
 
-termuxai provider use groq
+faycli provider use groq
 ```
 
 #### 2. OpenRouter (Access Claude 3.5 Sonnet, GPT-4o, DeepSeek, etc.)
 ```bash
-termuxai provider add openrouter \
+faycli provider add openrouter \
   --adapter openai \
   --api-key "sk-or-..." \
   --base-url "https://openrouter.ai/api/v1" \
   --model "anthropic/claude-3.5-sonnet"
 
-termuxai provider use openrouter
+faycli provider use openrouter
 ```
 
 #### 3. DeepSeek
 ```bash
-termuxai provider add deepseek \
+faycli provider add deepseek \
   --adapter openai \
   --api-key "sk-..." \
   --base-url "https://api.deepseek.com/v1" \
   --model "deepseek-chat"
 
-termuxai provider use deepseek
+faycli provider use deepseek
 ```
 
 #### 4. Ollama (Local / Offline in Termux or PC)
 ```bash
-termuxai provider add ollama \
+faycli provider add ollama \
   --adapter openai \
   --base-url "http://localhost:11434/v1" \
   --model "llama3.2"
 
-termuxai provider use ollama
+faycli provider use ollama
 ```
 
 ### One-Shot Provider/Model Override
@@ -184,15 +184,15 @@ Run a command with a different provider **without** altering your default config
 
 ```bash
 # One-shot: uses openai for this run only, your default stays unchanged
-termuxai --provider openai --model gpt-4o "translate this sentence"
-termuxai --provider groq "analisis file package.json"
+faycli --provider openai --model gpt-4o "translate this sentence"
+faycli --provider groq "analisis file package.json"
 ```
 
 ### Environment Variables
 
 | Provider | API Key | Base URL | Model |
 |---|---|---|---|
-| Gemini | `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, `T_AI_API_KEY` | — | — |
+| Gemini | `GEMINI_API_KEY`, `FAYCLI_API_KEY`, `T_AI_API_KEY` | — | — |
 | OpenAI | `OPENAI_API_KEY` | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
 
 ### Developer Guide: Adding a Custom Native Adapter
@@ -209,25 +209,25 @@ To add a provider with a non-OpenAI protocol (e.g. Anthropic `/v1/messages`):
 
 ```bash
 # Start interactive REPL
-termuxai
+faycli
 
 # Single-shot task
-termuxai "Buat fungsi kalkulator dalam JavaScript dengan operasi dasar"
+faycli "Buat fungsi kalkulator dalam JavaScript dengan operasi dasar"
 
 # Single-shot task using OpenAI
-termuxai --provider openai --model gpt-4o-mini "Buat REST API sederhana"
+faycli --provider openai --model gpt-4o-mini "Buat REST API sederhana"
 
 # UNIX pipe analysis
-cat error.log | termuxai "Analisis IP mencurigakan dan ringkas error utama"
+cat error.log | faycli "Analisis IP mencurigakan dan ringkas error utama"
 
 # Git commit message
-git diff | termuxai "Buat pesan commit yang ringkas dan deskriptif"
+git diff | faycli "Buat pesan commit yang ringkas dan deskriptif"
 
 # Use a specific model
-termuxai --model gemini-2.5-pro "Refaktor kode ini untuk performa optimal"
+faycli --model gemini-2.5-pro "Refaktor kode ini untuk performa optimal"
 
 # Auto-approve all actions (skip confirmation prompts)
-termuxai -y "Instal dependensi dan jalankan tes"
+faycli -y "Instal dependensi dan jalankan tes"
 ```
 
 ---
@@ -236,13 +236,13 @@ termuxai -y "Instal dependensi dan jalankan tes"
 
 ### 1. Interactive REPL Mode
 
-Start with `termuxai` (no arguments) to enter the interactive multi-turn REPL:
+Start with `faycli` (no arguments) to enter the interactive multi-turn REPL:
 
 ```
-$ termuxai
+$ faycli
 
   ┌─────────────────────────────────────────────────┐
-  │  termuxai — Termux AI CLI  (gemini-2.5-flash)   │
+  │  faycli — FAY CLI  (gemini-2.5-flash)   │
   │  Working Directory: /data/data/com.termux/...    │
   └─────────────────────────────────────────────────┘
 
@@ -275,7 +275,7 @@ After every agent turn, a one-line usage summary appears above the next prompt:
 ### 2. Single-Shot Mode
 
 ```bash
-termuxai "YOUR_TASK_HERE"
+faycli "YOUR_TASK_HERE"
 # Exits with code 0 on success, 1 on failure
 ```
 
@@ -283,35 +283,35 @@ termuxai "YOUR_TASK_HERE"
 
 ```bash
 # Analyze log files
-cat access.log | termuxai "Ekstrak top-10 IP dengan request terbanyak"
+cat access.log | faycli "Ekstrak top-10 IP dengan request terbanyak"
 
 # Review code changes
-git diff HEAD~1 | termuxai "Review perubahan ini dan buat ringkasan"
+git diff HEAD~1 | faycli "Review perubahan ini dan buat ringkasan"
 
 # Analyze error output
-npm test 2>&1 | termuxai "Jelaskan error test dan saran perbaikan"
+npm test 2>&1 | faycli "Jelaskan error test dan saran perbaikan"
 
 # Process any text data
-cat data.json | termuxai "Buat ringkasan dalam format Markdown"
+cat data.json | faycli "Buat ringkasan dalam format Markdown"
 ```
 
 ### 4. Session Management
 
 ```bash
 # List all saved sessions
-termuxai session list
+faycli session list
 
 # Resume a previous session
-termuxai resume sess_1700000000_abc123
+faycli resume sess_1700000000_abc123
 
 # Delete a specific session
-termuxai session delete sess_1700000000_abc123
+faycli session delete sess_1700000000_abc123
 
 # Clear all sessions
-termuxai session clear
+faycli session clear
 
 # Start with a specific session ID
-termuxai --session sess_1700000000_abc123
+faycli --session sess_1700000000_abc123
 ```
 
 ---
@@ -322,31 +322,31 @@ termuxai --session sess_1700000000_abc123
 
 ```bash
 # View all configuration
-termuxai config list
+faycli config list
 
 # Get specific value
-termuxai config get model
-termuxai config get apiKey
+faycli config get model
+faycli config get apiKey
 
 # Set values
-termuxai config set apiKey YOUR_KEY
-termuxai config set model gemini-2.5-pro
-termuxai config set timeoutMs 60000
-termuxai config set autoConfirm true
-termuxai config set verbose true
+faycli config set apiKey YOUR_KEY
+faycli config set model gemini-2.5-pro
+faycli config set timeoutMs 60000
+faycli config set autoConfirm true
+faycli config set verbose true
 
 # Reset a key to default
-termuxai config delete model
+faycli config delete model
 
 # Reset everything to defaults
-termuxai config reset
+faycli config reset
 ```
 
 ### Available Configuration Keys
 
 | Key | Default | Description |
 |---|---|---|
-| `apiKey` | `""` | Gemini API key (env fallback: `GEMINI_API_KEY`, `TERMUXAI_API_KEY`, or legacy `T_AI_API_KEY`) |
+| `apiKey` | `""` | Gemini API key (env fallback: `GEMINI_API_KEY`, `FAYCLI_API_KEY`, or legacy `T_AI_API_KEY`) |
 | `model` | `gemini-2.5-flash` | Default LLM model |
 | `timeoutMs` | `30000` | Shell command timeout (ms) |
 | `maxContextTokens` | `1000000` | Max tokens before context pruning |
@@ -387,19 +387,19 @@ Manage models from the command line without entering the REPL:
 
 ```bash
 # List models for the active provider (gemini by default)
-termuxai model --list
+faycli model --list
 
 # List models for ALL configured providers
-termuxai model --list --all
+faycli model --list --all
 
 # List models for a specific provider
-termuxai model --list --provider openai
+faycli model --list --provider openai
 
 # Set the active model and persist it
-termuxai model --set gemini-2.5-pro
+faycli model --set gemini-2.5-pro
 
 # Set the model for a specific provider
-termuxai model --set gpt-4o --provider openai
+faycli model --set gpt-4o --provider openai
 ```
 
 The catalog is sourced from each provider's `models[]` array (Gemini ships 5 models,
@@ -413,21 +413,21 @@ operations are **script-friendly** and exit non-zero on failure.
 
 ```bash
 # Add a single model to the active provider's catalog
-termuxai model --add gpt-4-turbo
+faycli model --add gpt-4-turbo
 
 # Add multiple models at once (comma-, semicolon-, or newline-separated)
-termuxai model --add gpt-4-turbo,gpt-4o,gpt-3.5-turbo --provider openai
+faycli model --add gpt-4-turbo,gpt-4o,gpt-3.5-turbo --provider openai
 
 # Top-level shortcut — equivalent to `tai model --add`
-termuxai add gpt-4-turbo --provider openai
+faycli add gpt-4-turbo --provider openai
 
 # Remove a model from the catalog
-termuxai model --remove gpt-3.5-turbo --provider openai
-termuxai remove gpt-3.5-turbo          # shortcut
+faycli model --remove gpt-3.5-turbo --provider openai
+faycli remove gpt-3.5-turbo          # shortcut
 
 # Reset a provider's catalog to the builtin defaults
-termuxai model --clear --provider openai
-termuxai clear --provider openai        # shortcut
+faycli model --clear --provider openai
+faycli clear --provider openai        # shortcut
 ```
 
 **Rules enforced by the CLI:**
@@ -445,7 +445,7 @@ termuxai clear --provider openai        # shortcut
 Inside the REPL, `/model` (no args) opens a **zero-dependency** interactive picker
 (arrow keys / `j` `k` / `Enter` / `Esc`) when stdout is a TTY. Non-TTY sessions
 (pipes, redirects) fall back to a static text box — the same one used by
-`termuxai model --list`.
+`faycli model --list`.
 
 ```text
 ╔══════════════════════════════════════════════╗
@@ -463,7 +463,7 @@ Inside the REPL, `/model` (no args) opens a **zero-dependency** interactive pick
 
 ## 🛡️ Security System
 
-termuxai includes a multi-layer security guard for safe file and command execution. The defense-in-depth logic lives in [`src/security/rules.js`](src/security/rules.js), [`src/security/guard.js`](src/security/guard.js), and [`src/security/path-validator.js`](src/security/path-validator.js); see [SECURITY.md](SECURITY.md) for the disclosure policy and full threat model.
+faycli includes a multi-layer security guard for safe file and command execution. The defense-in-depth logic lives in [`src/security/rules.js`](src/security/rules.js), [`src/security/guard.js`](src/security/guard.js), and [`src/security/path-validator.js`](src/security/path-validator.js); see [SECURITY.md](SECURITY.md) for the disclosure policy and full threat model.
 
 ### Protection Layers
 
@@ -490,13 +490,13 @@ Proceed? [y/N]: y
 
 ```bash
 # Skip all confirmation prompts (use in trusted environments only)
-termuxai -y "Bersihkan direktori dist dan build ulang"
-termuxai --yes "Deploy ke server staging"
+faycli -y "Bersihkan direktori dist dan build ulang"
+faycli --yes "Deploy ke server staging"
 ```
 
 ### Termux Android Storage Access
 
-On Termux, termuxai automatically permits access to Android shared storage paths (`/sdcard/`, `~/storage/shared`) when `termux-setup-storage` has been configured:
+On Termux, faycli automatically permits access to Android shared storage paths (`/sdcard/`, `~/storage/shared`) when `termux-setup-storage` has been configured:
 
 ```bash
 # Enable Android storage access in Termux (one-time setup)
@@ -506,8 +506,8 @@ termux-setup-storage
 ### What Is NOT Protected
 
 - **The command blacklist is bypassable.** It is a regex allowlist-of-denylist, not a sandbox boundary. Any novel or obfuscated command can slip past it.
-- **No OS-level sandboxing.** termuxai does not drop privileges, chroot/jail, or containerize. Treat it as capable of arbitrary code execution on your account.
-- **`security.allowTermuxStorage` is opt-in** (`termuxai config set security.allowTermuxStorage true`). Only enable it when you trust the model and the workspace contents.
+- **No OS-level sandboxing.** faycli does not drop privileges, chroot/jail, or containerize. Treat it as capable of arbitrary code execution on your account.
+- **`security.allowTermuxStorage` is opt-in** (`faycli config set security.allowTermuxStorage true`). Only enable it when you trust the model and the workspace contents.
 - **Path validation restricts writes to the safe workspace only.** Reads and commands can still reach outside it when you approve them.
 
 Run the CLI only in environments where you accept that the model has your privileges. For reporting vulnerabilities, see [SECURITY.md](SECURITY.md).
@@ -552,7 +552,7 @@ Args: command, workingDir?, timeoutMs?, env?
 
 ## 🤖 ReAct Agentic Loop
 
-termuxai implements the **ReAct (Reasoning + Acting)** pattern:
+faycli implements the **ReAct (Reasoning + Acting)** pattern:
 
 ```
 User Prompt
@@ -584,10 +584,10 @@ Final Answer (streamed to terminal)
 ### Self-Healing Bug Fix Example
 
 ```bash
-termuxai "Buat file kalkulator calculator.js, tulis unit test, jalankan test, dan perbaiki bug sampai semua lulus"
+faycli "Buat file kalkulator calculator.js, tulis unit test, jalankan test, dan perbaiki bug sampai semua lulus"
 ```
 
-termuxai will autonomously:
+faycli will autonomously:
 1. 📝 Write `calculator.js` with the calculator functions
 2. 📝 Write `test-calculator.js` with test cases
 3. 🔧 Run `node test-calculator.js`
@@ -600,7 +600,7 @@ termuxai will autonomously:
 
 ## 📊 Performance
 
-termuxai is engineered for the resource-constrained environment of Android phones:
+faycli is engineered for the resource-constrained environment of Android phones:
 
 | Metric | Target | Status |
 |---|---|---|
@@ -716,45 +716,45 @@ ai-termux/
 ## 🔌 CLI Reference
 
 ```
-Usage: termuxai [OPTIONS] [PROMPT]
+Usage: faycli [OPTIONS] [PROMPT]
 
 MODES:
-  termuxai                          Start interactive REPL
-  termuxai "PROMPT"                 Single-shot task execution
-  cat file | termuxai "INSTRUCTION" UNIX stdin pipe analysis
-  termuxai resume SESSION_ID        Resume saved session
+  faycli                          Start interactive REPL
+  faycli "PROMPT"                 Single-shot task execution
+  cat file | faycli "INSTRUCTION" UNIX stdin pipe analysis
+  faycli resume SESSION_ID        Resume saved session
 
 PROVIDER COMMANDS:
-  termuxai provider list            List configured providers
-  termuxai provider use <id>        Set active provider (persist)
-  termuxai provider add <id>        Add or update provider settings
-  termuxai provider remove <id>     Remove a custom provider
-  termuxai provider show [id]       Show provider config as JSON
+  faycli provider list            List configured providers
+  faycli provider use <id>        Set active provider (persist)
+  faycli provider add <id>        Add or update provider settings
+  faycli provider remove <id>     Remove a custom provider
+  faycli provider show [id]       Show provider config as JSON
 
 MODEL COMMANDS:
-  termuxai model --list             List models for the active provider
-  termuxai model --list --all       List models for ALL providers
-  termuxai model --list --provider <id>   List models for a specific provider
-  termuxai model --set <name>       Set the active model and persist
-  termuxai model --set <name> --provider <id>  Set model for a specific provider
-  termuxai model --add <name[,..]>  Add model(s) to a provider's catalog (no switch)
-  termuxai model --remove <name>    Remove a model from the catalog
-  termuxai model --clear            Reset a provider's catalog to builtin defaults
-  termuxai add <name>               Shortcut for `tai model --add`
-  termuxai remove <name>            Shortcut for `tai model --remove`
-  termuxai clear                    Shortcut for `tai model --clear`
+  faycli model --list             List models for the active provider
+  faycli model --list --all       List models for ALL providers
+  faycli model --list --provider <id>   List models for a specific provider
+  faycli model --set <name>       Set the active model and persist
+  faycli model --set <name> --provider <id>  Set model for a specific provider
+  faycli model --add <name[,..]>  Add model(s) to a provider's catalog (no switch)
+  faycli model --remove <name>    Remove a model from the catalog
+  faycli model --clear            Reset a provider's catalog to builtin defaults
+  faycli add <name>               Shortcut for `tai model --add`
+  faycli remove <name>            Shortcut for `tai model --remove`
+  faycli clear                    Shortcut for `tai model --clear`
   (in REPL) /model                  Interactive picker (TTY) or static box (non-TTY)
   (in REPL) /model <name>           Set the active model from the REPL
 
 CONFIG COMMANDS:
-  termuxai config list              List all configuration
-  termuxai config get KEY           Get config value
-  termuxai config set KEY VALUE     Set config value
-  termuxai config delete KEY        Reset key to default
-  termuxai config reset             Reset all to defaults
-  termuxai session list             List saved sessions
-  termuxai session delete SESS_ID   Delete a session
-  termuxai session clear            Delete all sessions
+  faycli config list              List all configuration
+  faycli config get KEY           Get config value
+  faycli config set KEY VALUE     Set config value
+  faycli config delete KEY        Reset key to default
+  faycli config reset             Reset all to defaults
+  faycli session list             List saved sessions
+  faycli session delete SESS_ID   Delete a session
+  faycli session clear            Delete all sessions
 
 OPTIONS:
   -p, --provider ID                 One-shot provider override (does NOT persist — use `provider use` to persist)
@@ -772,8 +772,8 @@ ENVIRONMENT VARIABLES:
   OPENAI_API_KEY                    OpenAI API key
   OPENAI_BASE_URL                   Custom OpenAI endpoint base URL
   OPENAI_MODEL                      Default OpenAI model
-  TERMUXAI_API_KEY                  Fallback Gemini API key (legacy: T_AI_API_KEY)
-  TERMUXAI_CONFIG_DIR               Override config directory path (legacy: T_AI_CONFIG_DIR)
+  FAYCLI_API_KEY                  Fallback Gemini API key (legacy: T_AI_API_KEY)
+  FAYCLI_CONFIG_DIR               Override config directory path (legacy: T_AI_CONFIG_DIR)
 ```
 
 ---
@@ -784,7 +784,7 @@ ENVIRONMENT VARIABLES:
 
 ```bash
 # Set via CLI
-termuxai config set apiKey YOUR_KEY
+faycli config set apiKey YOUR_KEY
 
 # Or export (add to ~/.bashrc)
 export GEMINI_API_KEY="YOUR_KEY"
@@ -796,7 +796,7 @@ export GEMINI_API_KEY="YOUR_KEY"
 chmod +x bin/tai.js
 ```
 
-### "termuxai command not found" after install
+### "faycli command not found" after install
 
 ```bash
 # Reload PATH
@@ -807,7 +807,7 @@ hash -r
 echo $PATH | tr ':' '\n' | grep -i npm
 
 # On Termux, check:
-ls $PREFIX/bin/termuxai
+ls $PREFIX/bin/faycli
 ```
 
 ### Slow startup on Android
@@ -822,14 +822,14 @@ node --jitless bin/tai.js  # Reduces JIT warmup time on ARM
 
 The retry module automatically handles 429 responses with exponential backoff (up to 3 retries). If rate limiting persists:
 ```bash
-termuxai config set model gemini-1.5-flash  # Use a less-limited model
+faycli config set model gemini-1.5-flash  # Use a less-limited model
 ```
 
 ### Context too long / token limit exceeded
 
 ```bash
 # Clear session and start fresh
-termuxai session clear
+faycli session clear
 
 # Or use in REPL:
 /clear

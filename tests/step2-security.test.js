@@ -10,7 +10,7 @@ describe('Security & Path Validator (src/security/)', () => {
   let tempBaseDir;
 
   beforeEach(() => {
-    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-sec-test-'));
+    tempBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-sec-test-'));
   });
 
   afterEach(() => {
@@ -51,7 +51,7 @@ describe('Security & Path Validator (src/security/)', () => {
     });
 
     test('should allow external path if present in allowedDirs', () => {
-      const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termuxai-extra-'));
+      const extraDir = fs.mkdtempSync(path.join(os.tmpdir(), 'faycli-extra-'));
       try {
         const res = validateSafePath(path.join(extraDir, 'file.txt'), tempBaseDir, {
           allowedDirs: [extraDir],

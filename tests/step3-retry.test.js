@@ -60,9 +60,9 @@ describe('Step 3: Message Types & Serialization', () => {
   });
 
   test('should format System Instruction properly', () => {
-    const sys = createSystemInstruction('You are Termux AI Agent');
+    const sys = createSystemInstruction('You are FAY CLI Agent');
     assert.deepEqual(sys, {
-      parts: [{ text: 'You are Termux AI Agent' }],
+      parts: [{ text: 'You are FAY CLI Agent' }],
     });
   });
 
