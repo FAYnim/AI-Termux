@@ -2,9 +2,12 @@
  * Security Guard & Human-In-The-Loop Confirmation Engine
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import readline from 'node:readline';
 import { configManager } from '../config/manager.js';
 import { showConfirmDialog } from '../ui/confirm-menu.js';
+import { renderDiffPreview } from '../ui/diff-preview.js';
 import { ansi } from '../utils/ansi.js';
 import { validateSafePath } from './path-validator.js';
 import {
@@ -36,6 +39,7 @@ export class SecurityGuard {
       options.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs;
     this.onBeforeConfirm = typeof options.onBeforeConfirm === 'function' ? options.onBeforeConfirm : null;
     this.onAfterConfirm = typeof options.onAfterConfirm === 'function' ? options.onAfterConfirm : null;
+    this._stream = options.stream || null;
   }
 
   /**
@@ -249,9 +253,54 @@ export class SecurityGuard {
         return { allowed: true };
       }
 
-      case 'read_file':
-      case 'write_file':
       case 'patch_file': {
+        const filePath = args.filePath;
+        if (!filePath || typeof filePath !== 'string') {
+          return { allowed: false, reason: 'File path must be a non-empty string.' };
+        }
+        const pathValidation = validateSafePath(filePath, this.baseDir, this._pathOptions());
+        if (!pathValidation.isAllowed && !this.autoApprove) {
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin menulis/mengubah file di luar workspace:',
+            target: pathValidation.resolvedPath,
+            question: 'Apakah anda mengizinkannya?',
+          });
+          if (!confirmed) {
+            return { allowed: false, reason: `User rejected file access outside workspace for "${filePath}".` };
+          }
+        }
+        let beforeContent = args._beforeContent;
+        let afterContent = args._afterContent;
+        if (beforeContent === undefined && typeof args.searchString === 'string' && typeof args.replaceString === 'string') {
+          try {
+            const abs = pathValidation.resolvedPath || path.resolve(this.baseDir, filePath);
+            if (fs.existsSync(abs)) {
+              beforeContent = fs.readFileSync(abs, 'utf-8');
+              afterContent = beforeContent.replace(args.searchString, args.replaceString);
+            }
+          } catch {}
+        }
+        if (!this.autoApprove && beforeContent !== undefined && afterContent !== undefined) {
+          const preview = renderDiffPreview({
+            filePath: pathValidation.resolvedPath || filePath,
+            before: beforeContent,
+            after: afterContent,
+          });
+          if (this.onBeforeConfirm) this.onBeforeConfirm();
+          (this._stream || process.stdout).write(preview);
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin menerapkan patch pada file:',
+            target: pathValidation.resolvedPath || filePath,
+            question: 'Apakah anda mengizinkan perubahan ini?',
+          });
+          if (this.onAfterConfirm) this.onAfterConfirm(confirmed);
+          if (!confirmed) return { allowed: false, reason: `User rejected patch on "${filePath}".` };
+        }
+        return { allowed: true, resolvedPath: pathValidation.resolvedPath };
+      }
+
+      case 'read_file':
+      case 'write_file': {
         const filePath = args.filePath;
         if (!filePath || typeof filePath !== 'string') {
           return { allowed: false, reason: 'File path must be a non-empty string.' };

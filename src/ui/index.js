@@ -10,3 +10,4 @@ export * from './model-menu.js';
 export * from './spinner.js';
 export * from './thought-display.js';
 export * from './shortcut-overlay.js';
+export * from './diff-preview.js';
