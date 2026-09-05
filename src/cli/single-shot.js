@@ -8,6 +8,7 @@ import { ConfigManager } from '../config/manager.js';
 import { loadLocale, t } from '../i18n/index.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { createSpinner } from '../ui/spinner.js';
+import { createThoughtDisplay } from '../ui/thought-display.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { SecurityGuard } from '../security/guard.js';
@@ -46,7 +47,9 @@ export async function runSingleShot(prompt, options = {}) {
 
 
   const spinner = createSpinner({ stream });
+  const thoughtDisplay = createThoughtDisplay({ stream });
   let hasStreamedToken = false;
+  let streamedText = '';
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -85,7 +88,12 @@ export async function runSingleShot(prompt, options = {}) {
         }
       },
       onToken: (token) => {
-        const clean = token.replace(/<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi, '');
+        const clean = thoughtDisplay.processToken(
+          token.replace(
+            /<\/?(?:tool_calls?|function_call|tool_sep)[^>]*>/gi,
+            '',
+          ),
+        );
         if (!clean) return;
 
         if (spinner.isSpinning()) {

@@ -12,6 +12,7 @@ import { renderBanner, renderStatusLine } from '../ui/box.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { closePromptLine, pausePrompt, promptLine, resumePrompt } from '../ui/prompt-editor.js';
 import { createSpinner } from '../ui/spinner.js';
+import { createThoughtDisplay } from '../ui/thought-display.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
@@ -46,6 +47,7 @@ export async function startRepl(options = {}) {
   // Active spinner reference — shared so SecurityGuard callbacks can stop it
   // before showing the confirmation dialog and resume afterwards.
   let activeSpinner = null;
+  const thoughtDisplay = createThoughtDisplay({ stream: output });
 
   const orchestrator =
     options.orchestrator ||
@@ -177,6 +179,7 @@ export async function startRepl(options = {}) {
         logger,
         stream: output,
         input,
+        thoughtDisplay,
         onWizardActive: (active) => {
           _wizardActive = active;
         },
@@ -220,9 +223,11 @@ export async function startRepl(options = {}) {
           }
         },
         onToken: (token) => {
-          const clean = token.replace(
-            /<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi,
-            '',
+          const clean = thoughtDisplay.processToken(
+            token.replace(
+              /<\/?(?:tool_calls?|function_call|tool_sep)[^>]*>/gi,
+              '',
+            ),
           );
           if (!clean) return;
 

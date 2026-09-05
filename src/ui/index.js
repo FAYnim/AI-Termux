@@ -8,3 +8,4 @@ export * from './confirm-menu.js';
 export * from './markdown.js';
 export * from './model-menu.js';
 export * from './spinner.js';
+export * from './thought-display.js';

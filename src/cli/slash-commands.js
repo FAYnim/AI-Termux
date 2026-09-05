@@ -33,6 +33,7 @@ export const SLASH_COMMANDS_HELP = [
     cmd: '/compact',
     desc: 'Summarize older context now to free space (agent loop does it automatically at 92%)',
   },
+  { cmd: '/thoughts', desc: 'Toggle display of LLM reasoning/thought steps (hidden by default)' },
   { cmd: '/clear', desc: 'Clear the terminal screen' },
   { cmd: '/config', desc: 'Display active CLI configuration settings' },
   { cmd: '/exit, /quit', desc: 'Exit interactive REPL session' },
@@ -510,6 +511,16 @@ export async function executeSlashCommand(input, context = {}) {
           `${ansi.white(result.tokensBefore.toLocaleString())} → ${ansi.white(result.tokensAfter.toLocaleString())} tokens\n\n`,
       );
       return { handled: true, action: 'compact', method: result.method };
+    }
+
+    case 'thoughts': {
+      if (!context.thoughtDisplay) {
+        stream.write(`\n${ansi.yellow('\u26A0')} Thought display not available in this context.\n\n`);
+        return { handled: true, action: 'thoughts_error', error: true };
+      }
+      const nowEnabled = context.thoughtDisplay.toggle();
+      stream.write(`\n${ansi.cyan('\u2139')} Thought display: ${nowEnabled ? ansi.green('ON') : ansi.dim('OFF')}\n\n`);
+      return { handled: true, action: 'thoughts_toggle', enabled: nowEnabled };
     }
 
     case 'clear': {
