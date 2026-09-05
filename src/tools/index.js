@@ -3,6 +3,7 @@
  */
 
 export * from './execute_command.js';
+export * from './git.js';
 export * from './grep_file.js';
 export * from './list_dir.js';
 export * from './patch_file.js';

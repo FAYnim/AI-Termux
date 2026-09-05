@@ -262,6 +262,56 @@ export class SecurityGuard {
         return { allowed: true, resolvedPath: pathValidation.resolvedPath };
       }
 
+      case 'git_status':
+      case 'git_diff': {
+        if (args.workingDir && args.workingDir !== '.') {
+          const pathValidation = validateSafePath(
+            args.workingDir,
+            this.baseDir,
+            this._pathOptions(),
+          );
+          if (!pathValidation.isAllowed && !this.autoApprove) {
+            const confirmed = await this.promptConfirmation(
+              `AI wants to run git ${toolName === 'git_status' ? 'status' : 'diff'} outside workspace: "${pathValidation.resolvedPath}"`,
+            );
+            if (!confirmed) {
+              return {
+                allowed: false,
+                reason: `User rejected git operation in "${args.workingDir}".`,
+              };
+            }
+          }
+        }
+        return { allowed: true };
+      }
+
+      case 'git_add_commit': {
+        if (args.workingDir && args.workingDir !== '.') {
+          const pathValidation = validateSafePath(
+            args.workingDir,
+            this.baseDir,
+            this._pathOptions(),
+          );
+          if (!pathValidation.isAllowed && !this.autoApprove) {
+            const confirmed = await this.promptConfirmation(
+              `AI wants to commit in directory outside workspace: "${pathValidation.resolvedPath}"`,
+            );
+            if (!confirmed) {
+              return { allowed: false, reason: `User rejected git commit in "${args.workingDir}".` };
+            }
+          }
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to stage ${(args.files || ['.']).join(', ')} and commit:\n  ${args.message}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: 'User denied git commit.' };
+          }
+        }
+        return { allowed: true };
+      }
+
       default:
         return { allowed: true };
     }

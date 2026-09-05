@@ -3,6 +3,7 @@
  */
 
 import { executeCommandTool } from './execute_command.js';
+import { gitAddCommitTool, gitDiffTool, gitStatusTool } from './git.js';
 import { grepFileTool } from './grep_file.js';
 import { listDirTool } from './list_dir.js';
 import { patchFileTool } from './patch_file.js';
@@ -21,6 +22,9 @@ export const TOOLS_MAP = {
   execute_command: executeCommandTool,
   grep_file: grepFileTool,
   search_files: searchFilesTool,
+  git_status: gitStatusTool,
+  git_diff: gitDiffTool,
+  git_add_commit: gitAddCommitTool,
 };
 
 /**
@@ -184,6 +188,49 @@ export const TOOL_DECLARATIONS = [
       required: ['pattern'],
     },
   },
+  {
+    name: 'git_status',
+    description: 'Show current git branch and working-tree changes (porcelain format).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+    },
+  },
+  {
+    name: 'git_diff',
+    description: 'Show unstaged (or staged) git diff, optionally limited to one file.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        file: { type: 'STRING', description: 'Only diff this path (optional)' },
+        staged: {
+          type: 'BOOLEAN',
+          description: 'Diff the index instead of the working tree (default false)',
+        },
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+    },
+  },
+  {
+    name: 'git_add_commit',
+    description:
+      'Stage the given paths and create a commit with a message. Requires user confirmation unless auto-approve is on.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        message: { type: 'STRING', description: 'Commit message' },
+        files: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Paths to stage (default ["."])',
+        },
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+      required: ['message'],
+    },
+  },
 ];
 
 /**
@@ -272,6 +319,16 @@ export const TOOL_ARG_ALIASES = {
   search_files: [
     { target: 'pattern', aliases: ['query', 'glob', 'name', 'filename', 'find'] },
     { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
+  ],
+  git_status: [{ target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' }],
+  git_diff: [
+    { target: 'file', aliases: ['filePath', 'path', 'target_file'] },
+    { target: 'workingDir', aliases: ['dir', 'cwd'], fallback: '.' },
+  ],
+  git_add_commit: [
+    { target: 'message', aliases: ['msg', 'commitMessage', 'commit_message'] },
+    { target: 'files', aliases: ['paths', 'filePaths'] },
+    { target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' },
   ],
 };
 
