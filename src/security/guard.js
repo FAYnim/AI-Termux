@@ -241,7 +241,9 @@ export class SecurityGuard {
         return { allowed: true, resolvedPath: pathValidation.resolvedPath };
       }
 
-      case 'list_dir': {
+      case 'list_dir':
+      case 'grep_file':
+      case 'search_files': {
         const dirPath = args.dirPath || '.';
         const pathValidation = validateSafePath(dirPath, this.baseDir, this._pathOptions());
 
@@ -258,6 +260,96 @@ export class SecurityGuard {
         }
 
         return { allowed: true, resolvedPath: pathValidation.resolvedPath };
+      }
+
+      case 'git_status':
+      case 'git_diff': {
+        if (args.workingDir && args.workingDir !== '.') {
+          const pathValidation = validateSafePath(
+            args.workingDir,
+            this.baseDir,
+            this._pathOptions(),
+          );
+          if (!pathValidation.isAllowed && !this.autoApprove) {
+            const confirmed = await this.promptConfirmation(
+              `AI wants to run git ${toolName === 'git_status' ? 'status' : 'diff'} outside workspace: "${pathValidation.resolvedPath}"`,
+            );
+            if (!confirmed) {
+              return {
+                allowed: false,
+                reason: `User rejected git operation in "${args.workingDir}".`,
+              };
+            }
+          }
+        }
+        return { allowed: true };
+      }
+
+      case 'git_add_commit': {
+        if (args.workingDir && args.workingDir !== '.') {
+          const pathValidation = validateSafePath(
+            args.workingDir,
+            this.baseDir,
+            this._pathOptions(),
+          );
+          if (!pathValidation.isAllowed && !this.autoApprove) {
+            const confirmed = await this.promptConfirmation(
+              `AI wants to commit in directory outside workspace: "${pathValidation.resolvedPath}"`,
+            );
+            if (!confirmed) {
+              return { allowed: false, reason: `User rejected git commit in "${args.workingDir}".` };
+            }
+          }
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to stage ${(args.files || ['.']).join(', ')} and commit:\n  ${args.message}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: 'User denied git commit.' };
+          }
+        }
+        return { allowed: true };
+      }
+
+      case 'web_fetch': {
+        const url = args.url;
+        if (!url || typeof url !== 'string') {
+          return { allowed: false, reason: 'URL must be a non-empty string.' };
+        }
+        let parsed;
+        try {
+          parsed = new URL(url);
+        } catch {
+          return { allowed: false, reason: `Invalid URL: "${url}"` };
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return { allowed: false, reason: `Only http(s) URLs allowed, got "${parsed.protocol}"` };
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to fetch external URL:\n  ${url}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: `User rejected fetching "${url}".` };
+          }
+        }
+        return { allowed: true };
+      }
+
+      case 'web_search': {
+        if (!args.query || typeof args.query !== 'string') {
+          return { allowed: false, reason: 'Search query must be a non-empty string.' };
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to search the web for:\n  ${args.query}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: `User rejected web search for "${args.query}".` };
+          }
+        }
+        return { allowed: true };
       }
 
       default:

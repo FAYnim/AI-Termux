@@ -245,18 +245,14 @@ describe('Local Actuator Tools (src/tools/)', () => {
   });
 
   describe('Tool Registry & Gemini Function Declarations', () => {
-    test('should provide valid Gemini function declarations for all 5 tools', () => {
+    test('should provide valid Gemini function declarations for all tools', () => {
       const decls = getToolDeclarations();
-      assert.equal(decls.length, 5);
 
-      const names = decls.map((d) => d.name);
-      assert.deepEqual(names.sort(), [
-        'execute_command',
-        'list_dir',
-        'patch_file',
-        'read_file',
-        'write_file',
-      ]);
+      // Core 5 must always be present; the set grows as tools are added.
+      const names = new Set(decls.map((d) => d.name));
+      for (const core of ['execute_command', 'list_dir', 'patch_file', 'read_file', 'write_file']) {
+        assert.ok(names.has(core), `missing declaration for ${core}`);
+      }
 
       for (const decl of decls) {
         assert.ok(decl.name);

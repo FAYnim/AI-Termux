@@ -3,9 +3,14 @@
  */
 
 import { executeCommandTool } from './execute_command.js';
+import { gitAddCommitTool, gitDiffTool, gitStatusTool } from './git.js';
+import { grepFileTool } from './grep_file.js';
 import { listDirTool } from './list_dir.js';
 import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
+import { searchFilesTool } from './search_files.js';
+import { webFetchTool } from './web_fetch.js';
+import { webSearchTool } from './web_search.js';
 import { writeFileTool } from './write_file.js';
 
 /**
@@ -17,6 +22,13 @@ export const TOOLS_MAP = {
   patch_file: patchFileTool,
   list_dir: listDirTool,
   execute_command: executeCommandTool,
+  grep_file: grepFileTool,
+  search_files: searchFilesTool,
+  git_status: gitStatusTool,
+  git_diff: gitDiffTool,
+  git_add_commit: gitAddCommitTool,
+  web_fetch: webFetchTool,
+  web_search: webSearchTool,
 };
 
 /**
@@ -141,6 +153,119 @@ export const TOOL_DECLARATIONS = [
       required: ['command'],
     },
   },
+  {
+    name: 'grep_file',
+    description:
+      'Search file contents with a JavaScript regex across the workspace. Skips .git, node_modules and binary files. Returns file, line number and line text per match.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        pattern: {
+          type: 'STRING',
+          description: 'JavaScript regex source, e.g. "function\\s+\\w+"',
+        },
+        dirPath: {
+          type: 'STRING',
+          description: 'Directory to search (default "." = workspace root)',
+        },
+        glob: { type: 'STRING', description: 'Optional file filter glob, e.g. "src/*.js"' },
+        caseSensitive: { type: 'BOOLEAN', description: 'Case-sensitive matching (default false)' },
+        maxResults: {
+          type: 'INTEGER',
+          description: 'Maximum matches to return (default 100, max 1000)',
+        },
+      },
+      required: ['pattern'],
+    },
+  },
+  {
+    name: 'search_files',
+    description:
+      'Find files by glob pattern. Patterns without "/" match file names at any depth (e.g. "*.test.js"); patterns with "/" match relative paths (e.g. "src/*.js"). Skips .git and node_modules.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        pattern: { type: 'STRING', description: 'Glob pattern to match file names or paths' },
+        dirPath: { type: 'STRING', description: 'Search root directory (default ".")' },
+        maxResults: { type: 'INTEGER', description: 'Maximum files to return (default 200)' },
+      },
+      required: ['pattern'],
+    },
+  },
+  {
+    name: 'git_status',
+    description: 'Show current git branch and working-tree changes (porcelain format).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+    },
+  },
+  {
+    name: 'git_diff',
+    description: 'Show unstaged (or staged) git diff, optionally limited to one file.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        file: { type: 'STRING', description: 'Only diff this path (optional)' },
+        staged: {
+          type: 'BOOLEAN',
+          description: 'Diff the index instead of the working tree (default false)',
+        },
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+    },
+  },
+  {
+    name: 'git_add_commit',
+    description:
+      'Stage the given paths and create a commit with a message. Requires user confirmation unless auto-approve is on.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        message: { type: 'STRING', description: 'Commit message' },
+        files: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Paths to stage (default ["."])',
+        },
+        workingDir: { type: 'STRING', description: 'Repo directory (default workspace root)' },
+      },
+      required: ['message'],
+    },
+  },
+  {
+    name: 'web_fetch',
+    description:
+      'Fetch a URL and return its content as readable text (HTML is stripped). Only public http(s) URLs; local/private hosts are blocked.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        url: { type: 'STRING', description: 'http(s) URL to fetch' },
+        timeoutMs: { type: 'INTEGER', description: 'Request timeout in ms (default 15000)' },
+        maxBytes: {
+          type: 'INTEGER',
+          description: 'Max content bytes returned (default 102400)',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'web_search',
+    description:
+      'Search the web (DuckDuckGo Lite by default; SearXNG if configured). Returns ranked titles, URLs and snippets. Requires user confirmation.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+        maxResults: { type: 'INTEGER', description: 'Max results (default 8, max 20)' },
+        engine: { type: 'STRING', description: '"duckduckgo" (default) or "searxng"' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -222,6 +347,26 @@ export const TOOL_ARG_ALIASES = {
   ],
   list_dir: [{ target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' }],
   execute_command: [{ target: 'command', aliases: ['cmd', 'script', 'exec'] }],
+  grep_file: [
+    { target: 'pattern', aliases: ['query', 'regex', 'search', 'searchString', 'text'] },
+    { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
+  ],
+  search_files: [
+    { target: 'pattern', aliases: ['query', 'glob', 'name', 'filename', 'find'] },
+    { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
+  ],
+  git_status: [{ target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' }],
+  git_diff: [
+    { target: 'file', aliases: ['filePath', 'path', 'target_file'] },
+    { target: 'workingDir', aliases: ['dir', 'cwd'], fallback: '.' },
+  ],
+  git_add_commit: [
+    { target: 'message', aliases: ['msg', 'commitMessage', 'commit_message'] },
+    { target: 'files', aliases: ['paths', 'filePaths'] },
+    { target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' },
+  ],
+  web_fetch: [{ target: 'url', aliases: ['href', 'link', 'uri', 'target'] }],
+  web_search: [{ target: 'query', aliases: ['q', 'search', 'searchQuery', 'keywords'] }],
 };
 
 /**

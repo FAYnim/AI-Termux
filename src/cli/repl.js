@@ -14,6 +14,7 @@ import { closePromptLine, pausePrompt, promptLine, resumePrompt } from '../ui/pr
 import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { findProjectRoot } from '../utils/project.js';
 import { getSuggestions } from './autocomplete.js';
 import { executeSlashCommand, isSlashCommand } from './slash-commands.js';
 
@@ -46,7 +47,7 @@ export async function startRepl(options = {}) {
     createAgentOrchestrator({
       model: options.model || configMgr.get('model'),
       apiKey: options.apiKey || configMgr.getApiKey(),
-      workingDir: options.workingDir || process.cwd(),
+      workingDir: options.workingDir || findProjectRoot(process.cwd()),
       autoApprove: options.autoApprove,
       logger,
     });
