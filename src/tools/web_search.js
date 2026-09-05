@@ -31,7 +31,9 @@ function parseResults(html) {
   const results = [];
   const linkRe = /<a[^>]+href="(http[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   let match;
-  while ((match = linkRe.exec(html)) !== null) {
+  for (;;) {
+    match = linkRe.exec(html);
+    if (match === null) break;
     const url = decodeEntities(match[1]);
     const title = stripHtml(match[2]);
     if (!title || url.includes('duckduckgo.com')) continue;

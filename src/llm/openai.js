@@ -459,7 +459,20 @@ export class OpenAIClient extends BaseLlmClient {
 }
 
 /** Tool names accepted when they are extracted from model text output. */
-const TEXT_TOOL_NAMES = ['read_file', 'write_file', 'patch_file', 'list_dir', 'execute_command'];
+const TEXT_TOOL_NAMES = [
+  'read_file',
+  'write_file',
+  'patch_file',
+  'list_dir',
+  'execute_command',
+  'grep_file',
+  'search_files',
+  'git_status',
+  'git_diff',
+  'git_add_commit',
+  'web_fetch',
+  'web_search',
+];
 const TEXT_TOOL_NAMES_SOURCE = TEXT_TOOL_NAMES.join('|');
 const TEXT_TOOL_NAME_PATTERN = new RegExp(`(${TEXT_TOOL_NAMES_SOURCE})`, 'i');
 

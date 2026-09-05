@@ -1596,7 +1596,9 @@ function parseResults(html) {
   const results = [];
   const linkRe = /<a[^>]+href="(http[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
   let match;
-  while ((match = linkRe.exec(html)) !== null) {
+  for (;;) {
+    match = linkRe.exec(html);
+    if (match === null) break;
     const url = decodeEntities(match[1]);
     const title = stripHtml(match[2]);
     if (!title || url.includes('duckduckgo.com')) continue;
@@ -1857,19 +1859,20 @@ export const PROJECT_MARKERS = [
  * @returns {string} absolute path
  */
 export function findProjectRoot(startDir = process.cwd(), markers = PROJECT_MARKERS) {
-  let dir;
+  let start;
   try {
-    dir = fs.realpathSync(path.resolve(startDir));
+    start = fs.realpathSync(path.resolve(startDir));
   } catch {
     return path.resolve(startDir);
   }
+  let dir = start;
   for (;;) {
     if (markers.some((m) => fs.existsSync(path.join(dir, m)))) {
       return dir;
     }
     const parent = path.dirname(dir);
     if (parent === dir) {
-      return dir; // filesystem root, no marker anywhere
+      return start; // filesystem root reached, no marker anywhere
     }
     dir = parent;
   }
