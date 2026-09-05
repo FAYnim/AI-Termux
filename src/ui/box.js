@@ -179,15 +179,23 @@ export function renderStatusLine(options = {}) {
   const iterations = options.iterations || 0;
   const maxIterations = options.maxIterations || 0;
 
-  // No usage-bearing response yet → total is not provider-reported; render as an estimate.
   const estimated = !usage.llmRequests;
   const tok = `${estimated ? '~' : ''}${formatCompactTokens(usage.totalTokens || 0)} tok`;
   const pct = contextBudget > 0 ? Math.floor((contextTokens / contextBudget) * 100) : 0;
 
-  const segments = [tok, `ctx ${pct}%`];
+  // 10-char visual progress bar
+  const BAR_WIDTH = 10;
+  const filled = Math.min(BAR_WIDTH, Math.round((pct / 100) * BAR_WIDTH));
+  const bar = '\u2593'.repeat(filled) + '\u2591'.repeat(BAR_WIDTH - filled);
+  // Color: green <60%, yellow 60-84%, red >=85%
+  const coloredBar = pct >= 85 ? ansi.red(bar) : pct >= 60 ? ansi.yellow(bar) : ansi.green(bar);
+
+  const ctxSegment = `${coloredBar} ${pct}%`;
+  const segments = [tok, ctxSegment];
   if (iterations > 0 && maxIterations > 0) {
-    segments.push(`loop ${iterations}/${Number.isFinite(maxIterations) ? maxIterations : '∞'}`);
+    segments.push(`loop ${iterations}/${Number.isFinite(maxIterations) ? maxIterations : '\u221E'}`);
   }
 
-  return ansi.dim(`─ ${segments.join(' │ ')} ─`);
+  return ansi.dim(`\u2500 ${segments.join(' \u2502 ')} \u2500`);
 }
+

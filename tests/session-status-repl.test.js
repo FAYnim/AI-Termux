@@ -78,7 +78,7 @@ describe('REPL Session Status Line', () => {
 
     const text = io.getText();
     assert.ok(
-      text.includes('─ 5.2k tok │ ctx 0% │ loop 1/30 ─'),
+      text.includes('5.2k tok') && text.includes('0%') && text.includes('loop 1/30'),
       `status line missing in:\n${text}`,
     );
   });

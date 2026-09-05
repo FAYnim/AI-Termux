@@ -12,6 +12,10 @@ import { renderBanner, renderStatusLine } from '../ui/box.js';
 import { renderMarkdown } from '../ui/markdown.js';
 import { closePromptLine, pausePrompt, promptLine, resumePrompt } from '../ui/prompt-editor.js';
 import { createSpinner } from '../ui/spinner.js';
+import { createThoughtDisplay } from '../ui/thought-display.js';
+import { buildShortcutOverlay } from '../ui/shortcut-overlay.js';
+import { deriveQuickFixes, renderQuickFixBar } from '../ui/quick-fix.js';
+import { buildPrompt } from '../ui/history-indicator.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
@@ -46,6 +50,7 @@ export async function startRepl(options = {}) {
   // Active spinner reference — shared so SecurityGuard callbacks can stop it
   // before showing the confirmation dialog and resume afterwards.
   let activeSpinner = null;
+  const thoughtDisplay = createThoughtDisplay({ stream: output });
 
   const orchestrator =
     options.orchestrator ||
@@ -103,6 +108,7 @@ export async function startRepl(options = {}) {
   let isClosing = false;
   let _wizardActive = false; // true while a sub-readline wizard owns stdin
   let lastIterations = 0;
+  let turnCount = 0;
 
   // Ctrl+C while a turn is running aborts it. While idle, the prompt editor
   // owns raw mode and routes Ctrl+C to handleCtrlC below instead.
@@ -151,7 +157,7 @@ export async function startRepl(options = {}) {
     const rawInput = await promptLine({
       input,
       output,
-      prompt: REPL_PROMPT,
+      prompt: buildPrompt({ appName: APP_NAME, turn: turnCount }),
       getSuggestions: promptSuggestions,
       onCtrlC: handleCtrlC,
     });
@@ -161,6 +167,11 @@ export async function startRepl(options = {}) {
 
     const line = (rawInput || '').trim();
     if (!line) {
+      continue;
+    }
+
+    if (line === '?') {
+      output.write(`\n${buildShortcutOverlay()}\n\n`);
       continue;
     }
 
@@ -177,6 +188,7 @@ export async function startRepl(options = {}) {
         logger,
         stream: output,
         input,
+        thoughtDisplay,
         onWizardActive: (active) => {
           _wizardActive = active;
         },
@@ -220,9 +232,11 @@ export async function startRepl(options = {}) {
           }
         },
         onToken: (token) => {
-          const clean = token.replace(
-            /<\/?(?:think|tool_calls?|function_call|tool_sep)[^>]*>/gi,
-            '',
+          const clean = thoughtDisplay.processToken(
+            token.replace(
+              /<\/?(?:tool_calls?|function_call|tool_sep)[^>]*>/gi,
+              '',
+            ),
           );
           if (!clean) return;
 
@@ -264,6 +278,10 @@ export async function startRepl(options = {}) {
       } else {
         output.write('\n\n');
       }
+
+      const fixes = deriveQuickFixes({ toolCalls: result.toolCalls, text: result.text });
+      const fixBar = renderQuickFixBar(fixes);
+      if (fixBar) output.write(fixBar);
     } catch (err) {
       if (spinner.isSpinning()) {
         spinner.stop();
@@ -281,6 +299,7 @@ export async function startRepl(options = {}) {
       activeSpinner = null;
     }
     printStatusLine();
+    turnCount++;
   }
 
   process.removeListener('SIGINT', onProcessSigint);
