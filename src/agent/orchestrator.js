@@ -10,6 +10,7 @@ import { createLlmClient } from '../llm/registry.js';
 import { SecurityGuard } from '../security/guard.js';
 import { dispatchToolCall, getToolDeclarations } from '../tools/registry.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { findProjectRoot } from '../utils/project.js';
 import { compactSession } from './compactor.js';
 import { pruneMessages } from './pruner.js';
 import { ReflectionChecker } from './reflection.js';
@@ -46,7 +47,7 @@ export class AgentOrchestrator {
    * @param {number} [options.reflectionInterval=3] - Reflection check interval (0 = disabled)
    */
   constructor(options = {}) {
-    this.workingDir = options.workingDir || process.cwd();
+    this.workingDir = options.workingDir || findProjectRoot(process.cwd());
     this.maxIterations = options.maxIterations || DEFAULT_MAX_ITERATIONS;
     this.maxContextTokens = options.maxContextTokens;
     this.reflectionInterval = options.reflectionInterval != null ? options.reflectionInterval : 3;

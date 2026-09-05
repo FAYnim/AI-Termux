@@ -4,6 +4,7 @@
  */
 
 import os from 'node:os';
+import { findProjectRoot } from '../utils/project.js';
 
 /**
  * Detects host and Termux-specific environment details
@@ -14,6 +15,7 @@ import os from 'node:os';
 export function detectEnvironment(overrides = {}) {
   const env = overrides.env || process.env;
   const cwd = overrides.workingDir || process.cwd();
+  const projectRoot = overrides.projectRoot || findProjectRoot(cwd);
 
   const isTermux = Boolean(
     env.TERMUX_VERSION ||
@@ -46,6 +48,7 @@ export function detectEnvironment(overrides = {}) {
     osType,
     nodeVersion,
     workingDir: cwd,
+    projectRoot,
     homeDir: os.homedir(),
     username: env.USER || env.USERNAME || (isTermux ? 'termux' : 'user'),
     shell: env.SHELL || (platform === 'win32' ? 'powershell' : '/bin/sh'),
@@ -80,7 +83,7 @@ You are faycli (FAY CLI), an autonomous, highly capable AI assistant and softwar
    - Present final answers clearly in concise Markdown.
    - Summarize what actions were taken and what files were created or modified.
 6. **Tool Invocation Requirement**:
-   - You have access to local tools: \`write_file\`, \`read_file\`, \`patch_file\`, \`list_dir\`, \`execute_command\`.
+   - You have access to local tools: \`write_file\`, \`read_file\`, \`patch_file\`, \`list_dir\`, \`execute_command\`, \`grep_file\`, \`search_files\`, \`git_status\`, \`git_diff\`, \`git_add_commit\`, \`web_fetch\`, \`web_search\`.
    - When the user asks you to create, generate, write, or save a file (for example: "buatkan file...", "tulis file...", "create file..."), you MUST call the \`write_file\` tool with parameters \`filePath\` and \`content\`.
    - Never just return a code block in text when asked to create a file; you MUST call the tool to write it to disk.
 `.trim();
@@ -97,6 +100,7 @@ You are faycli (FAY CLI), an autonomous, highly capable AI assistant and softwar
 export function buildSystemPrompt(options = {}) {
   const envInfo = detectEnvironment({
     workingDir: options.workingDir,
+    projectRoot: options.projectRoot,
     ...(options.envOverrides || {}),
   });
 
@@ -106,18 +110,22 @@ export function buildSystemPrompt(options = {}) {
   parts.push(DEFAULT_AGENT_INSTRUCTIONS);
 
   // Environment context block
-  parts.push(
-    `
-### ACTIVE ENVIRONMENT CONTEXT:
-- **Operating System**: ${envInfo.osType} (${envInfo.platform} / ${envInfo.arch})
-- **Is Termux**: ${envInfo.isTermux ? 'Yes (Native Android Shell)' : 'No (Standard Host)'}
-- **Working Directory**: ${envInfo.workingDir}
-- **Node.js Version**: ${envInfo.nodeVersion}
-- **Shell**: ${envInfo.shell}
-- **User**: ${envInfo.username}
-- **Current Timestamp**: ${envInfo.datetime} (${envInfo.timezone})
-`.trim(),
+  const envLines = [
+    '### ACTIVE ENVIRONMENT CONTEXT:',
+    `- **Operating System**: ${envInfo.osType} (${envInfo.platform} / ${envInfo.arch})`,
+    `- **Is Termux**: ${envInfo.isTermux ? 'Yes (Native Android Shell)' : 'No (Standard Host)'}`,
+    `- **Working Directory**: ${envInfo.workingDir}`,
+  ];
+  if (envInfo.projectRoot && envInfo.projectRoot !== envInfo.workingDir) {
+    envLines.push(`- **Project Root**: ${envInfo.projectRoot}`);
+  }
+  envLines.push(
+    `- **Node.js Version**: ${envInfo.nodeVersion}`,
+    `- **Shell**: ${envInfo.shell}`,
+    `- **User**: ${envInfo.username}`,
+    `- **Current Timestamp**: ${envInfo.datetime} (${envInfo.timezone})`,
   );
+  parts.push(envLines.join('\n'));
 
   // Custom user / project instructions if provided
   if (options.customInstructions && typeof options.customInstructions === 'string') {
