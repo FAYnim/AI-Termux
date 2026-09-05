@@ -4,6 +4,7 @@
  */
 
 export * from './box.js';
+export * from './confirm-menu.js';
 export * from './markdown.js';
 export * from './model-menu.js';
 export * from './spinner.js';

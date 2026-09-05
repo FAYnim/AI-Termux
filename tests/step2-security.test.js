@@ -244,7 +244,9 @@ describe('Security & Path Validator (src/security/)', () => {
       // Outside workspace: Requires confirmation
       const outsideRes = await guard.authorize('write_file', { filePath: '../../secret.env' });
       assert.equal(outsideRes.allowed, false);
-      assert.match(confirmationMsg, /outside workspace/i);
+      // confirmationHandler receives the `description` field from the structured dialog options,
+      // which is now in Indonesian and contains "DI LUAR" (= outside).
+      assert.match(confirmationMsg, /DI LUAR|luar workspace|outside workspace/i);
     });
   });
 });

@@ -9,5 +9,10 @@
   "failed": "Gagal",
   "toolDone": "Tool [{tool}] selesai",
   "analyzingResult": "Menganalisis hasil tool...",
-  "networkBusy": "Jaringan sibuk ({status}), mencoba kembali dalam {seconds}s (Percobaan {attempt}/{maxRetries})..."
+  "networkBusy": "Jaringan sibuk ({status}), mencoba kembali dalam {seconds}s (Percobaan {attempt}/{maxRetries})...",
+  "securityAllowed": "✔ [DIIZINKAN] Menjalankan tindakan...",
+  "securityDenied": "✖ [DITOLAK] Tindakan dibatalkan oleh pengguna.",
+  "confirmOptYes": "1. Iya - Izinkan dan jalankan",
+  "confirmOptNo": "2. Tolak - Batalkan tindakan",
+  "confirmNavHint": "[↑/↓]: Navigasi  [Enter]: Pilih  [1/2]: Cepat  [Esc]: Tolak"
 }

@@ -4,6 +4,7 @@
 
 import readline from 'node:readline';
 import { configManager } from '../config/manager.js';
+import { showConfirmDialog } from '../ui/confirm-menu.js';
 import { ansi } from '../utils/ansi.js';
 import { validateSafePath } from './path-validator.js';
 import {
@@ -23,6 +24,8 @@ export class SecurityGuard {
    * @param {string[]} [options.allowedDirs=[]] - Additional explicitly allowed directories
    * @param {Function} [options.confirmationHandler=null] - Custom confirmation hook for tests/UI
    * @param {number} [options.defaultTimeoutMs=30000] - Default timeout for commands
+   * @param {Function} [options.onBeforeConfirm=null] - Called just before showing the confirmation dialog
+   * @param {Function} [options.onAfterConfirm=null]  - Called after the user makes a choice (receives boolean)
    */
   constructor(options = {}) {
     this.autoApprove = Boolean(options.autoApprove);
@@ -31,6 +34,8 @@ export class SecurityGuard {
     this.confirmationHandler = options.confirmationHandler || null;
     this.defaultTimeoutMs =
       options.defaultTimeoutMs || DEFAULT_SECURITY_CONFIG.defaultCommandTimeoutMs;
+    this.onBeforeConfirm = typeof options.onBeforeConfirm === 'function' ? options.onBeforeConfirm : null;
+    this.onAfterConfirm = typeof options.onAfterConfirm === 'function' ? options.onAfterConfirm : null;
   }
 
   /**
@@ -130,35 +135,60 @@ export class SecurityGuard {
   }
 
   /**
-   * Interactively prompts user for confirmation [y/N]
+   * Interactively prompts user for confirmation using a rich TUI dialog.
    *
-   * @param {string} message
+   * Accepts either:
+   *   - A plain string `message` (backward-compatible with existing call sites)
+   *   - A structured object with `{ title, description, target, question }`
+   *     for richer, more informative dialogs.
+   *
+   * @param {string|{title?: string, description: string, target?: string, question?: string}} messageOrOptions
    * @returns {Promise<boolean>}
    */
-  async promptConfirmation(message) {
+  async promptConfirmation(messageOrOptions) {
     if (this.autoApprove) {
       return true;
     }
 
+    // Backward-compat: support legacy string messages passed from tests or
+    // custom call sites (confirmationHandler receives the string as-is).
+    const legacyMessage =
+      typeof messageOrOptions === 'string'
+        ? messageOrOptions
+        : messageOrOptions?.description || 'AI ingin melakukan tindakan yang memerlukan konfirmasi.';
+
     if (typeof this.confirmationHandler === 'function') {
-      return await this.confirmationHandler(message);
+      return await this.confirmationHandler(legacyMessage);
     }
 
-    // Interactive CLI confirmation prompt via standard readline
-    return new Promise((resolve) => {
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      });
+    // Build structured options for the interactive TUI dialog.
+    // If caller passed a plain string, wrap it into a minimal description.
+    const dialogOpts =
+      typeof messageOrOptions === 'object' && messageOrOptions !== null
+        ? {
+            title: messageOrOptions.title || '',
+            description: messageOrOptions.description || legacyMessage,
+            target: messageOrOptions.target || '',
+            question: messageOrOptions.question || 'Apakah Anda mengizinkan tindakan ini?',
+          }
+        : {
+            title: '',
+            description: legacyMessage,
+            target: '',
+            question: 'Apakah Anda mengizinkan tindakan ini?',
+          };
 
-      const formattedPrompt = `${ansi.bold(ansi.yellow('⚠ [SECURITY CHECK]'))} ${message} ${ansi.dim('[y/N]')}: `;
+    // Notify REPL/caller that a dialog is about to appear (e.g. stop spinner)
+    if (this.onBeforeConfirm) this.onBeforeConfirm();
 
-      rl.question(formattedPrompt, (answer) => {
-        rl.close();
-        const trimmed = (answer || '').trim().toLowerCase();
-        resolve(trimmed === 'y' || trimmed === 'yes');
-      });
-    });
+    // Use the interactive arrow-key TUI dialog on TTY terminals.
+    // Falls back to safe deny on non-TTY (pipes, CI, tests without handler).
+    const result = await showConfirmDialog(dialogOpts);
+
+    // Notify REPL/caller with the user's decision
+    if (this.onAfterConfirm) this.onAfterConfirm(result);
+
+    return result;
   }
 
   /**
@@ -188,9 +218,11 @@ export class SecurityGuard {
         if (workingDir) {
           const pathValidation = validateSafePath(workingDir, this.baseDir, this._pathOptions());
           if (!pathValidation.isAllowed) {
-            const confirmed = await this.promptConfirmation(
-              `AI wants to execute command in directory outside workspace: "${pathValidation.resolvedPath}"`,
-            );
+            const confirmed = await this.promptConfirmation({
+              description: 'AI ingin menjalankan perintah shell di luar workspace:',
+              target: `Direktori: ${pathValidation.resolvedPath}\nPerintah : ${command}`,
+              question: 'Apakah anda mengizinkannya?',
+            });
             if (!confirmed) {
               return {
                 allowed: false,
@@ -201,9 +233,11 @@ export class SecurityGuard {
         }
 
         if (inspection.isRisky && !this.autoApprove) {
-          const confirmed = await this.promptConfirmation(
-            `AI wants to execute risky shell command:\n  ${ansi.cyan(command)}\nProceed?`,
-          );
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin menjalankan perintah shell yang mungkin berisiko:',
+            target: command,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return {
               allowed: false,
@@ -226,10 +260,14 @@ export class SecurityGuard {
         const pathValidation = validateSafePath(filePath, this.baseDir, this._pathOptions());
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
-          const actionVerb = toolName === 'read_file' ? 'read' : 'modify';
-          const confirmed = await this.promptConfirmation(
-            `AI wants to ${actionVerb} file outside workspace: "${pathValidation.resolvedPath}"`,
-          );
+          const isRead = toolName === 'read_file';
+          const confirmed = await this.promptConfirmation({
+            description: isRead
+              ? 'AI ingin membaca file di luar workspace:'
+              : 'AI ingin menulis/mengubah file di luar workspace:',
+            target: pathValidation.resolvedPath,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return {
               allowed: false,
@@ -248,9 +286,11 @@ export class SecurityGuard {
         const pathValidation = validateSafePath(dirPath, this.baseDir, this._pathOptions());
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
-          const confirmed = await this.promptConfirmation(
-            `AI wants to inspect directory outside workspace: "${pathValidation.resolvedPath}"`,
-          );
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin membaca direktori di luar workspace:',
+            target: pathValidation.resolvedPath,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return {
               allowed: false,
@@ -271,9 +311,12 @@ export class SecurityGuard {
             this._pathOptions(),
           );
           if (!pathValidation.isAllowed && !this.autoApprove) {
-            const confirmed = await this.promptConfirmation(
-              `AI wants to run git ${toolName === 'git_status' ? 'status' : 'diff'} outside workspace: "${pathValidation.resolvedPath}"`,
-            );
+            const gitOp = toolName === 'git_status' ? 'status' : 'diff';
+            const confirmed = await this.promptConfirmation({
+              description: `AI ingin menjalankan git ${gitOp} di luar workspace:`,
+              target: pathValidation.resolvedPath,
+              question: 'Apakah anda mengizinkannya?',
+            });
             if (!confirmed) {
               return {
                 allowed: false,
@@ -293,18 +336,23 @@ export class SecurityGuard {
             this._pathOptions(),
           );
           if (!pathValidation.isAllowed && !this.autoApprove) {
-            const confirmed = await this.promptConfirmation(
-              `AI wants to commit in directory outside workspace: "${pathValidation.resolvedPath}"`,
-            );
+            const confirmed = await this.promptConfirmation({
+              description: 'AI ingin melakukan git commit di luar workspace:',
+              target: pathValidation.resolvedPath,
+              question: 'Apakah anda mengizinkannya?',
+            });
             if (!confirmed) {
               return { allowed: false, reason: `User rejected git commit in "${args.workingDir}".` };
             }
           }
         }
         if (!this.autoApprove) {
-          const confirmed = await this.promptConfirmation(
-            `AI wants to stage ${(args.files || ['.']).join(', ')} and commit:\n  ${args.message}\nProceed?`,
-          );
+          const files = (args.files || ['.']).join(', ');
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin melakukan commit perubahan ke Git:',
+            target: `File : ${files}\nPesan: ${args.message}`,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return { allowed: false, reason: 'User denied git commit.' };
           }
@@ -327,9 +375,11 @@ export class SecurityGuard {
           return { allowed: false, reason: `Only http(s) URLs allowed, got "${parsed.protocol}"` };
         }
         if (!this.autoApprove) {
-          const confirmed = await this.promptConfirmation(
-            `AI wants to fetch external URL:\n  ${url}\nProceed?`,
-          );
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin mengakses URL eksternal:',
+            target: url,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return { allowed: false, reason: `User rejected fetching "${url}".` };
           }
@@ -342,9 +392,11 @@ export class SecurityGuard {
           return { allowed: false, reason: 'Search query must be a non-empty string.' };
         }
         if (!this.autoApprove) {
-          const confirmed = await this.promptConfirmation(
-            `AI wants to search the web for:\n  ${args.query}\nProceed?`,
-          );
+          const confirmed = await this.promptConfirmation({
+            description: 'AI ingin melakukan pencarian web:',
+            target: args.query,
+            question: 'Apakah anda mengizinkannya?',
+          });
           if (!confirmed) {
             return { allowed: false, reason: `User rejected web search for "${args.query}".` };
           }

@@ -15,6 +15,7 @@ import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
+import { SecurityGuard } from '../security/guard.js';
 import { getSuggestions } from './autocomplete.js';
 import { executeSlashCommand, isSlashCommand } from './slash-commands.js';
 
@@ -42,6 +43,10 @@ export async function startRepl(options = {}) {
   const configMgr = options.configMgr || new ConfigManager();
   await loadLocale(configMgr.get('locale'));
 
+  // Active spinner reference — shared so SecurityGuard callbacks can stop it
+  // before showing the confirmation dialog and resume afterwards.
+  let activeSpinner = null;
+
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -49,8 +54,26 @@ export async function startRepl(options = {}) {
       apiKey: options.apiKey || configMgr.getApiKey(),
       workingDir: options.workingDir || findProjectRoot(process.cwd()),
       autoApprove: options.autoApprove,
+      securityGuard: options.securityGuard,
       logger,
     });
+
+  // Attach spinner coordination callbacks into the active SecurityGuard
+  // (guarantees spinner stops cleanly when confirmation dialog appears, even if orchestrator was pre-created)
+  const securityGuard = orchestrator.securityGuard;
+  if (securityGuard) {
+    securityGuard.onBeforeConfirm = () => {
+      if (activeSpinner && activeSpinner.isSpinning()) {
+        activeSpinner.stop();
+      }
+    };
+    securityGuard.onAfterConfirm = (allowed) => {
+      const badge = allowed
+        ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
+        : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
+      output.write(badge + '\n');
+    };
+  }
 
   const session = orchestrator.getSession();
   const activeModel = orchestrator.llmClient
@@ -171,6 +194,7 @@ export async function startRepl(options = {}) {
     isBusy = true;
     activeAbortController = new AbortController();
     const spinner = createSpinner({ stream: output });
+    activeSpinner = spinner; // expose to SecurityGuard callbacks
     let hasStreamedToken = false;
 
     try {
@@ -254,6 +278,7 @@ export async function startRepl(options = {}) {
     } finally {
       isBusy = false;
       activeAbortController = null;
+      activeSpinner = null;
     }
     printStatusLine();
   }
