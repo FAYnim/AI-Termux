@@ -7,6 +7,7 @@ import { grepFileTool } from './grep_file.js';
 import { listDirTool } from './list_dir.js';
 import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
+import { searchFilesTool } from './search_files.js';
 import { writeFileTool } from './write_file.js';
 
 /**
@@ -19,6 +20,7 @@ export const TOOLS_MAP = {
   list_dir: listDirTool,
   execute_command: executeCommandTool,
   grep_file: grepFileTool,
+  search_files: searchFilesTool,
 };
 
 /**
@@ -168,6 +170,20 @@ export const TOOL_DECLARATIONS = [
       required: ['pattern'],
     },
   },
+  {
+    name: 'search_files',
+    description:
+      'Find files by glob pattern. Patterns without "/" match file names at any depth (e.g. "*.test.js"); patterns with "/" match relative paths (e.g. "src/*.js"). Skips .git and node_modules.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        pattern: { type: 'STRING', description: 'Glob pattern to match file names or paths' },
+        dirPath: { type: 'STRING', description: 'Search root directory (default ".")' },
+        maxResults: { type: 'INTEGER', description: 'Maximum files to return (default 200)' },
+      },
+      required: ['pattern'],
+    },
+  },
 ];
 
 /**
@@ -251,6 +267,10 @@ export const TOOL_ARG_ALIASES = {
   execute_command: [{ target: 'command', aliases: ['cmd', 'script', 'exec'] }],
   grep_file: [
     { target: 'pattern', aliases: ['query', 'regex', 'search', 'searchString', 'text'] },
+    { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
+  ],
+  search_files: [
+    { target: 'pattern', aliases: ['query', 'glob', 'name', 'filename', 'find'] },
     { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
   ],
 };
