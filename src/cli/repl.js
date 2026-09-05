@@ -13,6 +13,7 @@ import { renderMarkdown } from '../ui/markdown.js';
 import { closePromptLine, pausePrompt, promptLine, resumePrompt } from '../ui/prompt-editor.js';
 import { createSpinner } from '../ui/spinner.js';
 import { createThoughtDisplay } from '../ui/thought-display.js';
+import { buildShortcutOverlay } from '../ui/shortcut-overlay.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
@@ -163,6 +164,11 @@ export async function startRepl(options = {}) {
 
     const line = (rawInput || '').trim();
     if (!line) {
+      continue;
+    }
+
+    if (line === '?') {
+      output.write(`\n${buildShortcutOverlay()}\n\n`);
       continue;
     }
 
