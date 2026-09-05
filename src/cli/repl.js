@@ -47,24 +47,6 @@ export async function startRepl(options = {}) {
   // before showing the confirmation dialog and resume afterwards.
   let activeSpinner = null;
 
-  // SecurityGuard with spinner coordination callbacks
-  const securityGuard = options.securityGuard ||
-    new SecurityGuard({
-      autoApprove: options.autoApprove,
-      workingDir: options.workingDir || findProjectRoot(process.cwd()),
-      onBeforeConfirm: () => {
-        if (activeSpinner && activeSpinner.isSpinning()) {
-          activeSpinner.stop();
-        }
-      },
-      onAfterConfirm: (allowed) => {
-        const badge = allowed
-          ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
-          : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
-        output.write(badge + '\n');
-      },
-    });
-
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -72,9 +54,26 @@ export async function startRepl(options = {}) {
       apiKey: options.apiKey || configMgr.getApiKey(),
       workingDir: options.workingDir || findProjectRoot(process.cwd()),
       autoApprove: options.autoApprove,
-      securityGuard,
+      securityGuard: options.securityGuard,
       logger,
     });
+
+  // Attach spinner coordination callbacks into the active SecurityGuard
+  // (guarantees spinner stops cleanly when confirmation dialog appears, even if orchestrator was pre-created)
+  const securityGuard = orchestrator.securityGuard;
+  if (securityGuard) {
+    securityGuard.onBeforeConfirm = () => {
+      if (activeSpinner && activeSpinner.isSpinning()) {
+        activeSpinner.stop();
+      }
+    };
+    securityGuard.onAfterConfirm = (allowed) => {
+      const badge = allowed
+        ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
+        : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
+      output.write(badge + '\n');
+    };
+  }
 
   const session = orchestrator.getSession();
   const activeModel = orchestrator.llmClient

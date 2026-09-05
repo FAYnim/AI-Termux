@@ -63,7 +63,8 @@ export const DEFAULT_SELECTED = 1; // Default: cursor di "Tolak" (aman)
 export function buildDialogLines({ description, target, question, selected }) {
   const lines = [];
 
-  // Baris deskripsi
+  // Baris baru / enter sebelum deskripsi agar tipografi lega dan tidak menempel pada baris sebelumnya
+  lines.push('');
   lines.push(ansi.bold(ansi.yellow(description)));
 
   // Baris target / perintah (jika ada)
@@ -142,6 +143,9 @@ export function showConfirmDialog(options = {}) {
         readline.cursorTo(output, 0);
         readline.moveCursor(output, 0, -renderedLineCount);
         output.write('\x1b[J'); // Hapus dari kursor ke bawah
+      } else {
+        // Render pertama kali: bersihkan sisa baris terminal aktif (misal spinner)
+        output.write('\r\x1b[K');
       }
 
       output.write(frame + '\n');

@@ -47,26 +47,6 @@ export async function runSingleShot(prompt, options = {}) {
 
   const spinner = createSpinner({ stream });
   let hasStreamedToken = false;
-  let streamedText = '';
-
-  // SecurityGuard with spinner coordination callbacks for single-shot mode
-  const securityGuard = options.securityGuard ||
-    new SecurityGuard({
-      autoApprove: options.autoApprove,
-      workingDir: options.workingDir,
-      onBeforeConfirm: () => {
-        if (spinner.isSpinning()) {
-          spinner.stop();
-        }
-      },
-      onAfterConfirm: (allowed) => {
-        const badge = allowed
-          ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
-          : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
-        stream.write(badge + '\n');
-      },
-    });
-
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -74,9 +54,24 @@ export async function runSingleShot(prompt, options = {}) {
       apiKey: options.apiKey,
       workingDir: options.workingDir,
       autoApprove: options.autoApprove,
-      securityGuard,
+      securityGuard: options.securityGuard,
       logger,
     });
+
+  // Attach spinner coordination callbacks into the active SecurityGuard
+  if (orchestrator.securityGuard) {
+    orchestrator.securityGuard.onBeforeConfirm = () => {
+      if (spinner.isSpinning()) {
+        spinner.stop();
+      }
+    };
+    orchestrator.securityGuard.onAfterConfirm = (allowed) => {
+      const badge = allowed
+        ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
+        : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
+      stream.write(badge + '\n');
+    };
+  }
 
   try {
     spinner.start(t('thinkingTurn', { turn: 1 }));
