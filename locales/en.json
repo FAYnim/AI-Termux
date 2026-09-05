@@ -9,5 +9,10 @@
   "failed": "Failed",
   "toolDone": "Tool [{tool}] finished",
   "analyzingResult": "Analyzing tool result...",
-  "networkBusy": "Network busy ({status}), retrying in {seconds}s (attempt {attempt}/{maxRetries})..."
+  "networkBusy": "Network busy ({status}), retrying in {seconds}s (attempt {attempt}/{maxRetries})...",
+  "securityAllowed": "✔ [ALLOWED] Executing...",
+  "securityDenied": "✖ [DENIED] Action cancelled by user.",
+  "confirmOptYes": "1. Allow — Execute this action",
+  "confirmOptNo": "2. Deny  — Cancel this action (Safe)",
+  "confirmNavHint": "↑/↓ to navigate • Enter to confirm • Esc to deny"
 }

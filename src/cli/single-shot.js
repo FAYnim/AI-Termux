@@ -10,6 +10,7 @@ import { renderMarkdown } from '../ui/markdown.js';
 import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
+import { SecurityGuard } from '../security/guard.js';
 
 /**
  * Runs a single-shot autonomous task
@@ -42,6 +43,30 @@ export async function runSingleShot(prompt, options = {}) {
   const configMgr = options.configMgr || new ConfigManager();
   await loadLocale(configMgr.get('locale'));
 
+
+
+  const spinner = createSpinner({ stream });
+  let hasStreamedToken = false;
+  let streamedText = '';
+
+  // SecurityGuard with spinner coordination callbacks for single-shot mode
+  const securityGuard = options.securityGuard ||
+    new SecurityGuard({
+      autoApprove: options.autoApprove,
+      workingDir: options.workingDir,
+      onBeforeConfirm: () => {
+        if (spinner.isSpinning()) {
+          spinner.stop();
+        }
+      },
+      onAfterConfirm: (allowed) => {
+        const badge = allowed
+          ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
+          : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
+        stream.write(badge + '\n');
+      },
+    });
+
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -49,15 +74,12 @@ export async function runSingleShot(prompt, options = {}) {
       apiKey: options.apiKey,
       workingDir: options.workingDir,
       autoApprove: options.autoApprove,
+      securityGuard,
       logger,
     });
 
-  const spinner = createSpinner({ stream });
-  let hasStreamedToken = false;
-  let streamedText = '';
-
   try {
-    spinner.start('Thinking...');
+    spinner.start(t('thinkingTurn', { turn: 1 }));
 
     const result = await orchestrator.runTurn(prompt, {
       signal: options.signal,
@@ -100,7 +122,7 @@ export async function runSingleShot(prompt, options = {}) {
         } else {
           spinner.succeed(t('toolDone', { tool: name }));
         }
-        spinner.start('Thinking...');
+        spinner.start(t('analyzingResult'));
       },
     });
 

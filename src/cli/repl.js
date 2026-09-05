@@ -15,6 +15,7 @@ import { createSpinner } from '../ui/spinner.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
+import { SecurityGuard } from '../security/guard.js';
 import { getSuggestions } from './autocomplete.js';
 import { executeSlashCommand, isSlashCommand } from './slash-commands.js';
 
@@ -42,6 +43,28 @@ export async function startRepl(options = {}) {
   const configMgr = options.configMgr || new ConfigManager();
   await loadLocale(configMgr.get('locale'));
 
+  // Active spinner reference — shared so SecurityGuard callbacks can stop it
+  // before showing the confirmation dialog and resume afterwards.
+  let activeSpinner = null;
+
+  // SecurityGuard with spinner coordination callbacks
+  const securityGuard = options.securityGuard ||
+    new SecurityGuard({
+      autoApprove: options.autoApprove,
+      workingDir: options.workingDir || findProjectRoot(process.cwd()),
+      onBeforeConfirm: () => {
+        if (activeSpinner && activeSpinner.isSpinning()) {
+          activeSpinner.stop();
+        }
+      },
+      onAfterConfirm: (allowed) => {
+        const badge = allowed
+          ? `\n${ansi.green('✔')} ${ansi.bold(ansi.green(t('securityAllowed')))}`
+          : `\n${ansi.red('✖')} ${ansi.bold(ansi.red(t('securityDenied')))}\n`;
+        output.write(badge + '\n');
+      },
+    });
+
   const orchestrator =
     options.orchestrator ||
     createAgentOrchestrator({
@@ -49,6 +72,7 @@ export async function startRepl(options = {}) {
       apiKey: options.apiKey || configMgr.getApiKey(),
       workingDir: options.workingDir || findProjectRoot(process.cwd()),
       autoApprove: options.autoApprove,
+      securityGuard,
       logger,
     });
 
@@ -171,6 +195,7 @@ export async function startRepl(options = {}) {
     isBusy = true;
     activeAbortController = new AbortController();
     const spinner = createSpinner({ stream: output });
+    activeSpinner = spinner; // expose to SecurityGuard callbacks
     let hasStreamedToken = false;
 
     try {
@@ -254,6 +279,7 @@ export async function startRepl(options = {}) {
     } finally {
       isBusy = false;
       activeAbortController = null;
+      activeSpinner = null;
     }
     printStatusLine();
   }
