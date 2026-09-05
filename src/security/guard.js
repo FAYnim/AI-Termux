@@ -312,6 +312,31 @@ export class SecurityGuard {
         return { allowed: true };
       }
 
+      case 'web_fetch': {
+        const url = args.url;
+        if (!url || typeof url !== 'string') {
+          return { allowed: false, reason: 'URL must be a non-empty string.' };
+        }
+        let parsed;
+        try {
+          parsed = new URL(url);
+        } catch {
+          return { allowed: false, reason: `Invalid URL: "${url}"` };
+        }
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return { allowed: false, reason: `Only http(s) URLs allowed, got "${parsed.protocol}"` };
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to fetch external URL:\n  ${url}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: `User rejected fetching "${url}".` };
+          }
+        }
+        return { allowed: true };
+      }
+
       default:
         return { allowed: true };
     }

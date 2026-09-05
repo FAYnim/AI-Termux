@@ -9,6 +9,7 @@ import { listDirTool } from './list_dir.js';
 import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
 import { searchFilesTool } from './search_files.js';
+import { webFetchTool } from './web_fetch.js';
 import { writeFileTool } from './write_file.js';
 
 /**
@@ -25,6 +26,7 @@ export const TOOLS_MAP = {
   git_status: gitStatusTool,
   git_diff: gitDiffTool,
   git_add_commit: gitAddCommitTool,
+  web_fetch: webFetchTool,
 };
 
 /**
@@ -231,6 +233,23 @@ export const TOOL_DECLARATIONS = [
       required: ['message'],
     },
   },
+  {
+    name: 'web_fetch',
+    description:
+      'Fetch a URL and return its content as readable text (HTML is stripped). Only public http(s) URLs; local/private hosts are blocked.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        url: { type: 'STRING', description: 'http(s) URL to fetch' },
+        timeoutMs: { type: 'INTEGER', description: 'Request timeout in ms (default 15000)' },
+        maxBytes: {
+          type: 'INTEGER',
+          description: 'Max content bytes returned (default 102400)',
+        },
+      },
+      required: ['url'],
+    },
+  },
 ];
 
 /**
@@ -330,6 +349,7 @@ export const TOOL_ARG_ALIASES = {
     { target: 'files', aliases: ['paths', 'filePaths'] },
     { target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' },
   ],
+  web_fetch: [{ target: 'url', aliases: ['href', 'link', 'uri', 'target'] }],
 };
 
 /**
