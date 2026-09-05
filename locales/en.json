@@ -12,7 +12,7 @@
   "networkBusy": "Network busy ({status}), retrying in {seconds}s (attempt {attempt}/{maxRetries})...",
   "securityAllowed": "✔ [ALLOWED] Executing...",
   "securityDenied": "✖ [DENIED] Action cancelled by user.",
-  "confirmOptYes": "1. Allow — Execute this action",
-  "confirmOptNo": "2. Deny  — Cancel this action (Safe)",
-  "confirmNavHint": "↑/↓ to navigate • Enter to confirm • Esc to deny"
+  "confirmOptYes": "1. Allow - Proceed and run",
+  "confirmOptNo": "2. Deny - Cancel action",
+  "confirmNavHint": "[↑/↓]: Navigate  [Enter]: Select  [1/2]: Quick  [Esc]: Deny"
 }

@@ -219,12 +219,9 @@ export class SecurityGuard {
           const pathValidation = validateSafePath(workingDir, this.baseDir, this._pathOptions());
           if (!pathValidation.isAllowed) {
             const confirmed = await this.promptConfirmation({
-              title: 'Eksekusi Perintah di Luar Workspace',
-              description:
-                'AI ingin menjalankan perintah shell di direktori yang berada DI LUAR workspace proyek Anda. ' +
-                'Tindakan ini dapat mempengaruhi file di luar proyek.',
+              description: 'AI ingin menjalankan perintah shell di luar workspace:',
               target: `Direktori: ${pathValidation.resolvedPath}\nPerintah : ${command}`,
-              question: 'Izinkan eksekusi perintah di direktori luar workspace ini?',
+              question: 'Apakah anda mengizinkannya?',
             });
             if (!confirmed) {
               return {
@@ -237,12 +234,9 @@ export class SecurityGuard {
 
         if (inspection.isRisky && !this.autoApprove) {
           const confirmed = await this.promptConfirmation({
-            title: 'Eksekusi Perintah Shell Berisiko',
-            description:
-              'AI ingin menjalankan perintah shell yang tergolong berisiko. ' +
-              'Perintah ini berpotensi mengubah, menghapus, atau memodifikasi file/sistem secara permanen.',
+            description: 'AI ingin menjalankan perintah shell yang mungkin berisiko:',
             target: command,
-            question: 'Apakah Anda ingin mengizinkan eksekusi perintah ini?',
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return {
@@ -268,15 +262,11 @@ export class SecurityGuard {
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const isRead = toolName === 'read_file';
           const confirmed = await this.promptConfirmation({
-            title: isRead ? 'Baca File di Luar Workspace' : 'Tulis / Ubah File di Luar Workspace',
             description: isRead
-              ? 'AI ingin membaca file yang berada DI LUAR direktori workspace proyek Anda.'
-              : 'AI ingin membuat atau mengubah file yang berada DI LUAR direktori workspace proyek Anda. ' +
-                'Tindakan ini dapat memodifikasi file sistem atau proyek lain secara permanen.',
+              ? 'AI ingin membaca file di luar workspace:'
+              : 'AI ingin menulis/mengubah file di luar workspace:',
             target: pathValidation.resolvedPath,
-            question: isRead
-              ? 'Izinkan AI membaca file di luar workspace?'
-              : 'Izinkan AI menulis/mengubah file di luar workspace?',
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return {
@@ -297,11 +287,9 @@ export class SecurityGuard {
 
         if (!pathValidation.isAllowed && !this.autoApprove) {
           const confirmed = await this.promptConfirmation({
-            title: 'Inspeksi Direktori di Luar Workspace',
-            description:
-              'AI ingin membaca isi direktori yang berada DI LUAR workspace proyek Anda.',
+            description: 'AI ingin membaca direktori di luar workspace:',
             target: pathValidation.resolvedPath,
-            question: 'Izinkan AI mengakses direktori di luar workspace?',
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return {
@@ -325,11 +313,9 @@ export class SecurityGuard {
           if (!pathValidation.isAllowed && !this.autoApprove) {
             const gitOp = toolName === 'git_status' ? 'status' : 'diff';
             const confirmed = await this.promptConfirmation({
-              title: `Operasi Git (${gitOp}) di Luar Workspace`,
-              description:
-                `AI ingin menjalankan git ${gitOp} pada direktori yang berada DI LUAR workspace proyek Anda.`,
+              description: `AI ingin menjalankan git ${gitOp} di luar workspace:`,
               target: pathValidation.resolvedPath,
-              question: `Izinkan perintah git ${gitOp} di luar workspace?`,
+              question: 'Apakah anda mengizinkannya?',
             });
             if (!confirmed) {
               return {
@@ -351,12 +337,9 @@ export class SecurityGuard {
           );
           if (!pathValidation.isAllowed && !this.autoApprove) {
             const confirmed = await this.promptConfirmation({
-              title: 'Git Commit di Luar Workspace',
-              description:
-                'AI ingin melakukan git commit pada direktori yang berada DI LUAR workspace proyek Anda. ' +
-                'Tindakan ini akan mengubah riwayat git pada repositori lain.',
+              description: 'AI ingin melakukan git commit di luar workspace:',
               target: pathValidation.resolvedPath,
-              question: 'Izinkan git commit di luar workspace?',
+              question: 'Apakah anda mengizinkannya?',
             });
             if (!confirmed) {
               return { allowed: false, reason: `User rejected git commit in "${args.workingDir}".` };
@@ -366,12 +349,9 @@ export class SecurityGuard {
         if (!this.autoApprove) {
           const files = (args.files || ['.']).join(', ');
           const confirmed = await this.promptConfirmation({
-            title: 'Commit Perubahan ke Git',
-            description:
-              `AI ingin melakukan commit perubahan pada file berikut ke repositori Git Anda. ` +
-              `Tindakan ini akan mengubah riwayat commit secara permanen.`,
-            target: `File   : ${files}\nPesan  : ${args.message}`,
-            question: 'Izinkan AI melakukan git commit ini?',
+            description: 'AI ingin melakukan commit perubahan ke Git:',
+            target: `File : ${files}\nPesan: ${args.message}`,
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return { allowed: false, reason: 'User denied git commit.' };
@@ -396,12 +376,9 @@ export class SecurityGuard {
         }
         if (!this.autoApprove) {
           const confirmed = await this.promptConfirmation({
-            title: 'Akses URL Eksternal (web_fetch)',
-            description:
-              'AI ingin melakukan HTTP request ke URL eksternal berikut. ' +
-              'Tindakan ini akan mengirimkan request jaringan dari perangkat Anda.',
+            description: 'AI ingin mengakses URL eksternal:',
             target: url,
-            question: 'Izinkan AI mengakses URL eksternal ini?',
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return { allowed: false, reason: `User rejected fetching "${url}".` };
@@ -416,12 +393,9 @@ export class SecurityGuard {
         }
         if (!this.autoApprove) {
           const confirmed = await this.promptConfirmation({
-            title: 'Pencarian Web (web_search)',
-            description:
-              'AI ingin melakukan pencarian internet untuk kata kunci berikut. ' +
-              'Tindakan ini akan mengirimkan query ke mesin pencari dari perangkat Anda.',
+            description: 'AI ingin melakukan pencarian web:',
             target: args.query,
-            question: 'Izinkan AI melakukan pencarian web ini?',
+            question: 'Apakah anda mengizinkannya?',
           });
           if (!confirmed) {
             return { allowed: false, reason: `User rejected web search for "${args.query}".` };

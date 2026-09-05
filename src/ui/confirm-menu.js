@@ -1,8 +1,20 @@
 /**
  * Interactive Security Confirmation Dialog (Human-In-The-Loop)
  *
- * Renders a rich, keyboard-navigable confirmation box when the SecurityGuard
- * intercepts a risky action. Follows the same raw-mode pattern as model-menu.js.
+ * Renders a lightweight, borderless keyboard-navigable confirmation prompt
+ * when the SecurityGuard intercepts a risky action.
+ *
+ * Format:
+ *   AI ingin menjalankan perintah shell yang mungkin berisiko:
+ *
+ *   <command>
+ *
+ *   Apakah anda mengizinkannya?
+ *
+ *     1. Iya - Izinkan dan jalankan
+ *   ▸ 2. Tolak - Batalkan tindakan
+ *
+ *   [↑/↓]: Navigasi  [Enter]: Pilih  [1/2]: Cepat  [Esc]: Tolak
  *
  * Navigation:
  *   ↑ / k           — move cursor up
@@ -19,178 +31,78 @@
 import readline from 'node:readline';
 import { ansi } from '../utils/ansi.js';
 
-/** @type {(s: string) => number} strip ANSI then measure visible length */
-const visibleLen = (s) => s.replace(/\x1b\[[0-9;]*m/g, '').length;
-
-/**
- * Pad or truncate a string to an exact visible character width.
- * @param {string} s
- * @param {number} width
- * @returns {string}
- */
-function padRight(s, width) {
-  const vl = visibleLen(s);
-  if (vl >= width) return s;
-  return s + ' '.repeat(width - vl);
-}
-
-/**
- * Word-wrap a plain string to fit within `maxWidth` characters per line.
- * @param {string} text
- * @param {number} maxWidth
- * @returns {string[]}
- */
-function wordWrap(text, maxWidth) {
-  if (!text) return [''];
-  const words = text.split(' ');
-  const lines = [];
-  let current = '';
-  for (const word of words) {
-    if (current.length === 0) {
-      current = word;
-    } else if (current.length + 1 + word.length <= maxWidth) {
-      current += ' ' + word;
-    } else {
-      lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines.length ? lines : [''];
-}
-
-const MENU_OPTIONS = [
+export const MENU_OPTIONS = [
   {
     index: 0,
     shortLabel: '1. Iya',
-    fullLabel: 'Iya  — Izinkan & jalankan tindakan ini',
+    label: '1. Iya - Izinkan dan jalankan',
     value: true,
     color: (s) => ansi.green(s),
-    icon: '✔',
   },
   {
     index: 1,
     shortLabel: '2. Tolak',
-    fullLabel: 'Tolak — Batalkan tindakan ini (Aman)',
+    label: '2. Tolak - Batalkan tindakan',
     value: false,
     color: (s) => ansi.red(s),
-    icon: '✖',
   },
 ];
 
-const DEFAULT_SELECTED = 1; // Default: cursor di "Tolak" (aman)
+export const DEFAULT_SELECTED = 1; // Default: cursor di "Tolak" (aman)
 
 /**
- * Render satu frame penuh dialog ke output stream.
+ * Bangun baris-baris teks dialog tanpa border.
  *
  * @param {object} params
- * @param {string} params.title
  * @param {string} params.description
  * @param {string} [params.target]
  * @param {string} params.question
- * @param {number} params.selected  — index opsi yang sedang dipilih (0 atau 1)
- * @param {NodeJS.WritableStream} params.output
+ * @param {number} params.selected
+ * @returns {string[]}
  */
-function renderDialog({ title, description, target, question, selected, output }) {
-  const INNER_W = 58; // lebar konten di dalam kotak (tanpa border)
-  const PAD = ' '; // padding kiri/kanan 1 spasi
+export function buildDialogLines({ description, target, question, selected }) {
+  const lines = [];
 
-  const col = ansi.yellow;
-  const border = {
-    tl: '╭', tr: '╮',
-    bl: '╰', br: '╯',
-    h: '─', v: '│',
-  };
+  // Baris deskripsi
+  lines.push(ansi.bold(ansi.yellow(description)));
 
-  const line = (content = '') => {
-    const filled = padRight(PAD + content, INNER_W + 1) + PAD;
-    return `${col(border.v)}${filled}${col(border.v)}`;
-  };
-
-  const divider = () =>
-    `${col('├')}${col(border.h.repeat(INNER_W + 2))}${col('┤')}`;
-
-  const topBar = `${col(border.tl)}${col(border.h.repeat(INNER_W + 2))}${col(border.tr)}`;
-  const botBar = `${col(border.bl)}${col(border.h.repeat(INNER_W + 2))}${col(border.br)}`;
-
-  const rows = [];
-
-  // ── Judul ──────────────────────────────────────────────────────────────────
-  rows.push(topBar);
-  const titleStr = ansi.bold(ansi.yellow('⚠  PERINGATAN KEAMANAN'));
-  rows.push(line(titleStr));
-  if (title) {
-    rows.push(line(ansi.dim(title)));
-  }
-  rows.push(divider());
-
-  // ── Deskripsi ──────────────────────────────────────────────────────────────
-  rows.push(line());
-  const descLines = wordWrap(description, INNER_W - 2);
-  for (const dl of descLines) {
-    rows.push(line(ansi.white(dl)));
-  }
-
-  // ── Perintah / Target ──────────────────────────────────────────────────────
-  if (target) {
-    rows.push(line());
-    rows.push(line(ansi.dim('┄ Perintah ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄')));
-    // Potong dan wrap baris-baris command target
+  // Baris target / perintah (jika ada)
+  if (target && target.trim()) {
+    lines.push('');
     const targetLines = target.split('\n');
     for (const tl of targetLines) {
-      const wrapped = wordWrap(tl.trim(), INNER_W - 4);
-      for (const wl of wrapped) {
-        rows.push(line(`  ${ansi.cyan(wl)}`));
-      }
+      lines.push(`  ${ansi.cyan(tl)}`);
     }
-    rows.push(line(ansi.dim('┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄')));
   }
 
-  // ── Pertanyaan ─────────────────────────────────────────────────────────────
-  rows.push(line());
-  rows.push(line(ansi.bold(ansi.white(question))));
-  rows.push(line());
+  // Baris pertanyaan
+  lines.push('');
+  lines.push(ansi.bold(ansi.white(question)));
+  lines.push('');
 
-  // ── Opsi Pilihan ───────────────────────────────────────────────────────────
+  // Baris opsi pilihan
   for (const opt of MENU_OPTIONS) {
     const isSelected = opt.index === selected;
-    const cursor = isSelected ? ansi.bold(ansi.yellow('▸')) : ' ';
+    const cursor = isSelected ? ansi.bold(ansi.yellow('▸ ')) : '  ';
     const label = isSelected
-      ? ansi.bold(opt.color(`[${opt.shortLabel}]  ${opt.fullLabel.split('—')[1]?.trim() || ''}`.trim()))
-      : ansi.dim(`  ${opt.fullLabel}`);
-    rows.push(line(`  ${cursor} ${label}`));
+      ? ansi.bold(opt.color(opt.label))
+      : ansi.dim(opt.label);
+    lines.push(`${cursor}${label}`);
   }
 
-  // ── Petunjuk navigasi ──────────────────────────────────────────────────────
-  rows.push(line());
-  rows.push(divider());
-  rows.push(
-    line(ansi.dim('↑/↓ pilih  •  Enter konfirmasi  •  Esc/Ctrl+C tolak')),
-  );
-  rows.push(botBar);
+  // Baris petunjuk navigasi
+  lines.push('');
+  lines.push(ansi.dim('[↑/↓]: Navigasi  [Enter]: Pilih  [1/2]: Cepat  [Esc]: Tolak'));
 
-  // Tulis ke output (hapus layar lalu tulis frame baru)
-  output.write('\x1b[?25l'); // sembunyikan kursor
-  output.write('\x1b[H\x1b[2J'); // clear screen
-  output.write('\n' + rows.join('\n') + '\n');
+  return lines;
 }
 
 /**
- * Bersihkan dialog dari layar dan kembalikan kursor.
- *
- * @param {NodeJS.WritableStream} output
- */
-function clearDialog(output) {
-  output.write('\x1b[?25h'); // tampilkan kursor
-  output.write('\x1b[H\x1b[2J'); // clear screen
-}
-
-/**
- * Tampilkan dialog konfirmasi keamanan interaktif.
+ * Tampilkan dialog konfirmasi keamanan interaktif tanpa border.
  *
  * @param {object} options
- * @param {string} [options.title='']           - Sub-judul konteks tindakan
- * @param {string} options.description          - Penjelasan manusiawi tindakan AI
+ * @param {string} [options.title='']           - Sub-judul konteks tindakan (opsional)
+ * @param {string} options.description          - Penjelasan singkat tindakan AI
  * @param {string} [options.target]             - Perintah / path / URL yang akan dieksekusi
  * @param {string} [options.question]           - Pertanyaan ke pengguna
  * @param {NodeJS.ReadableStream} [options.input=process.stdin]
@@ -201,10 +113,10 @@ function clearDialog(output) {
 export function showConfirmDialog(options = {}) {
   const input = options.input || process.stdin;
   const output = options.output || process.stdout;
-  const title = options.title || '';
-  const description = options.description || 'AI ingin melakukan tindakan yang memerlukan konfirmasi Anda.';
+  const description =
+    options.description || 'AI ingin menjalankan tindakan yang memerlukan konfirmasi:';
   const target = options.target || '';
-  const question = options.question || 'Apakah Anda mengizinkan tindakan ini?';
+  const question = options.question || 'Apakah anda mengizinkannya?';
 
   // Deteksi TTY; non-TTY langsung auto-deny (aman)
   const isTTY = Boolean(input?.isTTY && output?.isTTY);
@@ -218,6 +130,33 @@ export function showConfirmDialog(options = {}) {
     }
 
     let selected = DEFAULT_SELECTED;
+    let renderedLineCount = 0;
+
+    function render() {
+      const lines = buildDialogLines({ description, target, question, selected });
+      const frame = lines.join('\n');
+
+      output.write('\x1b[?25l'); // Sembunyikan kursor saat menu aktif
+
+      if (renderedLineCount > 0) {
+        readline.cursorTo(output, 0);
+        readline.moveCursor(output, 0, -renderedLineCount);
+        output.write('\x1b[J'); // Hapus dari kursor ke bawah
+      }
+
+      output.write(frame + '\n');
+      renderedLineCount = lines.length;
+    }
+
+    function clear() {
+      output.write('\x1b[?25h'); // Kembalikan kursor
+      if (renderedLineCount > 0) {
+        readline.cursorTo(output, 0);
+        readline.moveCursor(output, 0, -renderedLineCount);
+        output.write('\x1b[J');
+        renderedLineCount = 0;
+      }
+    }
 
     if (typeof input.setRawMode === 'function') {
       try { input.setRawMode(true); } catch (_) { /* ignore */ }
@@ -271,10 +210,6 @@ export function showConfirmDialog(options = {}) {
 
     const onClose = () => done(false);
 
-    function render() {
-      renderDialog({ title, description, target, question, selected, output });
-    }
-
     function done(value) {
       try { input.removeListener('keypress', keypressHandler); } catch (_) {}
       try { input.removeListener('close', onClose); } catch (_) {}
@@ -286,7 +221,7 @@ export function showConfirmDialog(options = {}) {
       try {
         if (typeof input.pause === 'function') input.pause();
       } catch (_) {}
-      clearDialog(output);
+      clear();
       resolve(value);
     }
 
