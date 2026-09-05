@@ -3,6 +3,7 @@
  */
 
 import { executeCommandTool } from './execute_command.js';
+import { grepFileTool } from './grep_file.js';
 import { listDirTool } from './list_dir.js';
 import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
@@ -17,6 +18,7 @@ export const TOOLS_MAP = {
   patch_file: patchFileTool,
   list_dir: listDirTool,
   execute_command: executeCommandTool,
+  grep_file: grepFileTool,
 };
 
 /**
@@ -141,6 +143,31 @@ export const TOOL_DECLARATIONS = [
       required: ['command'],
     },
   },
+  {
+    name: 'grep_file',
+    description:
+      'Search file contents with a JavaScript regex across the workspace. Skips .git, node_modules and binary files. Returns file, line number and line text per match.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        pattern: {
+          type: 'STRING',
+          description: 'JavaScript regex source, e.g. "function\\s+\\w+"',
+        },
+        dirPath: {
+          type: 'STRING',
+          description: 'Directory to search (default "." = workspace root)',
+        },
+        glob: { type: 'STRING', description: 'Optional file filter glob, e.g. "src/*.js"' },
+        caseSensitive: { type: 'BOOLEAN', description: 'Case-sensitive matching (default false)' },
+        maxResults: {
+          type: 'INTEGER',
+          description: 'Maximum matches to return (default 100, max 1000)',
+        },
+      },
+      required: ['pattern'],
+    },
+  },
 ];
 
 /**
@@ -222,6 +249,10 @@ export const TOOL_ARG_ALIASES = {
   ],
   list_dir: [{ target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' }],
   execute_command: [{ target: 'command', aliases: ['cmd', 'script', 'exec'] }],
+  grep_file: [
+    { target: 'pattern', aliases: ['query', 'regex', 'search', 'searchString', 'text'] },
+    { target: 'dirPath', aliases: ['path', 'dir', 'directory', 'folder'], fallback: '.' },
+  ],
 };
 
 /**

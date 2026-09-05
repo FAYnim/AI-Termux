@@ -241,7 +241,9 @@ export class SecurityGuard {
         return { allowed: true, resolvedPath: pathValidation.resolvedPath };
       }
 
-      case 'list_dir': {
+      case 'list_dir':
+      case 'grep_file':
+      case 'search_files': {
         const dirPath = args.dirPath || '.';
         const pathValidation = validateSafePath(dirPath, this.baseDir, this._pathOptions());
 

@@ -290,7 +290,7 @@ describe('grep_file tool', () => {
   });
 
   test('regex pattern works', async () => {
-    const res = await grepFileTool({ pattern: 'w.ld' }, { baseDir: dir });
+    const res = await grepFileTool({ pattern: 'w.rld' }, { baseDir: dir });
     assert.equal(res.matches.length, 1);
     assert.equal(res.matches[0].file.split(path.sep).join('/'), 'a.txt');
     assert.equal(res.matches[0].line, 1);
@@ -373,6 +373,12 @@ import { globToRegExp } from '../utils/glob.js';
 
 const MAX_LINE_PREVIEW = 500;
 
+/** A glob without "/" matches basenames at any depth (same rule as search_files). */
+function anchoredGlob(glob) {
+  const normalized = String(glob).split(path.sep).join('/');
+  return normalized.includes('/') ? normalized : `**/${normalized}`;
+}
+
 /**
  * @param {object} args
  * @param {string} args.pattern - JavaScript regex source
@@ -397,7 +403,7 @@ export async function grepFileTool(args = {}, context = {}) {
     throw new Error(`Invalid regex pattern "${pattern}": ${err.message}`);
   }
 
-  const globRe = glob ? globToRegExp(String(glob)) : null;
+  const globRe = glob ? globToRegExp(anchoredGlob(glob)) : null;
   const resolvedBase = path.resolve(context.baseDir || process.cwd(), dirPath);
   const limit = Math.max(1, Math.min(Number(maxResults) || 100, 1000));
   const maxFileBytes = context.maxReadSizeBytes || DEFAULT_SECURITY_CONFIG.maxReadSizeBytes;
