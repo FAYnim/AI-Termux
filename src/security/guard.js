@@ -337,6 +337,21 @@ export class SecurityGuard {
         return { allowed: true };
       }
 
+      case 'web_search': {
+        if (!args.query || typeof args.query !== 'string') {
+          return { allowed: false, reason: 'Search query must be a non-empty string.' };
+        }
+        if (!this.autoApprove) {
+          const confirmed = await this.promptConfirmation(
+            `AI wants to search the web for:\n  ${args.query}\nProceed?`,
+          );
+          if (!confirmed) {
+            return { allowed: false, reason: `User rejected web search for "${args.query}".` };
+          }
+        }
+        return { allowed: true };
+      }
+
       default:
         return { allowed: true };
     }

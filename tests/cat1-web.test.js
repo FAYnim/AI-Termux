@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 import { SecurityGuard } from '../src/security/guard.js';
 import { dispatchToolCall } from '../src/tools/registry.js';
 import { webFetchTool } from '../src/tools/web_fetch.js';
+import { webSearchTool } from '../src/tools/web_search.js';
 import { decodeEntities, stripHtml } from '../src/utils/html.js';
 
 /** Minimal Response-like object accepted by webFetchTool's fetch contract. */
@@ -103,5 +104,68 @@ describe('web_fetch tool', () => {
       { securityGuard: guard },
     );
     assert.equal(out.error, true);
+  });
+});
+
+describe('web_search tool', () => {
+  const liteHtml = `
+    <html><body><table>
+      <tr><td><a rel="nofollow" href="https://nodejs.org/api.html">Node.js docs</a></td></tr>
+      <tr><td>Official Node.js documentation site.</td></tr>
+      <tr><td><a rel="nofollow" href="https://expressjs.com/">Express</a></td></tr>
+      <tr><td>Fast web framework for Node.</td></tr>
+    </table></body></html>`;
+
+  test('parses DDG Lite results', async () => {
+    const fetchStub = async (url) => {
+      assert.ok(String(url).includes('q=node%20test') || String(url).includes('q=node+test'));
+      return fakeResponse({ body: liteHtml, contentType: 'text/html' });
+    };
+    const res = await webSearchTool({ query: 'node test' }, { fetch: fetchStub });
+    assert.equal(res.results.length, 2);
+    assert.equal(res.results[0].title, 'Node.js docs');
+    assert.equal(res.results[0].url, 'https://nodejs.org/api.html');
+    assert.ok(res.results[0].snippet.includes('Official'));
+  });
+
+  test('empty result set is not an error', async () => {
+    const fetchStub = async () => fakeResponse({ body: '<html><body>No results</body></html>' });
+    const res = await webSearchTool({ query: 'zzz' }, { fetch: fetchStub });
+    assert.deepEqual(res.results, []);
+  });
+
+  test('missing query throws', async () => {
+    await assert.rejects(
+      () => webSearchTool({}, { fetch: async () => fakeResponse({}) }),
+      /query/,
+    );
+  });
+
+  test('registered and dispatchable', async () => {
+    const out = await dispatchToolCall(
+      'web_search',
+      { query: 'x' },
+      { fetch: async () => fakeResponse({ body: liteHtml }) },
+    );
+    assert.equal(out.success, true);
+    assert.equal(out.result.results.length, 2);
+  });
+
+  test('guard prompts before searching', async () => {
+    let prompted = false;
+    const guard = new SecurityGuard({
+      baseDir: process.cwd(),
+      confirmationHandler: async () => {
+        prompted = true;
+        return true;
+      },
+    });
+    const out = await dispatchToolCall(
+      'web_search',
+      { query: 'hello' },
+      { securityGuard: guard, fetch: async () => fakeResponse({ body: '' }) },
+    );
+    assert.equal(out.success, true);
+    assert.ok(prompted);
   });
 });

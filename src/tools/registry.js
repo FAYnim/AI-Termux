@@ -10,6 +10,7 @@ import { patchFileTool } from './patch_file.js';
 import { readFileTool } from './read_file.js';
 import { searchFilesTool } from './search_files.js';
 import { webFetchTool } from './web_fetch.js';
+import { webSearchTool } from './web_search.js';
 import { writeFileTool } from './write_file.js';
 
 /**
@@ -27,6 +28,7 @@ export const TOOLS_MAP = {
   git_diff: gitDiffTool,
   git_add_commit: gitAddCommitTool,
   web_fetch: webFetchTool,
+  web_search: webSearchTool,
 };
 
 /**
@@ -250,6 +252,20 @@ export const TOOL_DECLARATIONS = [
       required: ['url'],
     },
   },
+  {
+    name: 'web_search',
+    description:
+      'Search the web (DuckDuckGo Lite by default; SearXNG if configured). Returns ranked titles, URLs and snippets. Requires user confirmation.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+        maxResults: { type: 'INTEGER', description: 'Max results (default 8, max 20)' },
+        engine: { type: 'STRING', description: '"duckduckgo" (default) or "searxng"' },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -350,6 +366,7 @@ export const TOOL_ARG_ALIASES = {
     { target: 'workingDir', aliases: ['path', 'dir', 'cwd'], fallback: '.' },
   ],
   web_fetch: [{ target: 'url', aliases: ['href', 'link', 'uri', 'target'] }],
+  web_search: [{ target: 'query', aliases: ['q', 'search', 'searchQuery', 'keywords'] }],
 };
 
 /**
