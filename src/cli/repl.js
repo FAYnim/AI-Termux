@@ -15,6 +15,7 @@ import { createSpinner } from '../ui/spinner.js';
 import { createThoughtDisplay } from '../ui/thought-display.js';
 import { buildShortcutOverlay } from '../ui/shortcut-overlay.js';
 import { deriveQuickFixes, renderQuickFixBar } from '../ui/quick-fix.js';
+import { buildPrompt } from '../ui/history-indicator.js';
 import { ansi } from '../utils/ansi.js';
 import { logger as defaultLogger } from '../utils/logger.js';
 import { findProjectRoot } from '../utils/project.js';
@@ -107,6 +108,7 @@ export async function startRepl(options = {}) {
   let isClosing = false;
   let _wizardActive = false; // true while a sub-readline wizard owns stdin
   let lastIterations = 0;
+  let turnCount = 0;
 
   // Ctrl+C while a turn is running aborts it. While idle, the prompt editor
   // owns raw mode and routes Ctrl+C to handleCtrlC below instead.
@@ -155,7 +157,7 @@ export async function startRepl(options = {}) {
     const rawInput = await promptLine({
       input,
       output,
-      prompt: REPL_PROMPT,
+      prompt: buildPrompt({ appName: APP_NAME, turn: turnCount }),
       getSuggestions: promptSuggestions,
       onCtrlC: handleCtrlC,
     });
@@ -297,6 +299,7 @@ export async function startRepl(options = {}) {
       activeSpinner = null;
     }
     printStatusLine();
+    turnCount++;
   }
 
   process.removeListener('SIGINT', onProcessSigint);

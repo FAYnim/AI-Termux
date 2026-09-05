@@ -12,3 +12,4 @@ export * from './thought-display.js';
 export * from './shortcut-overlay.js';
 export * from './diff-preview.js';
 export * from './quick-fix.js';
+export * from './history-indicator.js';
